@@ -53,6 +53,8 @@ scaffold() {  # scaffold <relative-target> <template-source>
 }
 
 echo "scaffolding lab layout"
+scaffold README.md                   templates/README.lab.md
+scaffold QUESTIONS.md                templates/QUESTIONS.md
 scaffold lab.json                    templates/lab.json
 scaffold Makefile                    templates/Makefile.lab
 scaffold CLAUDE.md                   templates/CLAUDE.md

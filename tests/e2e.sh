@@ -11,7 +11,7 @@ LAB="$TMP/lab"
 echo "--- install ---"
 bash "$KIT/install.sh" "$LAB" --name "Scratch Lab" --port 5399 >/dev/null
 
-for f in lab.json Makefile CLAUDE.md ops/STATE.md record/findings.md record/claims.md kit/PIN; do
+for f in lab.json Makefile CLAUDE.md README.md QUESTIONS.md ops/STATE.md record/findings.md record/claims.md kit/PIN; do
   [ -e "$LAB/$f" ] || { echo "e2e: install did not create $f" >&2; exit 1; }
 done
 [ -L "$LAB/.claude/skills/mission" ] || { echo "e2e: skills not symlinked" >&2; exit 1; }
