@@ -21,7 +21,8 @@ all -- each artifact cites a finding id, and this tool checks the joints:
   H4  every `## C-<n>` in record/claims.md cites at least one finding
   H5  every record/ops/paper document declares a status in its opening lines
   H6  no markdown/HTML twin of the same authored document
-  H7  every cross-lab `<pin>:F-<n>` citation names a declared pin
+  H7  every cross-lab `<pin>:F-<n>` citation names a declared pin, and resolves to a
+      real row in that lab when its checkout is reachable
 
   S1  no dangling internal /<content>/... link                        (soft)
   S2  no result-shaped number in a section that cites no finding       (soft)
@@ -105,6 +106,7 @@ class Lab:
     # Point the gate at the real file, move it later, on purpose.
     findings_rel: str = "record/findings.md"
     claims_rel: str = "record/claims.md"
+    _pin_ids_cache: dict = field(default_factory=dict)
 
     @property
     def findings_path(self) -> Path:
@@ -273,18 +275,59 @@ def _cited_files(lab: Lab) -> list[Path]:
     return [p for p in out if p.resolve() not in skip]
 
 
+def _pinned_lab_ids(lab: Lab, pin: str) -> set[str] | None:
+    """Finding ids declared by a pinned lab, if its checkout is reachable from here.
+
+    Returns None when the pin declares no `local` path, or that path is not on this
+    machine — a pinned lab is external by definition and may simply not be checked out.
+    """
+    if pin in lab._pin_ids_cache:
+        return lab._pin_ids_cache[pin]
+    spec = lab.pins.get(pin)
+    result: set[str] | None = None
+    local = (spec or {}).get("local") if isinstance(spec, dict) else None
+    if local:
+        root = (lab.root / local).resolve()
+        if root.is_dir():
+            try:
+                other = load_lab(root)
+                check_findings(other)
+                result = set(other.findings)
+            except Exception:
+                result = None
+    lab._pin_ids_cache[pin] = result
+    return result
+
+
 def check_pins(lab: Lab, path: Path, text: str) -> list[Problem]:
-    """H7 — a cross-lab citation names a pin the lab actually declares."""
+    """H7 — a cross-lab citation names a declared pin, and resolves in that lab.
+
+    The second half matters more than it looks. A `<pin>:F-<n>` that names a declared pin
+    but no real row is invisible to every other check: it is not a local id, so H3 skips
+    it, and the pin exists, so the first half passes. That is exactly how seven citations
+    to non-existent rows survived a by-question split — a `§n` rewrite had turned prose
+    line references (`§207-249`) into finding citations, and nothing looked.
+    """
     probs: list[Problem] = []
     for m in PINNED_ID.finditer(text):
-        pin = m.group(1)
+        pin, ident = m.group(1), m.group(2)
+        line = text.count("\n", 0, m.start()) + 1
         if pin not in lab.pins:
-            line = text.count("\n", 0, m.start()) + 1
             probs.append(
                 Problem(
                     f"{_rel(lab, path)}:{line}",
                     f"cites {m.group(0)}, but pin '{pin}' is not declared in record/pins.json "
                     "— a cross-lab citation must name the repo and commit it resolves against",
+                )
+            )
+            continue
+        known = _pinned_lab_ids(lab, pin)
+        if known is not None and ident not in known:
+            probs.append(
+                Problem(
+                    f"{_rel(lab, path)}:{line}",
+                    f"cites {m.group(0)}, but '{pin}' declares no {ident} "
+                    f"({lab.pins[pin].get('local')}) — the citation resolves to nothing",
                 )
             )
     return probs
@@ -672,6 +715,28 @@ Detail.
                not any("numbers.md" in q.where and "cites" in q.message for q in probs),
                "the ledger was treated as a document citing itself")
 
+        # A cross-lab citation that names a declared pin but no real row. This is the case
+        # that slipped through in production: the pin exists, so the old H7 passed.
+        sib = _plant(tmp / "s1", GOOD_FINDINGS, {})
+        ghost = _plant(tmp / "s2", GOOD_FINDINGS, {
+            "record/pins.json": json.dumps({"sib": {"repo": "x", "sha": "y", "local": "../../s1/lab"}}),
+            "content/notes/x.md": "# Note — LIVE\n\nRests on sib:F-1 and on sib:F-404.\n",
+        })
+        msgs = " ".join(q.message for q in run(ghost) if q.hard)
+        expect("pin-row-missing", "declares no F-404" in msgs,
+               f"a pinned citation to a non-existent row was not caught: {msgs}")
+        expect("pin-row-present", "declares no F-1" not in msgs,
+               "a valid pinned citation was wrongly flagged")
+
+        # A pin whose checkout is not on this machine cannot be validated, and must not fail.
+        away = _plant(tmp / "s3", GOOD_FINDINGS, {
+            "record/pins.json": json.dumps({"sib": {"repo": "x", "sha": "y", "local": "../nope"}}),
+            "content/notes/x.md": "# Note — LIVE\n\nRests on sib:F-404.\n",
+        })
+        hard = [q.render() for q in run(away) if q.hard]
+        expect("pin-unreachable", not hard,
+               f"an unreachable pin was treated as a failure: {hard}")
+
         # A row relocated to another lab by a by-question split.
         movedrow = _plant(tmp / "r3", GOOD_FINDINGS + """
 ## F-9 · A row that now lives in another lab
@@ -696,7 +761,7 @@ Pointer only: this row holds no numbers.
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("ladder_lint selftest ok (24 planted cases)")
+    print("ladder_lint selftest ok (27 planted cases)")
     return 0
 
 

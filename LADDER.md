@@ -29,7 +29,7 @@ Non-promotion is recorded too. A triage nobody can audit gets re-litigated in th
 
 - every `F-<n>` carries Status, Anchor and Re-derive — status is one of BANKED · PROVISIONAL · RETRACTED · SUPERSEDED · **MOVED**, the last for a row a by-question split relocated to another lab (correct, not superseded, and not wrong)
 - every anchor resolves to real evidence, or to a pin declared in `record/pins.json` — this is what makes a cited repo renamable: the path lives in one declaration, not in every row
-- every cited `F-<n>` exists
+- every cited `F-<n>` exists — including cross-lab `<pin>:F-<n>`, checked against the pinned lab itself whenever its `local` checkout is reachable. A citation that names a real pin but no real row is otherwise invisible to every other check
 - every `C-<n>` cites at least one finding
 - every record, ops and paper document declares its status
 - no markdown/HTML twin of the same authored document
