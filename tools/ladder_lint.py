@@ -217,7 +217,7 @@ def check_findings(lab: Lab) -> list[Problem]:
         if missing:
             probs.append(
                 Problem(
-                    f"record/findings.md:{line}",
+                    f"{rel}:{line}",
                     f"{ident} has no " + ", ".join(f"**{f}:**" for f in missing) + " field"
                     + ("s" if len(missing) > 1 else ""),
                 )
@@ -227,7 +227,7 @@ def check_findings(lab: Lab) -> list[Problem]:
         if status and not any(w in status.upper() for w in STATUS_WORDS):
             probs.append(
                 Problem(
-                    f"record/findings.md:{line}",
+                    f"{rel}:{line}",
                     f"{ident} status {status!r} is none of {sorted(STATUS_WORDS)}",
                 )
             )
@@ -236,7 +236,7 @@ def check_findings(lab: Lab) -> list[Problem]:
             if not _anchor_ok(lab, anchor):
                 probs.append(
                     Problem(
-                        f"record/findings.md:{line}",
+                        f"{rel}:{line}",
                         f"{ident} anchor `{anchor}` does not resolve "
                         "(no such path, and no matching pin in record/pins.json)",
                     )
@@ -244,7 +244,7 @@ def check_findings(lab: Lab) -> list[Problem]:
         if "Re-derive" in fields and not BACKTICKED.search(fields["Re-derive"]):
             probs.append(
                 Problem(
-                    f"record/findings.md:{line}",
+                    f"{rel}:{line}",
                     f"{ident} re-derivation is not a backticked command",
                 )
             )
