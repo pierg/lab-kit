@@ -24,6 +24,18 @@ That matters because ~3,200 `§n` references exist across the four repos. Rewrit
 
 The one real gap, and it is the same gap in every section: **anchors and re-derivation commands live inside tables and prose, not as structured fields.** The information is all there — every row already carries "anchor · re-derive" — it just is not in a place a tool can check.
 
+### Point the gate at the ledger you already have
+
+The convention is `record/findings.md`, and it stays the default. But a migrating repo usually holds its ledger somewhere else with live by-path references into it, and making the file move a *precondition* for running the gate is how a migration gets abandoned. So `lab.json` takes an optional path:
+
+```json
+{ "citation_alias": "section", "findings": "docs/papers/proofs-rot/numbers.md" }
+```
+
+`claims` works the same way. The gate then reads the real file, and the ledger's own directory is scanned for citing documents so the lab loses no coverage by not having moved `record/` yet. Move the file later, deliberately, as its own change — not as the price of admission.
+
+### Hoist the fields
+
 So for each finding, hoist three fields to the top of its section:
 
 ```markdown

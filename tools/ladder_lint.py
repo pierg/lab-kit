@@ -93,6 +93,22 @@ class Lab:
     findings: dict[str, int] = field(default_factory=dict)  # id -> line number
     pins: dict[str, str] = field(default_factory=dict)
     alias: bool = False  # accept "§n" as a citation of F-n
+    # Where this lab keeps its ledgers. The convention is record/findings.md and
+    # record/claims.md, and that stays the default. A lab migrating onto the ladder
+    # may already hold its ledger somewhere else with hundreds of live by-path
+    # references into it (design-space-lab: docs/papers/proofs-rot/numbers.md); making
+    # it move the file before the gate will run is how a migration gets abandoned.
+    # Point the gate at the real file, move it later, on purpose.
+    findings_rel: str = "record/findings.md"
+    claims_rel: str = "record/claims.md"
+
+    @property
+    def findings_path(self) -> Path:
+        return self.root / self.findings_rel
+
+    @property
+    def claims_path(self) -> Path:
+        return self.root / self.claims_rel
 
     def cites(self, text: str) -> list[tuple[str, int, bool]]:
         """Every finding id referenced in `text`, as (id, offset, canonical).
@@ -181,18 +197,19 @@ def _anchor_ok(lab: Lab, target: str) -> bool:
 def check_findings(lab: Lab) -> list[Problem]:
     """H1 + H2 — findings are well-formed and their evidence is reachable."""
     probs: list[Problem] = []
-    path = lab.root / "record" / "findings.md"
+    path = lab.findings_path
+    rel = lab.findings_rel
     if not path.is_file():
-        return [Problem("record/findings.md", "missing — the lab has no findings ledger")]
+        return [Problem(rel, "missing — the lab has no findings ledger")]
 
     text = path.read_text(encoding="utf-8", errors="replace")
     sections = lab.heads(text)
     if not sections:
-        probs.append(Problem("record/findings.md", "no `## F-<n>` sections found", hard=False))
+        probs.append(Problem(rel, "no `## F-<n>` sections found", hard=False))
 
     for ident, body, line in sections:
         if ident in lab.findings:
-            probs.append(Problem(f"record/findings.md:{line}", f"duplicate finding id {ident}"))
+            probs.append(Problem(f"{rel}:{line}", f"duplicate finding id {ident}"))
         lab.findings[ident] = line
 
         fields = {m.group(1): m.group(2).strip() for m in FIELD.finditer(body)}
@@ -240,12 +257,16 @@ def _cited_files(lab: Lab) -> list[Path]:
         (lab.content, ("**/*.html", "**/*.md", "**/*.tex")),
         (lab.root / "record", ("*.md",)),
         (lab.root / "ops", ("**/*.md",)),
+        # A relocated ledger's neighbours are authored documents too — they are the
+        # ones most likely to cite it, so a lab does not lose coverage by not having
+        # moved its record/ yet.
+        (lab.findings_path.parent, ("*.md", "*.tex")),
     ):
         if base.is_dir():
             for pat in patterns:
                 out.extend(sorted(base.glob(pat)))
-    findings = lab.root / "record" / "findings.md"
-    return [p for p in out if p.resolve() != findings.resolve()]
+    skip = {p.resolve() for p in (lab.findings_path, lab.claims_path) if p.is_file()}
+    return [p for p in out if p.resolve() not in skip]
 
 
 def check_pins(lab: Lab, path: Path, text: str) -> list[Problem]:
@@ -292,7 +313,7 @@ def check_citations(lab: Lab) -> list[Problem]:
 
 def check_claims(lab: Lab) -> list[Problem]:
     """H4 — a claim is licensed by findings, not by assertion."""
-    path = lab.root / "record" / "claims.md"
+    path = lab.claims_path
     if not path.is_file():
         return []
     text = path.read_text(encoding="utf-8", errors="replace")
@@ -300,7 +321,7 @@ def check_claims(lab: Lab) -> list[Problem]:
     for ident, body, line in _sections(text, CLAIM_HEAD):
         if not lab.cites(body):
             probs.append(
-                Problem(f"record/claims.md:{line}", f"{ident} cites no finding — nothing licenses it")
+                Problem(f"{lab.claims_rel}:{line}", f"{ident} cites no finding — nothing licenses it")
             )
     return probs
 
@@ -409,6 +430,8 @@ def load_lab(root: Path) -> Lab:
         root=root.resolve(),
         content=(root / cfg["content"]).resolve(),
         alias=cfg.get("citation_alias") == "section",
+        findings_rel=cfg.get("findings", "record/findings.md"),
+        claims_rel=cfg.get("claims", "record/claims.md"),
     )
     pins = root / "record" / "pins.json"
     if pins.is_file():
@@ -469,6 +492,13 @@ def _plant(tmp: Path, findings: str, extra: dict[str, str], cfg: dict | None = N
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(body, encoding="utf-8")
     return root
+
+
+def moved_ids(root: Path) -> set[str]:
+    """Finding ids the gate actually read for a lab, whatever path its ledger is on."""
+    lab = load_lab(root)
+    check_findings(lab)
+    return set(lab.findings)
 
 
 def selftest() -> int:
@@ -620,12 +650,37 @@ Detail.
         hard = [q.render() for q in run(subid) if q.hard]
         expect("sub-id", not hard, f"sub-numbered id not resolved: {hard}")
 
+        # A lab whose ledger has not moved to record/findings.md yet: point the gate
+        # at the real file via lab.json rather than making the move a precondition.
+        moved = _plant(tmp / "r1", "unused\n", {
+            "docs/papers/numbers.md": GOOD_FINDINGS,
+            "docs/papers/neighbour.md": "# Neighbour — LIVE\n\nRests on F-1.\n",
+        }, cfg={"findings": "docs/papers/numbers.md"})
+        (moved / "record" / "findings.md").unlink()
+        probs = run(moved)
+        hard = [q.render() for q in probs if q.hard]
+        expect("relocated-ledger", not hard, f"relocated ledger not accepted: {hard}")
+        expect("relocated-ledger-read", "F-1" in moved_ids(moved),
+               "findings were not read from the configured path")
+        # The relocated ledger must not be linted as if it were an authored document
+        # citing itself, and its neighbours must still be scanned for citations.
+        expect("relocated-not-selfcited",
+               not any("numbers.md" in q.where and "cites" in q.message for q in probs),
+               "the ledger was treated as a document citing itself")
+
+        # Default stays the convention: no config, no relocation.
+        missing = _plant(tmp / "r2", GOOD_FINDINGS, {})
+        (missing / "record" / "findings.md").unlink()
+        msgs = " ".join(q.message for q in run(missing) if q.hard)
+        expect("default-path", "no findings ledger" in msgs,
+               "a lab with no ledger at the default path was not reported")
+
     if failures:
         print("ladder_lint selftest FAILED:")
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("ladder_lint selftest ok (19 planted cases)")
+    print("ladder_lint selftest ok (23 planted cases)")
     return 0
 
 
