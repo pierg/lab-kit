@@ -51,11 +51,15 @@ NUM = r"\d+(?:\.\d+)*"
 FINDING_ID = re.compile(rf"\bF-({NUM})\b")
 # A lab migrating off a "numbers.md §n" convention sets citation_alias="section"
 # in lab.json and keeps its existing citations; ids are still F-<n> canonically.
-SECTION_ID = re.compile(rf"§({NUM})\b")
+# Both the markdown "§12" and the LaTeX "\S12" spellings, plus "§§10-21" ranges.
+SECTION_ID = re.compile(rf"(?:§|\\S)({NUM})\b")
+SECTION_RANGE = re.compile(rf"(?:§§|\\S\\S)(\d+)\s*[-–—]\s*(\d+)")
 CLAIM_HEAD = re.compile(r"^##\s+(C-\d+(?:\.\d+)*)\b(.*)$", re.M)
 FINDING_HEAD = re.compile(rf"^#{{2,3}}\s+(F-{NUM})\b(.*)$", re.M)
 # numbers.md style: "## 12 · Title" / "### 21.1 · Title"
 SECTION_HEAD = re.compile(rf"^#{{2,3}}\s+({NUM})\s*[·.]\s*(.*)$", re.M)
+# Any numbered heading, however it is punctuated — used to spot self-reference.
+ANY_NUMBERED_HEAD = re.compile(rf"^#{{1,6}}\s+({NUM})\b", re.M)
 FIELD = re.compile(r"^\*\*(Status|Anchor|Re-derive)\:\*\*\s*(.+)$", re.M)
 BACKTICKED = re.compile(r"`([^`]+)`")
 STATUS_WORDS = {"BANKED", "PROVISIONAL", "RETRACTED", "SUPERSEDED"}
@@ -87,11 +91,39 @@ class Lab:
     pins: dict[str, str] = field(default_factory=dict)
     alias: bool = False  # accept "§n" as a citation of F-n
 
-    def cites(self, text: str) -> list[tuple[str, int]]:
-        """Every finding id referenced in `text`, as (canonical id, offset)."""
-        out = [(f"F-{m.group(1)}", m.start()) for m in FINDING_ID.finditer(text)]
-        if self.alias:
-            out += [(f"F-{m.group(1)}", m.start()) for m in SECTION_ID.finditer(text)]
+    def cites(self, text: str) -> list[tuple[str, int, bool]]:
+        """Every finding id referenced in `text`, as (id, offset, canonical).
+
+        `canonical` is True for an explicit `F-<n>`. Alias hits are marked False
+        because §-numbering is inherently ambiguous prose: the same "§4.5" may mean
+        a finding, this document's own section, or a section of a third document
+        ("folio overview §4.5" — a real line from the corpus this was measured on).
+        Two ambiguities are handled and the rest are reported softly:
+
+        - a reference to one of *this file's own* numbered headings is skipped, which
+          is how a human reads it;
+        - a range "§§10-21" expands to every id it covers.
+
+        An unresolved alias hit is therefore a warning, while an unresolved `F-<n>`
+        is an error. Full enforcement is what a lab buys by moving to canonical ids.
+        """
+        out = [(f"F-{m.group(1)}", m.start(), True) for m in FINDING_ID.finditer(text)]
+        if not self.alias:
+            return out
+
+        own = {m.group(1) for m in ANY_NUMBERED_HEAD.finditer(text)}
+        covered: set[int] = set()
+        for m in SECTION_RANGE.finditer(text):
+            lo, hi = int(m.group(1)), int(m.group(2))
+            covered.update(range(m.start(), m.end()))
+            if lo <= hi and hi - lo < 100:
+                out += [(f"F-{n}", m.start(), False) for n in range(lo, hi + 1)
+                        if str(n) not in own]
+        out += [
+            (f"F-{m.group(1)}", m.start(), False)
+            for m in SECTION_ID.finditer(text)
+            if m.group(1) not in own and m.start() not in covered
+        ]
         return out
 
     def heads(self, text: str) -> list[tuple[str, str, int]]:
@@ -211,12 +243,22 @@ def check_citations(lab: Lab) -> list[Problem]:
     probs: list[Problem] = []
     for path in _cited_files(lab):
         text = path.read_text(encoding="utf-8", errors="replace")
-        for ident, offset in lab.cites(text):
-            if ident not in lab.findings:
-                line = text.count("\n", 0, offset) + 1
-                probs.append(
-                    Problem(f"{_rel(lab, path)}:{line}", f"cites {ident}, which is not in findings.md")
+        seen: set[tuple[str, int]] = set()
+        for ident, offset, canonical in lab.cites(text):
+            if ident in lab.findings:
+                continue
+            line = text.count("\n", 0, offset) + 1
+            if (ident, line) in seen:
+                continue
+            seen.add((ident, line))
+            note = "" if canonical else " (§-alias — may be a reference to another document)"
+            probs.append(
+                Problem(
+                    f"{_rel(lab, path)}:{line}",
+                    f"cites {ident}, which is not in findings.md{note}",
+                    hard=canonical,
                 )
+            )
     return probs
 
 
@@ -493,6 +535,31 @@ Five of ten obligations false as stated.
         msgs = " ".join(q.message for q in run(strict_ids) if q.hard)
         expect("alias-off", "F-12" not in msgs, "alias leaked when not configured")
 
+        # A document's reference to its own numbered section is not a citation.
+        selfref = _plant(tmp / "m", legacy_findings, {
+            "record/claims.md": (
+                "# Claims — LIVE\n\n## 3 · Structure\n\n### 3.1 One paper\n\n"
+                "Rests on §12. Write it in the §3.1 shape.\n"
+            ),
+        }, cfg={"citation_alias": "section"})
+        allmsgs = " ".join(q.message for q in run(selfref))
+        expect("self-ref", "F-3.1" not in allmsgs, f"self-reference read as a citation: {allmsgs}")
+        expect("self-ref-keeps-real", "F-12" not in allmsgs, "a real §-citation was broken")
+
+        # LaTeX \S spelling and §§ ranges resolve; an alias miss is soft, not hard.
+        latex = _plant(tmp / "n", legacy_findings, {
+            "content/papers/r/main.tex": "% Report -- LIVE\nHarness rows (\\S12) and \\S21.1.\n",
+            "content/notes/rng.md": "# Note — LIVE\n\nBanked across §§12-12 inclusive.\n",
+            "content/notes/miss.md": "# Note — LIVE\n\nSee folio overview §77 for context.\n",
+        }, cfg={"citation_alias": "section"})
+        res = run(latex)
+        expect("latex", not [q for q in res if q.hard and "F-12" in q.message],
+               "LaTeX \\S12 not resolved against findings")
+        expect("alias-soft", any("F-77" in q.message and not q.hard for q in res),
+               "unresolved alias citation should warn, not error")
+        expect("alias-not-hard", not [q for q in res if q.hard and "F-77" in q.message],
+               "unresolved alias citation must not be a hard error")
+
         # Sub-numbered canonical ids resolve.
         subid = _plant(tmp / "k", GOOD_FINDINGS + """
 ## F-2.3 · A sub-numbered finding
@@ -510,7 +577,7 @@ Detail.
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("ladder_lint selftest ok (11 planted cases)")
+    print("ladder_lint selftest ok (16 planted cases)")
     return 0
 
 

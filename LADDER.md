@@ -34,6 +34,8 @@ Non-promotion is recorded too. A triage nobody can audit gets re-litigated in th
 - every record, ops and paper document declares its status
 - no markdown/HTML twin of the same authored document
 
+A lab arriving from a `numbers.md §n` convention keeps its existing citations — see `MIGRATION.md`.
+
 ## Why the fan-out is not a pipeline
 
 The page, the paper and the post are **siblings**, not derivations. They serve different readers under different contracts: the page is living and updates when a finding changes; the paper is frozen at submission and must read linearly; the post is frozen at publication. Generating one from another forces you to either freeze the page or mutate the paper.

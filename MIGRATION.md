@@ -10,12 +10,15 @@ A repo that cites a shared numbers file by section number is **already on the la
 { "citation_alias": "section" }
 ```
 
-and `§12` citations plus `## 12 · Title` / `### 21.1 · Title` headings are read as `F-12` and `F-21.1`. Measured on DSL's live `numbers.md` and its consumers:
+and existing citations are read as findings: the markdown `§12`, the LaTeX `\S12`, ranges like `§§10-21`, and `## 12 · Title` / `### 21.1 · Title` headings. Measured on DSL's live corpus:
 
 - **30 of 30 sections recognised** as findings, including sub-numbered rows.
-- **Zero citation errors** across `claim-map.md` and `report/main.tex` — every `§n` reference already resolves.
+- **51 of 51 citations in `report/main.tex` resolve** to a finding.
+- **One warning** across the whole corpus: `claim-map.md:69` cites `§4.5`, which is a reference to a *folio page's* section rather than to a numbers row.
 
-That matters because ~3,200 `§n` references exist across the four repos. Rewriting them would be a large, risky sed. Aliasing makes it a config flag, and the canonical id stays `F-<n>` for anything written from here on.
+That last one is the honest limit of the alias, and it is why alias citations **warn rather than fail**: a bare `§4.5` in prose can mean a finding, this document's own section, or a section of some third document. Two of those three are handled — a reference to one of the file's own numbered headings is skipped, and ranges expand — but the third cannot be resolved by any rule, only by reading. Canonical `F-<n>` citations stay hard errors. **Full enforcement is what a lab buys by moving to canonical ids**; the alias is for getting there without a mass rewrite.
+
+That matters because ~3,200 `§n` references exist across the four repos. Rewriting them up front would be a large, risky sed.
 
 ## What the migration actually costs
 
