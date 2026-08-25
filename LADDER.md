@@ -27,7 +27,7 @@ Non-promotion is recorded too. A triage nobody can audit gets re-litigated in th
 
 **Citation.** Everything above `finding` cites by **id**, never by path or by value. That is what lets a document move between directories, or a lab reorganize entirely, without breaking anything — and it is what `kit/tools/ladder_lint.py` checks:
 
-- every `F-<n>` carries Status, Anchor and Re-derive
+- every `F-<n>` carries Status, Anchor and Re-derive — status is one of BANKED · PROVISIONAL · RETRACTED · SUPERSEDED · **MOVED**, the last for a row a by-question split relocated to another lab (correct, not superseded, and not wrong)
 - every anchor resolves to real evidence, or to a pin declared in `record/pins.json` — this is what makes a cited repo renamable: the path lives in one declaration, not in every row
 - every cited `F-<n>` exists
 - every `C-<n>` cites at least one finding

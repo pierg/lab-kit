@@ -65,7 +65,11 @@ SECTION_HEAD = re.compile(rf"^#{{2,3}}\s+({NUM})\s*[·.]\s*(.*)$", re.M)
 ANY_NUMBERED_HEAD = re.compile(rf"^#{{1,6}}\s+({NUM})\b", re.M)
 FIELD = re.compile(r"^\*\*(Status|Anchor|Re-derive)\:\*\*\s*(.+)$", re.M)
 BACKTICKED = re.compile(r"`([^`]+)`")
-STATUS_WORDS = {"BANKED", "PROVISIONAL", "RETRACTED", "SUPERSEDED"}
+# MOVED: the row is owned by another lab now. Distinct from SUPERSEDED (which means a
+# better result replaced it) and from RETRACTED (which means it was wrong). A by-question
+# split relocates rows that are perfectly correct, and calling that "superseded" would be
+# a lie about the evidence.
+STATUS_WORDS = {"BANKED", "PROVISIONAL", "RETRACTED", "SUPERSEDED", "MOVED"}
 DOC_STATUS = {"LIVE", "HISTORICAL", "PARKED", "RETIRED", "FROZEN", "DRAFT"}
 HREF = re.compile(r'href="(/[^"#?]*)(?:[#?][^"]*)?"')
 
@@ -668,6 +672,18 @@ Detail.
                not any("numbers.md" in q.where and "cites" in q.message for q in probs),
                "the ledger was treated as a document citing itself")
 
+        # A row relocated to another lab by a by-question split.
+        movedrow = _plant(tmp / "r3", GOOD_FINDINGS + """
+## F-9 · A row that now lives in another lab
+**Status:** MOVED 2026-08-25 — owned by `phl:F-9`
+**Anchor:** `phl:F-9`
+**Re-derive:** `$HARNESS/record/findings.md → F-9`
+
+Pointer only: this row holds no numbers.
+""", {"record/pins.json": json.dumps({"phl": {"repo": "x", "sha": "y"}})})
+        hard = [q.render() for q in run(movedrow) if q.hard]
+        expect("moved-status", not hard, f"MOVED pointer row rejected: {hard}")
+
         # Default stays the convention: no config, no relocation.
         missing = _plant(tmp / "r2", GOOD_FINDINGS, {})
         (missing / "record" / "findings.md").unlink()
@@ -680,7 +696,7 @@ Detail.
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("ladder_lint selftest ok (23 planted cases)")
+    print("ladder_lint selftest ok (24 planted cases)")
     return 0
 
 
