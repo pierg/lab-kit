@@ -86,11 +86,25 @@ PY
 # Skills and agents are symlinked, so a kit re-sync updates them and drift is visible.
 echo "linking skills + agents into .claude/"
 mkdir -p "$LAB/.claude/skills" "$LAB/.claude/agents"
+# `ln -sfn` onto an existing DIRECTORY silently creates the link *inside* it, which is
+# how a lab with its own `skills/experiment/` ends up with `skills/experiment/experiment`
+# and no working link. A pre-existing real directory is the lab's own skill: leave it,
+# say so, and let the operator decide whether the kit's version supersedes it.
+link_or_report() {  # link_or_report <target-in-.claude> <kit-relative-source>
+  local dest="$1" src="$2"
+  if [ -e "$dest" ] && [ ! -L "$dest" ]; then
+    echo "  keep    ${dest#"$LAB/"}  (lab's own — kit's copy NOT linked)"
+  else
+    ln -sfn "$src" "$dest"
+  fi
+}
 for d in "$LAB"/kit/skills/*/; do
-  ln -sfn "../../kit/skills/$(basename "$d")" "$LAB/.claude/skills/$(basename "$d")"
+  b="$(basename "$d")"
+  link_or_report "$LAB/.claude/skills/$b" "../../kit/skills/$b"
 done
 for f in "$LAB"/kit/agents/*.md; do
-  ln -sfn "../../kit/agents/$(basename "$f")" "$LAB/.claude/agents/$(basename "$f")"
+  b="$(basename "$f")"
+  link_or_report "$LAB/.claude/agents/$b" "../../kit/agents/$b"
 done
 
 # The lab needs its own ignores; kit/PIN is deliberately NOT among them — the pin
