@@ -1,0 +1,8 @@
+{
+  "_comment": "External evidence this lab cites but does not own. A findings anchor may be written `<pin>:<path>`; the ladder lint accepts it when the pin is declared here. Evidence never moves — moving it breaks the SHA anchors that make a re-derivation instruction meaningful.",
+  "example-vault": {
+    "repo": "https://github.com/<owner>/<repo>",
+    "sha": "<40-char commit sha>",
+    "why": "<what this lab cites from it>"
+  }
+}

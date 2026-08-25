@@ -1,0 +1,32 @@
+# Lab Makefile — include the kit's targets, add whatever is local below.
+.DEFAULT_GOAL := help
+.PHONY: help check serve down status kit-sync kit-verify
+
+KIT := kit
+
+help:
+	@echo "Targets:"
+	@echo "  check       The gate: form lint + ladder lint + book verify (+ local checks)"
+	@echo "  serve       Serve this lab's pages on its own port (background)"
+	@echo "  down        Stop the server"
+	@echo "  status      Is the server up?"
+	@echo "  kit-verify  Confirm the vendored kit matches its pin"
+	@echo "  kit-sync    Re-vendor the kit at a new pin (deliberate)"
+
+check: kit-verify
+	@bash $(KIT)/engine/check.sh
+
+serve:
+	@bash $(KIT)/engine/ctl.sh start
+
+down:
+	@bash $(KIT)/engine/ctl.sh stop
+
+status:
+	@bash $(KIT)/engine/ctl.sh status || true
+
+kit-verify:
+	@bash $(KIT)/verify.sh
+
+kit-sync:
+	@bash $(KIT)/verify.sh --sync

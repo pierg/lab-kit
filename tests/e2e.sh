@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# End-to-end: install the kit into a scratch lab, run its gate, serve it, read a page.
+# This is the check that catches path-resolution breakage, which unit tests cannot see
+# because the whole point of the kit is that it runs from a directory it was copied into.
+set -euo pipefail
+KIT="$(cd "$(dirname "$0")/.." && pwd)"
+TMP="$(mktemp -d)"
+trap 'cd /; [ -f "$TMP/lab/.serve.pid" ] && kill "$(cat "$TMP/lab/.serve.pid")" 2>/dev/null; rm -rf "$TMP"' EXIT
+
+LAB="$TMP/lab"
+echo "--- install ---"
+bash "$KIT/install.sh" "$LAB" --name "Scratch Lab" --port 5399 >/dev/null
+
+for f in lab.json Makefile CLAUDE.md ops/STATE.md record/findings.md record/claims.md kit/PIN; do
+  [ -e "$LAB/$f" ] || { echo "e2e: install did not create $f" >&2; exit 1; }
+done
+[ -L "$LAB/.claude/skills/mission" ] || { echo "e2e: skills not symlinked" >&2; exit 1; }
+[ -L "$LAB/.claude/agents/reviewer.md" ] || { echo "e2e: agents not symlinked" >&2; exit 1; }
+[ -e "$LAB/.gitignore" ] || { echo "e2e: no lab .gitignore scaffolded" >&2; exit 1; }
+( cd "$LAB" && git init -q && git add -A && git status --porcelain kit/PIN | grep -q . ) \
+  || { echo "e2e: kit/PIN is not stageable — it must be tracked, not ignored" >&2; exit 1; }
+rm -rf "$LAB/.git"
+echo "install ok"
+
+echo "--- gate on a fresh lab ---"
+( cd "$LAB" && make check >/dev/null ) || { echo "e2e: make check failed on a fresh lab" >&2; exit 1; }
+echo "gate ok"
+
+echo "--- kit drift is detected ---"
+echo "# tampered" >> "$LAB/kit/DISCIPLINE.md"
+if ( cd "$LAB" && make kit-verify >/dev/null 2>&1 ); then
+  echo "e2e: tampering with the vendored kit was NOT detected" >&2; exit 1
+fi
+echo "drift detection ok"
+( cd "$LAB" && make kit-sync >/dev/null && make kit-verify >/dev/null )
+echo "re-sync ok"
+
+echo "--- ladder lint sees a real violation ---"
+cat >> "$LAB/record/claims.md" <<'EOM'
+
+## C-2 · Asserted from nowhere
+Nothing licenses this.
+EOM
+printf '# Note — LIVE\n\nSee F-404.\n' > "$LAB/content/notes/probe.md"
+OUT="$( cd "$LAB" && python3 kit/tools/ladder_lint.py 2>&1 )"
+echo "$OUT" | grep -q "F-404" || { echo "e2e: unknown finding id not reported" >&2; exit 1; }
+echo "$OUT" | grep -q "C-2" || { echo "e2e: unlicensed claim not reported" >&2; exit 1; }
+( cd "$LAB" && python3 kit/tools/ladder_lint.py --strict >/dev/null 2>&1 ) && \
+  { echo "e2e: --strict did not fail on hard problems" >&2; exit 1; }
+echo "ladder lint ok"
+
+echo "--- serve ---"
+( cd "$LAB" && make serve >/dev/null )
+sleep 0.6
+curl -fsS "http://127.0.0.1:5399/" | grep -q "Scratch Lab" || { echo "e2e: landing page did not render" >&2; exit 1; }
+curl -fsS "http://127.0.0.1:5399/shell/lib.css" >/dev/null || { echo "e2e: /shell/ mount not served" >&2; exit 1; }
+( cd "$LAB" && make down >/dev/null )
+echo "serve ok"
+
+echo "e2e ok"

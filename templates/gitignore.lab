@@ -1,0 +1,15 @@
+# Server scratch
+.serve.pid
+.serve.log
+
+# Python
+__pycache__/
+*.pyc
+
+# Experiment workspaces and logs are regenerable — evidence under out/ is not.
+# Keep this asymmetry: the measurement record is committed, the scratch is not.
+**/ws/
+*.log
+
+# Derived bytes: figure PDFs regenerate from their SVG sources and generators.
+assets/paper/figures/*.pdf
