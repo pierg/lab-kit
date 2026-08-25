@@ -21,6 +21,7 @@ all -- each artifact cites a finding id, and this tool checks the joints:
   H4  every `## C-<n>` in record/claims.md cites at least one finding
   H5  every record/ops/paper document declares a status in its opening lines
   H6  no markdown/HTML twin of the same authored document
+  H7  every cross-lab `<pin>:F-<n>` citation names a declared pin
 
   S1  no dangling internal /<content>/... link                        (soft)
   S2  no result-shaped number in a section that cites no finding       (soft)
@@ -54,6 +55,8 @@ FINDING_ID = re.compile(rf"\bF-({NUM})\b")
 # Both the markdown "§12" and the LaTeX "\S12" spellings, plus "§§10-21" ranges.
 SECTION_ID = re.compile(rf"(?:§|\\S)({NUM})\b")
 SECTION_RANGE = re.compile(rf"(?:§§|\\S\\S)(\d+)\s*[-–—]\s*(\d+)")
+# `phl:F-1` — a finding owned by another lab, resolved through record/pins.json.
+PINNED_ID = re.compile(rf"\b([a-z][a-z0-9_-]*):(F-{NUM})\b")
 CLAIM_HEAD = re.compile(r"^##\s+(C-\d+(?:\.\d+)*)\b(.*)$", re.M)
 FINDING_HEAD = re.compile(rf"^#{{2,3}}\s+(F-{NUM})\b(.*)$", re.M)
 # numbers.md style: "## 12 · Title" / "### 21.1 · Title"
@@ -107,7 +110,14 @@ class Lab:
         An unresolved alias hit is therefore a warning, while an unresolved `F-<n>`
         is an error. Full enforcement is what a lab buys by moving to canonical ids.
         """
-        out = [(f"F-{m.group(1)}", m.start(), True) for m in FINDING_ID.finditer(text)]
+        # Pinned ids are consumed first so the bare "F-1" inside "phl:F-1" is not
+        # also read as a local citation.
+        pinned = {i for m in PINNED_ID.finditer(text) for i in range(m.start(), m.end())}
+        out = [
+            (f"F-{m.group(1)}", m.start(), True)
+            for m in FINDING_ID.finditer(text)
+            if m.start() not in pinned
+        ]
         if not self.alias:
             return out
 
@@ -238,11 +248,29 @@ def _cited_files(lab: Lab) -> list[Path]:
     return [p for p in out if p.resolve() != findings.resolve()]
 
 
+def check_pins(lab: Lab, path: Path, text: str) -> list[Problem]:
+    """H7 — a cross-lab citation names a pin the lab actually declares."""
+    probs: list[Problem] = []
+    for m in PINNED_ID.finditer(text):
+        pin = m.group(1)
+        if pin not in lab.pins:
+            line = text.count("\n", 0, m.start()) + 1
+            probs.append(
+                Problem(
+                    f"{_rel(lab, path)}:{line}",
+                    f"cites {m.group(0)}, but pin '{pin}' is not declared in record/pins.json "
+                    "— a cross-lab citation must name the repo and commit it resolves against",
+                )
+            )
+    return probs
+
+
 def check_citations(lab: Lab) -> list[Problem]:
-    """H3 — a cited finding id exists."""
+    """H3 — a cited finding id exists (locally, or in a declared pinned lab)."""
     probs: list[Problem] = []
     for path in _cited_files(lab):
         text = path.read_text(encoding="utf-8", errors="replace")
+        probs.extend(check_pins(lab, path, text))
         seen: set[tuple[str, int]] = set()
         for ident, offset, canonical in lab.cites(text):
             if ident in lab.findings:
@@ -384,7 +412,10 @@ def load_lab(root: Path) -> Lab:
     )
     pins = root / "record" / "pins.json"
     if pins.is_file():
-        lab.pins = json.loads(pins.read_text(encoding="utf-8"))
+        lab.pins = {
+            k: v for k, v in json.loads(pins.read_text(encoding="utf-8")).items()
+            if not k.startswith("_")
+        }
     return lab
 
 
@@ -560,6 +591,23 @@ Five of ten obligations false as stated.
         expect("alias-not-hard", not [q for q in res if q.hard and "F-77" in q.message],
                "unresolved alias citation must not be a hard error")
 
+        # A cross-lab citation resolves through a declared pin, and only then.
+        pinned_ok = _plant(tmp / "p", GOOD_FINDINGS, {
+            "content/notes/x.md": "# Note — LIVE\n\nThe frontier is phl:F-1; ours is F-1.\n",
+            "record/pins.json": '{"_comment": "docs", "phl": {"repo": "r", "sha": "abc"}}',
+        })
+        hard = [q.render() for q in run(pinned_ok) if q.hard]
+        expect("pin-ok", not hard, f"declared pin wrongly flagged: {hard}")
+
+        pinned_bad = _plant(tmp / "q", GOOD_FINDINGS, {
+            "content/notes/x.md": "# Note — LIVE\n\nRests on dsl:F-99.\n",
+        })
+        msgs = " ".join(q.message for q in run(pinned_bad) if q.hard)
+        expect("pin-undeclared", "not declared in record/pins.json" in msgs,
+               "undeclared pin not caught")
+        expect("pin-no-leak", "cites F-99" not in msgs,
+               "the F-99 inside dsl:F-99 was also read as a local citation")
+
         # Sub-numbered canonical ids resolve.
         subid = _plant(tmp / "k", GOOD_FINDINGS + """
 ## F-2.3 · A sub-numbered finding
@@ -577,7 +625,7 @@ Detail.
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("ladder_lint selftest ok (16 planted cases)")
+    print("ladder_lint selftest ok (19 planted cases)")
     return 0
 
 
@@ -602,6 +650,10 @@ def main() -> int:
     if (root / "lab.json").is_file():
         cfg = json.loads((root / "lab.json").read_text(encoding="utf-8"))
     strict = args.strict or cfg.get("ladder") == "strict"
+
+    if cfg.get("ladder") == "off":
+        print("ladder lint: off (library mode — this repo is not a lab)")
+        return 0
 
     probs = run(root)
     hard = [p for p in probs if p.hard]

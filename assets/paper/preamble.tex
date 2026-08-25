@@ -1,0 +1,108 @@
+% ---------------------------------------------------------------------------
+% Shared LaTeX preamble for the proofs-rot program's documents.
+% RECOVERED 2026-08-25 from the retired methodology draft (paper/main.tex @ bc73981).
+% Frame-independent machinery only: packages, colours, box styles, macros.
+% NONE of that draft's prose or claims was recovered -- see ../RETIRED.md.
+% Companions: figures/ (12 figures, SVG sources + generators) and references.bib (30 entries).
+% ---------------------------------------------------------------------------
+%
+% ===========================================================================
+%
+\documentclass[11pt]{article}
+
+% ---------------------------------------------------------------------------
+% Design-Space Lab --- research paper
+% A clean, portable arXiv-preprint style built on the standard `article`
+% class and widely available packages, so it compiles anywhere.
+% ---------------------------------------------------------------------------
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{microtype}
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{ragged2e}
+\usepackage{multirow}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins}
+\usepackage{caption}
+\usepackage{listings}
+
+\usepackage[colorlinks=true,linkcolor=NavyBlue,citecolor=NavyBlue,urlcolor=NavyBlue]{hyperref}
+\usepackage[nameinlink]{cleveref}
+\usepackage[section]{placeins}  % keep floats within their section
+
+% ----- colours -------------------------------------------------------------
+\definecolor{NavyBlue}{RGB}{20,60,120}
+\definecolor{RuleGray}{RGB}{120,120,120}
+\definecolor{BoxBG}{RGB}{244,246,250}
+\definecolor{BoxRule}{RGB}{200,208,220}
+\definecolor{NoteBG}{RGB}{253,250,242}
+\definecolor{NoteRule}{RGB}{206,166,94}
+
+% ----- verdict / rung typography ------------------------------------------
+\newcommand{\rung}[1]{\textsc{#1}}
+\newcommand{\kept}{\textsf{KEPT}}
+\newcommand{\discarded}{\textsf{DISCARDED}}
+\newcommand{\rejected}{\textsf{REJECTED}}
+\newcommand{\untested}{\textsf{UNTESTED}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+% a small "takeaway" callout box
+\newtcolorbox{takeaway}[1][]{
+  colback=BoxBG, colframe=BoxRule, boxrule=0.6pt, arc=2pt,
+  left=8pt,right=8pt,top=6pt,bottom=6pt, #1}
+
+% a "provisional" note box: an observation below the paper's evidence standard, quarantined
+% until a pre-registered replication promotes or deletes it. The dashed border deliberately
+% echoes the dashed (observed, not-yet-evidence) rows of the corresponding figure.
+\newtcolorbox{provisional}[1][]{
+  enhanced, colback=NoteBG, boxrule=0pt, arc=2pt,
+  borderline={0.6pt}{0pt}{NoteRule,dashed},
+  left=8pt,right=8pt,top=6pt,bottom=6pt, #1}
+
+% listings style for the loop pseudocode / config snippets
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  frame=none,
+  xleftmargin=1.5em,
+  aboveskip=0.8em,belowskip=0.8em,
+  showstringspaces=false,
+}
+
+% anchor macro: a small grey machine-record citation (run/sha/PR)
+\newcommand{\anchor}[1]{{\footnotesize\color{RuleGray}\textsf{[#1]}}}
+
+% ----- float placement: keep floats near their references ------------------
+\setcounter{topnumber}{3}
+\setcounter{totalnumber}{4}
+\renewcommand{\topfraction}{0.92}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.75}
+
+\captionsetup{font=small,labelfont=bf}
+\setlist{itemsep=2pt,topsep=3pt,parsep=0pt}
+
+% ---------------------------------------------------------------------------
+\title{\bfseries A Research Loop That Does Not Fool Itself:\\[2pt]
+\large Frozen, Deterministic Judgment for Autonomous Scientific Search}
+
+\author{Piergiuseppe Mallozzi\\[2pt]
+\normalsize Design-Space Lab}
+
+\date{\today}
+
+% ---------------------------------------------------------------------------

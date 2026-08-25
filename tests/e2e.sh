@@ -49,6 +49,24 @@ echo "$OUT" | grep -q "C-2" || { echo "e2e: unlicensed claim not reported" >&2; 
   { echo "e2e: --strict did not fail on hard problems" >&2; exit 1; }
 echo "ladder lint ok"
 
+echo "--- library mode ---"
+python3 - "$LAB/lab.json" <<'PY'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1]); c = json.loads(p.read_text()); c["ladder"] = "off"
+p.write_text(json.dumps(c, indent=2) + "\n")
+PY
+OUT="$( cd "$LAB" && python3 kit/tools/ladder_lint.py 2>&1 )"
+echo "$OUT" | grep -q "library mode" || { echo "e2e: ladder=off did not enter library mode" >&2; exit 1; }
+echo "$OUT" | grep -q "F-404" && { echo "e2e: library mode still ran the checks" >&2; exit 1; }
+python3 - "$LAB/lab.json" <<'PY'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1]); c = json.loads(p.read_text()); c["ladder"] = "warn"
+p.write_text(json.dumps(c, indent=2) + "\n")
+PY
+echo "library mode ok"
+
 echo "--- serve ---"
 ( cd "$LAB" && make serve >/dev/null )
 sleep 0.6
