@@ -22,7 +22,12 @@ cfg = {"host": "127.0.0.1", "port": 5180}
 p = pathlib.Path(os.environ["LAB_ROOT"]) / "lab.json"
 if p.is_file():
     cfg.update(json.loads(p.read_text()))
-print(f"http://{os.environ.get('HOST', cfg['host'])}:{os.environ.get('PORT', cfg['port'])}/")
+# `os.environ.get(k, default)` returns "" (not the default) when the caller exports
+# the var as empty — which Makefiles do routinely (`HOST=$(HOST) PORT=$(PORT) bash …`
+# with `PORT ?=`). Treat empty as absent so the URL string is well-formed.
+host = os.environ.get('HOST') or cfg['host']
+port = os.environ.get('PORT') or cfg['port']
+print(f"http://{host}:{port}/")
 PY
 }
 
