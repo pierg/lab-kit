@@ -16,7 +16,8 @@
   experiments/<id>/  PROBE.md (locked) · bin/ · out/ · RESULTS.md
   record/            logbook/ · findings.md · claims.md · RETIRED.md · pins.json
   content/           the reader path — pages in the shared shell, served on this lab's port
-  assets/paper/      shared LaTeX machinery: preamble · references.bib · figures + generators
+  assets/figures/    format-agnostic figure sources (SVG · generators · fonts · Makefile) — usable by pages, papers, or posts
+  assets/paper/      LaTeX-only machinery: preamble.tex · references.bib
   Makefile           make check (the gate) · make serve (the port)
 ```
 

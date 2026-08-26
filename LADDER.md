@@ -43,7 +43,7 @@ The page, the paper and the post are **siblings**, not derivations. They serve d
 So their **prose is written independently, three times**. What they share is not prose:
 
 - the **finding ids** they cite
-- the **figure sources** (SVG + generator) in `assets/paper/`
+- the **figure sources** (SVG + generator) in `assets/figures/` (format-agnostic — the same SVG is inlined in an HTML entry or rendered to PDF for a paper)
 - the **bibliography**
 
 You never sync a number between artifacts. You cite one, and the gate checks it. That is what makes hand-syncing safe rather than a slow-motion drift.
