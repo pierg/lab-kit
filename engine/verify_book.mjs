@@ -7,12 +7,27 @@
      node engine/verify_book.mjs content/books/proofs-forever
 */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
-import { join, dirname, resolve } from "node:path";
+import { join, dirname, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 
 const ENGINE = dirname(fileURLToPath(import.meta.url));
-const LIB_ROOT = process.env.LAB_ROOT || join(ENGINE, "..");
+
+/* Resolve the lab root the same way engine/paths.py does, or a vendored kit looks for
+   the book inside itself. The kit lives at <lab>/kit/, so ENGINE/.. is the KIT root,
+   not the lab root. Order: $LAB_ROOT, then the nearest ancestor holding lab.json, then
+   the kit root's parent when the kit root is named "kit", then the kit root itself. */
+function labRoot() {
+  if (process.env.LAB_ROOT) return resolve(process.env.LAB_ROOT);
+  let dir = resolve(ENGINE, "..");
+  const kitRoot = dir;
+  for (let d = dir; ; d = dirname(d)) {
+    if (existsSync(join(d, "lab.json"))) return d;
+    if (dirname(d) === d) break;
+  }
+  return basename(kitRoot) === "kit" ? dirname(kitRoot) : kitRoot;
+}
+const LIB_ROOT = labRoot();
 const bookArg = process.argv[2] || "content/books/proofs-forever";
 const BOOK = resolve(LIB_ROOT, bookArg);
 if (!existsSync(BOOK)) {
