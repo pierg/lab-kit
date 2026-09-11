@@ -41,13 +41,26 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "engine"))
+
+def _find_root() -> Path:
+    """The lab root: $LAB_ROOT, else the nearest ancestor of the working directory — then of
+    this file (the vendored layout is <lab>/kit/tools/) — that holds lab.json."""
+    env = os.environ.get("LAB_ROOT")
+    if env:
+        return Path(env).resolve()
+    for start in (Path.cwd(), Path(__file__).resolve()):
+        for cand in [start, *start.parents]:
+            if (cand / "lab.json").is_file():
+                return cand
+    raise SystemExit("ladder_lint: no lab.json above the working directory — run inside a lab or pass --root")
+
 
 NUM = r"\d+(?:\.\d+)*"
 FINDING_ID = re.compile(rf"\bF-({NUM})\b")
@@ -778,9 +791,7 @@ def main() -> int:
     if args.root is not None:
         root = args.root.resolve()
     else:
-        from paths import LAB_ROOT  # resolved the same way as the rest of the kit
-
-        root = LAB_ROOT
+        root = _find_root()
 
     cfg = {}
     if (root / "lab.json").is_file():

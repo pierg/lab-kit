@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # End-to-end: install the kit into a scratch lab, run its gate, serve it, read a page.
 # This is the check that catches path-resolution breakage, which unit tests cannot see
-# because the whole point of the kit is that it runs from a directory it was copied into.
+# because the whole point of the kit is that it runs from a directory it was copied into —
+# with the content-kit engine found on PATH, never inside the lab.
 set -euo pipefail
 KIT="$(cd "$(dirname "$0")/.." && pwd)"
+CONTENT_KIT="${CONTENT_KIT:-$(dirname "$KIT")/content-kit}"
+[ -d "$CONTENT_KIT" ] || { echo "e2e: content-kit not found at $CONTENT_KIT" >&2; exit 1; }
+export CONTENT_KIT PATH="$CONTENT_KIT/bin:$PATH"
 TMP="$(mktemp -d)"
 trap 'cd /; [ -f "$TMP/lab/.serve.pid" ] && kill "$(cat "$TMP/lab/.serve.pid")" 2>/dev/null; rm -rf "$TMP"' EXIT
 
@@ -11,12 +15,18 @@ LAB="$TMP/lab"
 echo "--- install ---"
 bash "$KIT/install.sh" "$LAB" --name "Scratch Lab" --port 5399 >/dev/null
 
-for f in lab.json Makefile CLAUDE.md README.md QUESTIONS.md ops/STATE.md record/findings.md record/claims.md kit/PIN; do
+for f in lab.json Makefile CLAUDE.md README.md QUESTIONS.md ops/STATE.md record/findings.md record/claims.md \
+         kit/PIN kit/DISCIPLINE.md kit/LADDER.md kit/tools/ladder_lint.py kit/verify.sh kit/tools/kit_hash.py \
+         kit/shell/lib.css kit/genres/GENRES.md kit/craft/CRAFT.md kit/skills/present/SKILL.md kit/skills/address/SKILL.md; do
   [ -e "$LAB/$f" ] || { echo "e2e: install did not create $f" >&2; exit 1; }
 done
-[ -L "$LAB/.claude/skills/mission" ] || { echo "e2e: skills not symlinked" >&2; exit 1; }
+[ -L "$LAB/.claude/skills/mission" ] || { echo "e2e: lab skills not symlinked" >&2; exit 1; }
+[ -L "$LAB/.claude/skills/present" ] || { echo "e2e: content skills not symlinked" >&2; exit 1; }
 [ -L "$LAB/.claude/agents/reviewer.md" ] || { echo "e2e: agents not symlinked" >&2; exit 1; }
-[ -e "$LAB/.gitignore" ] || { echo "e2e: no lab .gitignore scaffolded" >&2; exit 1; }
+grep -q '^source content-kit ' "$LAB/kit/PIN" && grep -q '^source lab-kit ' "$LAB/kit/PIN" \
+  || { echo "e2e: PIN does not record both kits" >&2; exit 1; }
+grep -q '"ckit": "'"$(ckit version)"'"' "$LAB/lab.json" || { echo "e2e: lab.json lacks the engine pin" >&2; exit 1; }
+grep -q '"ladder": "warn"' "$LAB/lab.json" || { echo "e2e: lab.json lost its ladder mode" >&2; exit 1; }
 ( cd "$LAB" && git init -q && git add -A && git status --porcelain kit/PIN | grep -q . ) \
   || { echo "e2e: kit/PIN is not stageable — it must be tracked, not ignored" >&2; exit 1; }
 rm -rf "$LAB/.git"
@@ -24,6 +34,8 @@ echo "install ok"
 
 echo "--- gate on a fresh lab ---"
 ( cd "$LAB" && make check >/dev/null ) || { echo "e2e: make check failed on a fresh lab" >&2; exit 1; }
+( cd "$LAB" && ckit new concept probe-term >/dev/null && make check >/dev/null ) \
+  || { echo "e2e: make check failed after scaffolding a concept" >&2; exit 1; }
 echo "gate ok"
 
 echo "--- kit drift is detected ---"
@@ -68,10 +80,11 @@ PY
 echo "library mode ok"
 
 echo "--- serve ---"
-( cd "$LAB" && make serve >/dev/null )
-sleep 0.6
+( cd "$LAB" && make docs >/dev/null )
+sleep 0.7
 curl -fsS "http://127.0.0.1:5399/" | grep -q "Scratch Lab" || { echo "e2e: landing page did not render" >&2; exit 1; }
 curl -fsS "http://127.0.0.1:5399/shell/lib.css" >/dev/null || { echo "e2e: /shell/ mount not served" >&2; exit 1; }
+curl -fsS "http://127.0.0.1:5399/content/concepts/probe-term/" | grep -q "defn" || { echo "e2e: concept page not served" >&2; exit 1; }
 ( cd "$LAB" && make down >/dev/null )
 echo "serve ok"
 

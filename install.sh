@@ -1,48 +1,40 @@
 #!/usr/bin/env bash
-# Vendor this kit into a lab, and scaffold anything the lab is missing.
+# Vendor lab-kit into a lab, and scaffold anything the lab is missing.
 #
-#   bash install.sh /path/to/lab [--name "Lab name"] [--port 5181]
+#   bash install.sh /path/to/lab [--name "Lab name"] [--port 5181] [--content-kit /path]
 #
-# Vendoring rather than referencing is deliberate: an agent session opened on a lab
-# must find every capability and every rule inside that folder, with no sibling-repo
-# path to resolve first. The PIN file plus `make kit-verify` is what keeps four
-# vendored copies from quietly becoming four different kits.
+# Two layers land in <lab>/kit/, in order:
+#   1. content-kit — the shell, genres, craft, the present/address skills, verify.sh, kit_hash
+#      (found beside this checkout as ../content-kit, or CONTENT_KIT=… / --content-kit)
+#   2. the lab layer — DISCIPLINE, LADDER, MIGRATION, the ladder lint, the agents, the
+#      mission / experiment / review skills
+# Both are recorded in kit/PIN; `make kit-verify` hashes the whole tree. The engine (`ckit`)
+# is not vendored — install it once with content-kit/install-engine.sh; the lab pins its version.
+#
+# Vendoring rather than referencing is deliberate: an agent session opened on a lab must find
+# every rule inside that folder, with no sibling-repo path to resolve first.
 set -euo pipefail
 
 KIT_SRC="$(cd "$(dirname "$0")" && pwd)"
+CONTENT_KIT="${CONTENT_KIT:-$(dirname "$KIT_SRC")/content-kit}"
 LAB=""; NAME=""; PORT=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --name) NAME="$2"; shift 2 ;;
     --port) PORT="$2"; shift 2 ;;
-    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    --content-kit) CONTENT_KIT="$2"; shift 2 ;;
+    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
     *) LAB="$1"; shift ;;
   esac
 done
 
-[ -n "$LAB" ] || { echo "usage: bash install.sh /path/to/lab [--name N] [--port P]" >&2; exit 2; }
+[ -n "$LAB" ] || { echo "usage: bash install.sh /path/to/lab [--name N] [--port P] [--content-kit DIR]" >&2; exit 2; }
+[ -f "$CONTENT_KIT/install.sh" ] || {
+  echo "lab-kit: content-kit not found at $CONTENT_KIT — clone it beside lab-kit, or pass --content-kit" >&2; exit 1; }
 mkdir -p "$LAB"
 LAB="$(cd "$LAB" && pwd)"
 NAME="${NAME:-$(basename "$LAB")}"
-
-echo "vendoring kit -> $LAB/kit"
-rm -rf "$LAB/kit"
-mkdir -p "$LAB/kit"
-tar -C "$KIT_SRC" \
-    --exclude='.git' --exclude='__pycache__' --exclude='PIN' \
-    --exclude='.serve.pid' --exclude='.serve.log' \
-    -cf - . | tar -C "$LAB/kit" -xf -
-
-# Pin: the kit's own commit plus a content hash of exactly what landed.
-SRC_SHA="$(git -C "$KIT_SRC" rev-parse HEAD 2>/dev/null || echo unknown)"
-HASH="$(python3 "$LAB/kit/tools/kit_hash.py" "$LAB/kit")"
-cat > "$LAB/kit/PIN" <<EOF
-source  $KIT_SRC
-commit  $SRC_SHA
-hash    $HASH
-EOF
-echo "pinned  commit=$SRC_SHA"
 
 scaffold() {  # scaffold <relative-target> <template-source>
   if [ -e "$LAB/$1" ]; then echo "  keep    $1"; else
@@ -52,12 +44,14 @@ scaffold() {  # scaffold <relative-target> <template-source>
   fi
 }
 
+# The lab's own templates go first, so content-kit's installer finds them and keeps them.
 echo "scaffolding lab layout"
 scaffold README.md                   templates/README.lab.md
 scaffold QUESTIONS.md                templates/QUESTIONS.md
 scaffold lab.json                    templates/lab.json
 scaffold Makefile                    templates/Makefile.lab
 scaffold CLAUDE.md                   templates/CLAUDE.md
+scaffold .gitignore                  templates/gitignore.lab
 scaffold ops/STATE.md                templates/ops/STATE.md
 scaffold ops/missions/TEMPLATE.md    templates/ops/missions/TEMPLATE.md
 scaffold record/findings.md          templates/record/findings.md
@@ -65,31 +59,29 @@ scaffold record/claims.md            templates/record/claims.md
 scaffold record/RETIRED.md           templates/record/RETIRED.md
 scaffold record/pins.json            templates/record/pins.json
 scaffold record/logbook              templates/record/logbook
-mkdir -p "$LAB"/content/{entries,concepts,notes,hubs,projects,papers} "$LAB"/experiments
-touch "$LAB"/content/entries/.gitkeep "$LAB"/content/concepts/.gitkeep
+mkdir -p "$LAB"/experiments
 
-# lab.json gets the real name/port on first creation only.
-python3 - "$LAB" "$NAME" "${PORT:-}" <<'PY'
-import json, sys
-from pathlib import Path
-lab, name, port = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
-p = lab / "lab.json"
-cfg = json.loads(p.read_text())
-if cfg.get("name", "").startswith("<"):
-    cfg["name"] = name
-    if port:
-        cfg["port"] = int(port)
-    p.write_text(json.dumps(cfg, indent=2) + "\n")
-    print(f"  set     lab.json name={name}" + (f" port={port}" if port else ""))
-PY
+# 1. content-kit: shell, genres, craft, present/address, verify.sh, kit_hash, the engine pin.
+bash "$CONTENT_KIT/install.sh" "$LAB" --name "$NAME" ${PORT:+--port "$PORT"}
+
+# 2. the lab layer, beside it.
+echo "vendoring lab-kit -> $LAB/kit"
+KIT="$LAB/kit"
+mkdir -p "$KIT/tools" "$KIT/agents" "$KIT/skills"
+for f in DISCIPLINE.md LADDER.md MIGRATION.md; do cp "$KIT_SRC/$f" "$KIT/$f"; done
+cp "$KIT_SRC/tools/ladder_lint.py" "$KIT/tools/ladder_lint.py"
+cp "$KIT_SRC"/agents/*.md "$KIT/agents/"
+for s in mission experiment review; do
+  rm -rf "$KIT/skills/$s"
+  cp -r "$KIT_SRC/skills/$s" "$KIT/skills/$s"
+done
+find "$KIT" -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || true
 
 # Skills and agents are symlinked, so a kit re-sync updates them and drift is visible.
+# `ln -sfn` onto an existing DIRECTORY silently creates the link *inside* it; a pre-existing
+# real directory is the lab's own skill: leave it, say so, let the operator decide.
 echo "linking skills + agents into .claude/"
 mkdir -p "$LAB/.claude/skills" "$LAB/.claude/agents"
-# `ln -sfn` onto an existing DIRECTORY silently creates the link *inside* it, which is
-# how a lab with its own `skills/experiment/` ends up with `skills/experiment/experiment`
-# and no working link. A pre-existing real directory is the lab's own skill: leave it,
-# say so, and let the operator decide whether the kit's version supersedes it.
 link_or_report() {  # link_or_report <target-in-.claude> <kit-relative-source>
   local dest="$1" src="$2"
   if [ -e "$dest" ] && [ ! -L "$dest" ]; then
@@ -98,23 +90,26 @@ link_or_report() {  # link_or_report <target-in-.claude> <kit-relative-source>
     ln -sfn "$src" "$dest"
   fi
 }
-for d in "$LAB"/kit/skills/*/; do
-  b="$(basename "$d")"
-  link_or_report "$LAB/.claude/skills/$b" "../../kit/skills/$b"
+for s in mission experiment review; do
+  link_or_report "$LAB/.claude/skills/$s" "../../kit/skills/$s"
 done
-for f in "$LAB"/kit/agents/*.md; do
+for f in "$KIT"/agents/*.md; do
   b="$(basename "$f")"
   link_or_report "$LAB/.claude/agents/$b" "../../kit/agents/$b"
 done
 
-# The lab needs its own ignores; kit/PIN is deliberately NOT among them — the pin
-# is the record of which kit this lab is running, and it belongs in git.
-if [ ! -e "$LAB/.gitignore" ]; then
-  cp "$KIT_SRC/templates/gitignore.lab" "$LAB/.gitignore"
-  echo "  create  .gitignore"
-fi
+# Pin: lab-kit's source line after content-kit's; one hash over the whole tree. kit/PIN is
+# deliberately not ignored — it is the record of which kits this lab runs, and belongs in git.
+SRC_SHA="$(git -C "$KIT_SRC" rev-parse HEAD 2>/dev/null || echo unknown)"
+{
+  grep -E '^source ' "$KIT/PIN" | grep -v '^source lab-kit '
+  echo "source lab-kit $KIT_SRC $SRC_SHA"
+} > "$KIT/PIN.tmp"
+mv "$KIT/PIN.tmp" "$KIT/PIN"
+bash "$KIT/verify.sh" --repin >/dev/null
+echo "pinned  lab-kit@${SRC_SHA:0:8}"
 
 echo
 echo "done. next:"
-echo "  cd $LAB && make check     # the gate (ladder lint starts in warn mode)"
-echo "  cd $LAB && make serve     # read the pages on this lab's own port"
+echo "  cd $LAB && make check     # the gate (content gate + ladder lint, warn mode)"
+echo "  cd $LAB && make docs      # read the pages on this lab's own port"
