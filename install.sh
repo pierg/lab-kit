@@ -7,7 +7,7 @@
 #   1. content-kit — the shell, genres, craft, the present/address skills, verify.sh, kit_hash
 #      (found beside this checkout as ../content-kit, or CONTENT_KIT=… / --content-kit)
 #   2. the lab layer — DISCIPLINE, LADDER, MIGRATION, the ladder lint, the agents, the
-#      mission / experiment / review skills
+#      mission / experiment / review skills, templates/ (the skills cite them), assets/paper
 # Both are recorded in kit/PIN; `make kit-verify` hashes the whole tree. The engine (`ckit`)
 # is not vendored — install it once with content-kit/install-engine.sh; the lab pins its version.
 #
@@ -69,6 +69,7 @@ echo "vendoring lab-kit -> $LAB/kit"
 KIT="$LAB/kit"
 mkdir -p "$KIT/tools" "$KIT/agents" "$KIT/skills"
 for f in DISCIPLINE.md LADDER.md MIGRATION.md; do cp "$KIT_SRC/$f" "$KIT/$f"; done
+for d in templates assets; do rm -rf "$KIT/$d"; cp -r "$KIT_SRC/$d" "$KIT/$d"; done   # the skills cite kit/templates/…
 cp "$KIT_SRC/tools/ladder_lint.py" "$KIT/tools/ladder_lint.py"
 cp "$KIT_SRC"/agents/*.md "$KIT/agents/"
 for s in mission experiment review; do

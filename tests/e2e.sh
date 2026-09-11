@@ -17,7 +17,8 @@ bash "$KIT/install.sh" "$LAB" --name "Scratch Lab" --port 5399 >/dev/null
 
 for f in lab.json Makefile CLAUDE.md README.md QUESTIONS.md ops/STATE.md record/findings.md record/claims.md \
          kit/PIN kit/DISCIPLINE.md kit/LADDER.md kit/tools/ladder_lint.py kit/verify.sh kit/tools/kit_hash.py \
-         kit/shell/lib.css kit/genres/GENRES.md kit/craft/CRAFT.md kit/skills/present/SKILL.md kit/skills/address/SKILL.md; do
+         kit/shell/lib.css kit/genres/GENRES.md kit/craft/CRAFT.md kit/skills/present/SKILL.md kit/skills/address/SKILL.md \
+         kit/templates/experiments/PROBE.md kit/assets/paper/preamble.tex; do
   [ -e "$LAB/$f" ] || { echo "e2e: install did not create $f" >&2; exit 1; }
 done
 [ -L "$LAB/.claude/skills/mission" ] || { echo "e2e: lab skills not symlinked" >&2; exit 1; }
@@ -34,8 +35,10 @@ echo "install ok"
 
 echo "--- gate on a fresh lab ---"
 ( cd "$LAB" && make check >/dev/null ) || { echo "e2e: make check failed on a fresh lab" >&2; exit 1; }
-( cd "$LAB" && ckit new concept probe-term >/dev/null && make check >/dev/null ) \
-  || { echo "e2e: make check failed after scaffolding a concept" >&2; exit 1; }
+( cd "$LAB" && ckit new concept probe-term >/dev/null && make check >/dev/null 2>&1 ) \
+  && { echo "e2e: stale indices after scaffolding passed the gate" >&2; exit 1; }
+( cd "$LAB" && ckit lint >/dev/null && make check >/dev/null ) \
+  || { echo "e2e: make check failed after scaffolding a concept and ckit lint" >&2; exit 1; }
 echo "gate ok"
 
 echo "--- kit drift is detected ---"
