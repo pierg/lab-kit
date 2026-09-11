@@ -8,6 +8,7 @@ help:
 
 selftest:
 	@python3 tools/ladder_lint.py --selftest
+	@python3 tools/chronicle_lab.py --selftest
 
 e2e:
 	@bash tests/e2e.sh

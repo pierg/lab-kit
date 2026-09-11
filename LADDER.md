@@ -47,3 +47,14 @@ So their **prose is written independently, three times**. What they share is not
 - the **bibliography**
 
 You never sync a number between artifacts. You cite one, and the gate checks it. That is what makes hand-syncing safe rather than a slow-motion drift.
+
+## The chronicle — the ladder as a timeline, generated
+
+`content/` shows the current direction. How it got there is the record — logbooks, missions, locked pre-registrations, findings — and the **chronicle** is a generated index over that record (`content/chronicle.json`, rendered by `/shell/chronicle.html`, with every event linking back into `/shell/record.html`, which renders the markdown file itself). Nobody writes it: `ckit lint` regenerates it, `ckit check` fails if it is stale, and `kit/tools/chronicle_lab.py` adds the ladder's vocabulary (PROBE locks with their question and kill rule, findings anchored into each experiment, claims, missions) to the generic dated headings.
+
+The one convention it asks of the record: a dated heading may carry a **kind tag**, and the tag is what lets the timeline say *why* rather than only *that* —
+
+    ### 2026-09-11T08:41Z — [pivot] the substrate changes
+    ### 2026-08-26 — [decision] folio becomes a library
+
+`pivot` · `kill` · `decision` · `lesson` · `instrument` · `result`; an untagged dated heading is a plain entry, so nothing written before this convention needs rewriting.

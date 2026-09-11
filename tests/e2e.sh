@@ -18,7 +18,7 @@ bash "$KIT/install.sh" "$LAB" --name "Scratch Lab" --port 5399 >/dev/null
 for f in lab.json Makefile CLAUDE.md README.md QUESTIONS.md ops/STATE.md record/findings.md record/claims.md \
          kit/PIN kit/DISCIPLINE.md kit/LADDER.md kit/tools/ladder_lint.py kit/verify.sh kit/tools/kit_hash.py \
          kit/shell/lib.css kit/genres/GENRES.md kit/craft/CRAFT.md kit/skills/present/SKILL.md kit/skills/address/SKILL.md \
-         kit/templates/experiments/PROBE.md kit/assets/paper/preamble.tex; do
+         kit/templates/experiments/PROBE.md kit/assets/paper/preamble.tex kit/tools/chronicle_lab.py; do
   [ -e "$LAB/$f" ] || { echo "e2e: install did not create $f" >&2; exit 1; }
 done
 [ -L "$LAB/.claude/skills/mission" ] || { echo "e2e: lab skills not symlinked" >&2; exit 1; }
@@ -28,6 +28,7 @@ grep -q '^source content-kit ' "$LAB/kit/PIN" && grep -q '^source lab-kit ' "$LA
   || { echo "e2e: PIN does not record both kits" >&2; exit 1; }
 grep -q '"ckit": "'"$(ckit version)"'"' "$LAB/lab.json" || { echo "e2e: lab.json lacks the engine pin" >&2; exit 1; }
 grep -q '"ladder": "warn"' "$LAB/lab.json" || { echo "e2e: lab.json lost its ladder mode" >&2; exit 1; }
+grep -q 'chronicle_lab.py' "$LAB/lab.json" || { echo "e2e: lab.json did not get the chronicle extractor" >&2; exit 1; }
 ( cd "$LAB" && git init -q && git add -A && git status --porcelain kit/PIN | grep -q . ) \
   || { echo "e2e: kit/PIN is not stageable — it must be tracked, not ignored" >&2; exit 1; }
 rm -rf "$LAB/.git"
@@ -40,6 +41,25 @@ echo "--- gate on a fresh lab ---"
 ( cd "$LAB" && ckit lint >/dev/null && make check >/dev/null ) \
   || { echo "e2e: make check failed after scaffolding a concept and ckit lint" >&2; exit 1; }
 echo "gate ok"
+
+echo "--- the chronicle: a locked PROBE and its finding appear on the timeline ---"
+mkdir -p "$LAB/experiments/20260903-e9-planted/out"
+sed -e 's/^# <ID> — .*/# E9 — does the planted rule fire?/' -e 's/\*\*Status: DRAFT\*\*/**Status: LOCKED 2026-09-03T10:00Z**/' \
+    "$LAB/kit/templates/experiments/PROBE.md" > "$LAB/experiments/20260903-e9-planted/PROBE.md"
+printf '\n## F-1 · the planted rule fires\n\n**Status:** BANKED\n**Anchor:** `experiments/20260903-e9-planted/out/summary.tsv`\n**Re-derive:** `cat experiments/20260903-e9-planted/out/summary.tsv`\n' >> "$LAB/record/findings.md"
+printf 'x\n' > "$LAB/experiments/20260903-e9-planted/out/summary.tsv"
+printf '\n### 2026-09-04 — [pivot] the substrate changes\n\nBecause the floors were flat.\n' >> "$LAB/record/logbook/lab.md"
+( cd "$LAB" && ckit lint >/dev/null && make check >/dev/null ) || { echo "e2e: gate red after adding a PROBE, a finding and a pivot" >&2; exit 1; }
+python3 - "$LAB/content/chronicle.json" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1])); kinds = {e['kind'] for e in d['events']}
+ex = [x for x in d['experiments'] if x['slug'] == '20260903-e9-planted']
+assert ex and ex[0]['locked'] == '2026-09-03T10:00Z', ('experiment not on the chronicle', d['experiments'])
+assert [f['id'] for f in ex[0]['findings']] == ['F-1'], ('finding not attached', ex[0]['findings'])
+assert {'experiment', 'finding', 'pivot'} <= kinds, ('kinds', kinds)
+PY
+curl -fsS "http://127.0.0.1:5399/" >/dev/null 2>&1 || true
+echo "chronicle ok"
 
 echo "--- kit drift is detected ---"
 echo "# tampered" >> "$LAB/kit/DISCIPLINE.md"
@@ -88,6 +108,9 @@ sleep 0.7
 curl -fsS "http://127.0.0.1:5399/" | grep -q "Scratch Lab" || { echo "e2e: landing page did not render" >&2; exit 1; }
 curl -fsS "http://127.0.0.1:5399/shell/lib.css" >/dev/null || { echo "e2e: /shell/ mount not served" >&2; exit 1; }
 curl -fsS "http://127.0.0.1:5399/content/concepts/probe-term/" | grep -q "defn" || { echo "e2e: concept page not served" >&2; exit 1; }
+curl -fsS "http://127.0.0.1:5399/shell/record.html?p=record/logbook/lab.md" | grep -q "marked.umd.js" || { echo "e2e: record viewer not served" >&2; exit 1; }
+curl -fsS "http://127.0.0.1:5399/shell/chronicle.html" >/dev/null || { echo "e2e: chronicle page not served" >&2; exit 1; }
+curl -fsS "http://127.0.0.1:5399/content/chronicle.json" | grep -q "E9" || { echo "e2e: chronicle.json not served" >&2; exit 1; }
 ( cd "$LAB" && make down >/dev/null )
 echo "serve ok"
 

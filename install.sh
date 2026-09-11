@@ -71,6 +71,7 @@ mkdir -p "$KIT/tools" "$KIT/agents" "$KIT/skills"
 for f in DISCIPLINE.md LADDER.md MIGRATION.md; do cp "$KIT_SRC/$f" "$KIT/$f"; done
 for d in templates assets; do rm -rf "$KIT/$d"; cp -r "$KIT_SRC/$d" "$KIT/$d"; done   # the skills cite kit/templates/…
 cp "$KIT_SRC/tools/ladder_lint.py" "$KIT/tools/ladder_lint.py"
+cp "$KIT_SRC/tools/chronicle_lab.py" "$KIT/tools/chronicle_lab.py"
 cp "$KIT_SRC"/agents/*.md "$KIT/agents/"
 for s in mission experiment review; do
   rm -rf "$KIT/skills/$s"
@@ -98,6 +99,28 @@ for f in "$KIT"/agents/*.md; do
   b="$(basename "$f")"
   link_or_report "$LAB/.claude/agents/$b" "../../kit/agents/$b"
 done
+
+# The chronicle: the lab declares its record and its extractor once; a lab that has chosen
+# otherwise keeps its choice (only absent keys are set).
+python3 - "$LAB" <<'PY'
+import json, sys
+from pathlib import Path
+lab = Path(sys.argv[1]); p = lab / "lab.json"; cfg = json.loads(p.read_text())
+changed = False
+if "record" not in cfg:
+    cfg["record"] = [x for x in ("HISTORY.md", "QUESTIONS.md", "ops/", "record/") if (lab / x).exists()] + ["experiments/*/PROBE.md"]
+    changed = True
+if "chronicle" not in cfg:
+    cfg["chronicle"] = {"extractors": ["kit/tools/chronicle_lab.py"]}
+    changed = True
+if changed:
+    p.write_text(json.dumps(cfg, indent=2, ensure_ascii=False) + "\n")
+    print("  set     lab.json record + chronicle (the timeline over the record)")
+PY
+
+# The lab declared its record above; regenerate the indices so the fresh gate is green.
+command -v ckit >/dev/null 2>&1 && (cd "$LAB" && ckit lint --no-nav >/dev/null 2>&1 || true; ckit nav >/dev/null 2>&1 && echo "  set     content/chronicle.json (the record's timeline)")
+
 
 # Pin: lab-kit's source line after content-kit's; one hash over the whole tree. kit/PIN is
 # deliberately not ignored — it is the record of which kits this lab runs, and belongs in git.
