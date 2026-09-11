@@ -29,6 +29,8 @@ grep -q '^source content-kit ' "$LAB/kit/PIN" && grep -q '^source lab-kit ' "$LA
 grep -q '"ckit": "'"$(ckit version)"'"' "$LAB/lab.json" || { echo "e2e: lab.json lacks the engine pin" >&2; exit 1; }
 grep -q '"ladder": "warn"' "$LAB/lab.json" || { echo "e2e: lab.json lost its ladder mode" >&2; exit 1; }
 grep -q 'chronicle_lab.py' "$LAB/lab.json" || { echo "e2e: lab.json did not get the chronicle extractor" >&2; exit 1; }
+python3 -c 'import json; c=json.load(open("'"$LAB"'/lab.json")); assert c["chronicle"].get("sources"), "lab.json missing chronicle.sources"' \
+  || { echo "e2e: lab.json missing chronicle.sources (scanner sweep)" >&2; exit 1; }
 ( cd "$LAB" && git init -q && git add -A && git status --porcelain kit/PIN | grep -q . ) \
   || { echo "e2e: kit/PIN is not stageable — it must be tracked, not ignored" >&2; exit 1; }
 rm -rf "$LAB/.git"

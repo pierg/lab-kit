@@ -108,10 +108,20 @@ from pathlib import Path
 lab = Path(sys.argv[1]); p = lab / "lab.json"; cfg = json.loads(p.read_text())
 changed = False
 if "record" not in cfg:
-    cfg["record"] = [x for x in ("HISTORY.md", "QUESTIONS.md", "ops/", "record/") if (lab / x).exists()] + ["experiments/*/PROBE.md"]
+    # The sidebar: the ledger and standing surfaces a reader browses. Files only.
+    cfg["record"] = [x for x in (
+        "HISTORY.md", "QUESTIONS.md", "ARCHIVE.md",
+        "ops/STATE.md",
+        "record/findings.md", "record/claims.md", "record/RETIRED.md",
+        "record/logbook/lab.md",
+    ) if (lab / x).exists()]
     changed = True
 if "chronicle" not in cfg:
-    cfg["chronicle"] = {"extractors": ["kit/tools/chronicle_lab.py"]}
+    # The scanner sweep: everything append-only the chronicle can extract dated headings from.
+    sources = [x for x in ("HISTORY.md", "QUESTIONS.md", "ARCHIVE.md",
+                           "ops/", "record/") if (lab / x).exists()]
+    sources.append("experiments/*/PROBE.md")
+    cfg["chronicle"] = {"sources": sources, "extractors": ["kit/tools/chronicle_lab.py"]}
     changed = True
 if changed:
     p.write_text(json.dumps(cfg, indent=2, ensure_ascii=False) + "\n")
