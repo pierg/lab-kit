@@ -61,6 +61,12 @@ MD_INLINE = re.compile(r"[`*_]+")
 KILL_HEAD = re.compile(r"kill|decision", re.I)
 KILL_LINE = re.compile(r"\bkill\b", re.I)
 LEAD = re.compile(r"^\s*(?:[-*]\s*|\d+\.\s*)?(?:\*\*)?")
+FINDING_ID = re.compile(r"\bF-\d+(?:\.\d+)*\b")
+QHEAD = re.compile(r"^##\s+(Q(\d+)[^\n]*)$", re.M)
+H2ANY = re.compile(r"^##\s+", re.M)
+QSTATUS = re.compile(r"\*\*Status:\*\*\s*\**\s*([A-Z][A-Z-]+)")
+QKILL = re.compile(r"\*\*Kill criterion[^*]*\*\*\s*(.+)")
+SEP = re.compile(r"\s*[·:—–-]\s*")
 
 
 def _plain(s: str, limit: int = 300) -> str:
@@ -197,6 +203,81 @@ def parse_missions(root: Path, cfg: dict) -> list[dict]:
     return out
 
 
+# ----------------------------------------------------------------------------- claims / questions (dashboard)
+
+def _fids(body: str) -> list[str]:
+    seen = dict.fromkeys(FINDING_ID.findall(body))  # first-seen order, de-duped
+    return sorted(seen, key=lambda x: [int(n) for n in re.findall(r"\d+", x)])
+
+
+def parse_claims(root: Path, rel: str) -> list[dict]:
+    """Each `## C-<n>` row: id, title, the findings it rests on, its heading href."""
+    p = root / rel
+    if not p.is_file():
+        return []
+    text = p.read_text(encoding="utf-8", errors="replace")
+    heads = list(ROW.finditer(text))
+    out = []
+    for i, m in enumerate(heads):
+        if not m.group(1).startswith("C-"):
+            continue
+        body = text[m.end(): heads[i + 1].start() if i + 1 < len(heads) else len(text)]
+        out.append({
+            "id": m.group(1), "title": _plain(m.group(2), 200), "rests_on": _fids(body),
+            "href": viewer_href(rel, slugify(f"{m.group(1)} · {MD_INLINE.sub('', m.group(2))}")),
+        })
+    return out
+
+
+def parse_questions(root: Path, rel: str) -> list[dict]:
+    """Each `## Q<n>` section: id, title, first-order status word, kill criterion, href.
+
+    Status is the first `**Status:**` word of the section — a question whose live meaning is
+    carried in a later dated annotation (e.g. a fired conjunct) still reads at its first-order
+    status here; the full nuance is one click away in QUESTIONS.md.
+    """
+    p = root / rel
+    if not p.is_file():
+        return []
+    text = p.read_text(encoding="utf-8", errors="replace")
+    h2s = [mm.start() for mm in H2ANY.finditer(text)]
+    out = []
+    for m in QHEAD.finditer(text):
+        full = m.group(1).strip()
+        end = next((s for s in h2s if s > m.start()), len(text))
+        section = text[m.end():end]
+        st = QSTATUS.search(section)
+        kill = QKILL.search(section)
+        parts = SEP.split(full, 1)
+        title = parts[1] if len(parts) > 1 else full
+        out.append({
+            "id": "Q" + m.group(2), "title": _plain(title, 200),
+            "status": st.group(1) if st else "",
+            "kill": _plain(kill.group(1), 280) if kill else "",
+            "href": viewer_href(rel, slugify(MD_INLINE.sub("", full))),
+        })
+    return out
+
+
+def ladder(root: Path, cfg: dict) -> dict:
+    """The status-board view (content-kit's ladder.py calls this): findings, claims, questions.
+
+    Experiments, the "now" banner and the decisions feed are generic and come from the
+    engine + extract(); this adds the lab's F-/C-/Q- vocabulary.
+    """
+    root = Path(root)
+    findings = [
+        {"id": r["id"], "title": r["title"], "status": r["status"], "href": r["href"]}
+        for r in parse_rows(root, cfg.get("findings", "record/findings.md"))
+        if r["id"].startswith("F-")
+    ]
+    return {
+        "findings": findings,
+        "claims": parse_claims(root, cfg.get("claims", "record/claims.md")),
+        "questions": parse_questions(root, cfg.get("questions", "QUESTIONS.md")),
+    }
+
+
 # ----------------------------------------------------------------------------- entry point
 
 def extract(root: Path, cfg: dict) -> dict:
@@ -271,6 +352,33 @@ FINDINGS_FIXTURE = """# Findings — LIVE
 
 MISSION_FIXTURE = "# Mission 20260902-planted — LIVE (executing)\n\n**Objective:** prove the fixture.\n"
 
+QUESTIONS_FIXTURE = """# Questions — LIVE
+
+## Q1 · does the planted question parse?
+
+**Status:** OPEN · the opening question.
+
+**Kill criterion:** if the fixture does not parse, the extractor is wrong.
+
+## Q2 · a killed question
+
+**Status:** KILLED 2026-09-01 by the fixture.
+
+## Answered
+
+| Question | Answer | Finding |
+|---|---|---|
+| something | yes | F-7 |
+"""
+
+CLAIMS_FIXTURE = """# Claims — LIVE
+
+## C-1 · the planted claim
+
+**Licensed:** "something true."
+Rests on F-7 and F-8. **Bound:** narrow.
+"""
+
 
 def selftest() -> int:
     failures: list[str] = []
@@ -283,6 +391,8 @@ def selftest() -> int:
             "# D1 — a draft\n\n**Date:** 2026-08-30 · **Status: DRAFT**\n", encoding="utf-8")
         (root / "record").mkdir()
         (root / "record" / "findings.md").write_text(FINDINGS_FIXTURE, encoding="utf-8")
+        (root / "record" / "claims.md").write_text(CLAIMS_FIXTURE, encoding="utf-8")
+        (root / "QUESTIONS.md").write_text(QUESTIONS_FIXTURE, encoding="utf-8")
         (root / "ops" / "missions").mkdir(parents=True)
         (root / "ops" / "missions" / "20260902-planted.md").write_text(MISSION_FIXTURE, encoding="utf-8")
         (root / "ops" / "missions" / "TEMPLATE.md").write_text("# Mission <id>\n", encoding="utf-8")
@@ -319,10 +429,28 @@ def selftest() -> int:
             failures.append(f"mission not parsed from its file name / objective: {mi}")
         if any("TEMPLATE" in e["title"] for e in out["events"]):
             failures.append("the mission TEMPLATE must not become an event")
+
+        # --- ladder(): the status-board view — questions, findings, claims
+        lad = ladder(root, {})
+        qids = [q["id"] for q in lad["questions"]]
+        qs = {q["id"]: q for q in lad["questions"]}
+        if qids != ["Q1", "Q2"]:
+            failures.append(f"questions not parsed in order: {qids}")
+        elif qs["Q1"]["status"] != "OPEN" or not qs["Q1"]["kill"].startswith("if the fixture does not parse"):
+            failures.append(f"Q1 status/kill wrong: {qs['Q1']}")
+        elif qs["Q2"]["status"] != "KILLED":
+            failures.append(f"Q2 first-order status wrong: {qs['Q2']}")
+        elif not qs["Q1"]["href"].startswith("/shell/record.html?p=QUESTIONS.md#q1-"):
+            failures.append(f"question href does not land on its heading: {qs['Q1']['href']}")
+        fids = [f["id"] for f in lad["findings"]]
+        if fids != ["F-7", "F-8"] or lad["findings"][0]["status"] != "BANKED":
+            failures.append(f"ladder findings wrong: {lad['findings']}")
+        if not lad["claims"] or lad["claims"][0]["id"] != "C-1" or lad["claims"][0]["rests_on"] != ["F-7", "F-8"]:
+            failures.append(f"claim rests_on not parsed: {lad['claims']}")
     if failures:
         print("chronicle_lab selftest FAILED:\n- " + "\n- ".join(failures))
         return 1
-    print("chronicle_lab selftest ok (12 planted assertions)")
+    print("chronicle_lab selftest ok (18 planted assertions)")
     return 0
 
 
