@@ -174,7 +174,8 @@ def parse_rows(root: Path, rel: str) -> list[dict]:
             "id": m.group(1), "title": _plain(m.group(2), 200),
             "status": sm.group(0) if sm else "",
             "anchor": fields.get("Anchor", ""),
-            "href": viewer_href(rel, slugify(f"{m.group(1)} · {MD_INLINE.sub('', m.group(2))}")),
+            # F-/C- headings anchor on the bare id in shell/record.html (#F-7, #C-1) — not the slug
+            "href": viewer_href(rel, m.group(1)),
             "line": text.count("\n", 0, m.start()) + 1,
             "heading": m.group(0),
         })
@@ -225,7 +226,8 @@ def parse_claims(root: Path, rel: str) -> list[dict]:
         body = text[m.end(): heads[i + 1].start() if i + 1 < len(heads) else len(text)]
         out.append({
             "id": m.group(1), "title": _plain(m.group(2), 200), "rests_on": _fids(body),
-            "href": viewer_href(rel, slugify(f"{m.group(1)} · {MD_INLINE.sub('', m.group(2))}")),
+            # F-/C- headings anchor on the bare id in shell/record.html (#F-7, #C-1) — not the slug
+            "href": viewer_href(rel, m.group(1)),
         })
     return out
 
@@ -413,8 +415,8 @@ def selftest() -> int:
                 failures.append(f"supersedes pointer not parsed: {e9['supersedes']!r}")
             if [f["id"] for f in e9["findings"]] != ["F-7"] or e9["findings"][0]["status"] != "BANKED":
                 failures.append(f"anchored finding not attached: {e9['findings']}")
-            if not e9["findings"][0]["href"].startswith("/shell/record.html?p=record/findings.md#f-7-"):
-                failures.append(f"finding href does not land on its heading: {e9['findings'][0]['href']}")
+            if e9["findings"][0]["href"] != "/shell/record.html?p=record/findings.md#F-7":
+                failures.append(f"finding href does not land on its bare-id anchor: {e9['findings'][0]['href']}")
         d1 = ex.get("20260830-draft-only")
         if not d1 or d1["locked"] != "2026-08-30" or d1["status"] != "DRAFT":
             failures.append(f"draft PROBE: Date field / status not parsed: {d1}")
@@ -446,8 +448,13 @@ def selftest() -> int:
         fids = [f["id"] for f in lad["findings"]]
         if fids != ["F-7", "F-8"] or lad["findings"][0]["status"] != "BANKED":
             failures.append(f"ladder findings wrong: {lad['findings']}")
+        # F-/C- links must land on the bare-id anchor shell/record.html assigns (not the slug)
+        elif not lad["findings"][0]["href"].endswith("#F-7"):
+            failures.append(f"ladder finding href not a bare-id anchor: {lad['findings'][0]['href']}")
         if not lad["claims"] or lad["claims"][0]["id"] != "C-1" or lad["claims"][0]["rests_on"] != ["F-7", "F-8"]:
             failures.append(f"claim rests_on not parsed: {lad['claims']}")
+        elif not lad["claims"][0]["href"].endswith("#C-1"):
+            failures.append(f"ladder claim href not a bare-id anchor: {lad['claims'][0]['href']}")
     if failures:
         print("chronicle_lab selftest FAILED:\n- " + "\n- ".join(failures))
         return 1
