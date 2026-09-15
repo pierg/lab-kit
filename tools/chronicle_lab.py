@@ -55,6 +55,7 @@ DATE_FIELD = re.compile(r"\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2})")
 SLUG_DATE = re.compile(r"^(\d{4})(\d{2})(\d{2})-")
 ROW = re.compile(r"^##\s+((?:F|C)-\d+(?:\.\d+)*)\s*[·—–-]\s*(.+?)\s*$", re.M)
 FIELD = re.compile(r"^\*\*(Status|Anchor):\*\*\s*(.+)$", re.M)
+STATUS_WORD = re.compile(r"[A-Z][A-Z-]+")  # first ALL-CAPS token, past any ~~/**/leading punctuation
 SUPERSEDES = re.compile(r"\b[Ss]upersedes\b[:\s—–-]*`?([^`\n;]+?)(?:[.;]\s|`|$)")
 SUPERSEDED_BY = re.compile(r"\b[Ss]uperseded[ -]by\b[:\s—–-]*`?([^`\n;]+?)(?:[.;]\s|`|$)")
 MD_INLINE = re.compile(r"[`*_]+")
@@ -168,10 +169,10 @@ def parse_rows(root: Path, rel: str) -> list[dict]:
     for i, m in enumerate(heads):
         body = text[m.end(): heads[i + 1].start() if i + 1 < len(heads) else len(text)]
         fields = {f.group(1): f.group(2).strip() for f in FIELD.finditer(body)}
-        status = (fields.get("Status") or "").split("·")[0].strip().strip("*").split()[0:1]
+        sm = STATUS_WORD.search((fields.get("Status") or "").split("·")[0])
         rows.append({
             "id": m.group(1), "title": _plain(m.group(2), 200),
-            "status": status[0].strip("*") if status else "",
+            "status": sm.group(0) if sm else "",
             "anchor": fields.get("Anchor", ""),
             "href": viewer_href(rel, slugify(f"{m.group(1)} · {MD_INLINE.sub('', m.group(2))}")),
             "line": text.count("\n", 0, m.start()) + 1,
