@@ -18,7 +18,7 @@ bash "$KIT/install.sh" "$LAB" --name "Scratch Lab" --port 5399 >/dev/null
 for f in lab.json Makefile CLAUDE.md README.md QUESTIONS.md ops/STATE.md record/findings.md record/claims.md \
          kit/PIN kit/DISCIPLINE.md kit/LADDER.md kit/tools/ladder_lint.py kit/verify.sh kit/tools/kit_hash.py \
          kit/shell/lib.css kit/genres/GENRES.md kit/craft/CRAFT.md kit/skills/present/SKILL.md kit/skills/address/SKILL.md \
-         kit/templates/experiments/PROBE.md kit/assets/paper/preamble.tex kit/tools/chronicle_lab.py; do
+         kit/templates/experiments/PROBE.md kit/assets/paper/preamble.tex kit/tools/chronicle_lab.py kit/tools/layer_findings.py; do
   [ -e "$LAB/$f" ] || { echo "e2e: install did not create $f" >&2; exit 1; }
 done
 [ -L "$LAB/.claude/skills/mission" ] || { echo "e2e: lab skills not symlinked" >&2; exit 1; }
@@ -34,6 +34,14 @@ python3 -c 'import json; c=json.load(open("'"$LAB"'/lab.json")); assert c["chron
 ( cd "$LAB" && git init -q && git add -A && git status --porcelain kit/PIN | grep -q . ) \
   || { echo "e2e: kit/PIN is not stageable — it must be tracked, not ignored" >&2; exit 1; }
 rm -rf "$LAB/.git"
+# A scaffolded lab opens green: its example row is placeholders, and a placeholder warns, never errors.
+( cd "$LAB" && python3 kit/tools/ladder_lint.py | grep -q "0 error(s)" ) \
+  || { echo "e2e: a freshly scaffolded lab does not report 0 errors" >&2; ( cd "$LAB" && python3 kit/tools/ladder_lint.py >&2 ); exit 1; }
+# Every vendored tool's planted fixtures run from the lab copy, not just from the kit checkout.
+for t in ladder_lint chronicle_lab layer_findings; do
+  ( cd "$LAB" && python3 "kit/tools/$t.py" --selftest >/dev/null ) \
+    || { echo "e2e: $t selftest failed from the vendored copy" >&2; exit 1; }
+done
 echo "install ok"
 
 echo "--- gate on a fresh lab ---"
