@@ -17,4 +17,4 @@
 **Why it matters:** <one sentence>
 **Anchor:** `experiments/<slug>/out/<file>`
 **Re-derive:** `<the exact command that reproduces the number>`
-**Defense:** `record/findings/F-1.md`
+**Defense:** `record/findings/F-<n>.md`

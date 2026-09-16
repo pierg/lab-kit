@@ -40,6 +40,14 @@ keep the row short, and they only ever warn: they are voice, they fire on every 
 at once, and a check that fails from day one gets disabled (MIGRATION.md). A lab that has finished
 the migration sets `"findings_layered": true` in lab.json, which turns on S7.
 
+`**Defense:**` is read only on its own line and only as a backticked path — unlike Tier, which the
+chronicle also accepts inline for rows written before the layering. An unbackticked value is an
+error, because it would otherwise satisfy S7 while being checked by nothing. The defense pages are
+linted as the record documents they are (H3, H5, H7) and exempted from S2: a defense page is its
+own finding's evidence, so its numbers are anchored by the row it defends. A path or date still
+carrying the kit's `<placeholder>` idiom warns ("fill in") rather than failing, so a freshly
+scaffolded lab opens green.
+
 Ids are `F-<n>`, optionally sub-numbered (`F-21.1`). A lab arriving from a
 "numbers.md §n" convention sets `"citation_alias": "section"` in lab.json, and its
 existing `§12` citations and `## 12 · Title` headings are read as `F-12` — so a
@@ -59,6 +67,7 @@ import re
 import sys
 import tempfile
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 
 
@@ -100,6 +109,11 @@ HEADLINE_WORDS = 24
 HEADLINE_CODE = re.compile(rf"[FC]-{NUM}|§")
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 STATE_WORDS = 500
+# The kit's own placeholder idiom, in a template nobody has filled in yet: `experiments/<slug>/…`.
+# A scaffolded lab must not open with red errors — the reader cannot tell a real breakage from
+# the example row it was handed.
+PLACEHOLDER = re.compile(r"<[^<>]+>")
+DATE_PLACEHOLDER = "YYYY-MM-DD"  # the kit's own spelling of "fill this in", in the row template
 # MOVED: the row is owned by another lab now. Distinct from SUPERSEDED (which means a
 # better result replaced it) and from RETRACTED (which means it was wrong). A by-question
 # split relocates rows that are perfectly correct, and calling that "superseded" would be
@@ -152,6 +166,11 @@ class Lab:
     @property
     def claims_path(self) -> Path:
         return self.root / self.claims_rel
+
+    @property
+    def defense_dir(self) -> Path:
+        """Where a layered row's long form lives — `record/findings/F-<n>.md` (LADDER.md)."""
+        return self.root / "record" / "findings"
 
     def cites(self, text: str) -> list[tuple[str, int, bool]]:
         """Every finding id referenced in `text`, as (id, offset, canonical).
@@ -243,6 +262,44 @@ def _headline(body: str) -> str:
     return m.group(1).strip() if m else ""
 
 
+def _is_iso_date(value: str) -> bool:
+    """YYYY-MM-DD *and* a real calendar day. `2026-13-45` is the right shape and no day at all.
+
+    The shape is checked first because date.fromisoformat also accepts `20260916` and full
+    timestamps, neither of which the chronicle reads.
+    """
+    if not ISO_DATE.match(value):
+        return False
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
+def _path_field(lab: Lab, ident: str, rel: str, line: int, kind: str, value: str) -> list[Problem]:
+    """H2 — every backticked path in an Anchor / Defense field resolves.
+
+    A value still carrying the kit's `<placeholder>` idiom is a template nobody has filled in:
+    that is a warning ("fill in"), never a hard error.
+    """
+    probs: list[Problem] = []
+    for target in BACKTICKED.findall(value):
+        if PLACEHOLDER.search(target):
+            probs.append(
+                Problem(f"{rel}:{line}", f"{ident} {kind} `{target}` is a placeholder — fill in", hard=False)
+            )
+        elif not _anchor_ok(lab, target):
+            probs.append(
+                Problem(
+                    f"{rel}:{line}",
+                    f"{ident} {kind} `{target}` does not resolve "
+                    "(no such path, and no matching pin in record/pins.json)",
+                )
+            )
+    return probs
+
+
 def check_findings(lab: Lab) -> list[Problem]:
     """H1 + H2 — findings are well-formed and their evidence is reachable.
 
@@ -285,26 +342,19 @@ def check_findings(lab: Lab) -> list[Problem]:
                 )
             )
 
-        for anchor in BACKTICKED.findall(fields.get("Anchor", "")):
-            if not _anchor_ok(lab, anchor):
-                probs.append(
-                    Problem(
-                        f"{rel}:{line}",
-                        f"{ident} anchor `{anchor}` does not resolve "
-                        "(no such path, and no matching pin in record/pins.json)",
-                    )
-                )
+        probs += _path_field(lab, ident, rel, line, "anchor", fields.get("Anchor", ""))
         # The defense is a path like an anchor is a path: if it does not resolve, the row's
         # long form is unreachable and the interface points at nothing.
-        for defense in BACKTICKED.findall(fields.get("Defense", "")):
-            if not _anchor_ok(lab, defense):
-                probs.append(
-                    Problem(
-                        f"{rel}:{line}",
-                        f"{ident} defense `{defense}` does not resolve "
-                        "(no such path, and no matching pin in record/pins.json)",
-                    )
+        probs += _path_field(lab, ident, rel, line, "defense", fields.get("Defense", ""))
+        # ...and an unbackticked defense would be checked by nothing at all, while still
+        # satisfying S7 — the one hard check this field adds, defeated by forgetting a backtick.
+        if "Defense" in fields and not BACKTICKED.search(fields["Defense"]):
+            probs.append(
+                Problem(
+                    f"{rel}:{line}",
+                    f"{ident} defense path is not a backticked path",
                 )
+            )
 
         if "Re-derive" in fields and not BACKTICKED.search(fields["Re-derive"]):
             probs.append(
@@ -335,13 +385,17 @@ def check_findings(lab: Lab) -> list[Problem]:
                 )
             )
 
-        date = fields.get("Date", "")
-        if date and not ISO_DATE.match(date):
+        banked = fields.get("Date", "")
+        if banked and (PLACEHOLDER.search(banked) or banked == DATE_PLACEHOLDER):
+            probs.append(
+                Problem(f"{rel}:{line}", f"{ident} **Date:** {banked!r} is a placeholder — fill in", hard=False)
+            )
+        elif banked and not _is_iso_date(banked):
             probs.append(
                 Problem(
                     f"{rel}:{line}",
-                    f"{ident} **Date:** {date!r} is not YYYY-MM-DD — the chronicle cannot read "
-                    "it, and falls back to dating the row by git archaeology",
+                    f"{ident} **Date:** {banked!r} is not a real YYYY-MM-DD day — the chronicle "
+                    "cannot read it, and falls back to dating the row by git archaeology",
                     hard=False,
                 )
             )
@@ -363,6 +417,9 @@ def _cited_files(lab: Lab) -> list[Path]:
     for base, patterns in (
         (lab.content, ("**/*.html", "**/*.md", "**/*.tex")),
         (lab.root / "record", ("*.md",)),
+        # A defense page is an authored record document: it cites findings, it names pins, and
+        # nothing else scans it (record/*.md is deliberately not recursive).
+        (lab.defense_dir, ("*.md",)),
         (lab.root / "ops", ("**/*.md",)),
         # A relocated ledger's neighbours are authored documents too — they are the
         # ones most likely to cite it, so a lab does not lose coverage by not having
@@ -478,7 +535,8 @@ def check_status_banners(lab: Lab) -> list[Problem]:
     """H5 — a reader can tell in three lines whether a document is still true."""
     probs: list[Problem] = []
     targets: list[Path] = []
-    for base, pat in ((lab.root / "record", "*.md"), (lab.root / "ops", "*.md")):
+    for base, pat in ((lab.root / "record", "*.md"), (lab.defense_dir, "*.md"),
+                      (lab.root / "ops", "*.md")):
         if base.is_dir():
             targets.extend(sorted(base.glob(pat)))
     if lab.content.is_dir():
@@ -549,6 +607,8 @@ def check_uncited_numbers(lab: Lab) -> list[Problem]:
     for path in sorted(lab.content.rglob("*.md")):
         if path.name == "main.md" and (path.parent / "source.json").is_file():
             continue  # imported source text, not our claims
+        if path.parent == lab.defense_dir:
+            continue  # a defense page is its own finding's evidence: its numbers are the row's
         text = path.read_text(encoding="utf-8", errors="replace")
         marks = [(m.start(), text.count("\n", 0, m.start()) + 1) for m in SECTION.finditer(text)]
         spans = [
@@ -923,7 +983,7 @@ Pointer only: this row holds no numbers.
         expect("S3", "headline is 25 words (limit 24)" in warns, f"long headline not warned: {warns}")
         expect("S4", "codes are links, not content" in warns and "F-2" in warns and "§" in warns,
                f"ids in a headline not warned: {warns}")
-        expect("S5", "is not YYYY-MM-DD" in warns, f"malformed Date not warned: {warns}")
+        expect("S5", "is not a real YYYY-MM-DD day" in warns, f"malformed Date not warned: {warns}")
         expect("voice-soft", not [q for q in res if q.hard],
                f"a voice rule leaked into the hard findings: {[q.render() for q in res if q.hard]}")
 
@@ -949,6 +1009,62 @@ Pointer only: this row holds no numbers.
         expect("S6-quiet", not any("STATE is a pointer" in q.message for q in run(smallstate)),
                "a short STATE.md was warned")
 
+        # An unbackticked defense path is checked by nothing and silences S7 — so it is an error.
+        bare = _plant(tmp / "t9", LAYERED_FINDINGS.replace("`record/findings/F-1.md`", "record/findings/F-1.md"), {
+            "record/findings/F-1.md": "# F-1 — the defense — LIVE\n\nPredictions as scored.\n",
+        }, cfg={"findings_layered": True})
+        res = run(bare)
+        expect("H2-defense-bare", any("defense path is not a backticked path" in q.message and q.hard for q in res),
+               f"an unbackticked defense was not caught: {[q.render() for q in res]}")
+        expect("H2-defense-bare-not-S7", not any("has no **Defense:**" in q.message for q in res),
+               "an unbackticked defense both silenced S7 and escaped the path check")
+
+        # A defense page is a record document: it is read for citations, pins and its status
+        # banner, and it is not second-guessed for uncited numbers.
+        defended = _plant(tmp / "t10", LAYERED_FINDINGS, {
+            "record/findings/F-1.md": "# F-1 — the defense — LIVE\n\nRests on F-1; compare dsl:F-3.\n",
+        })
+        msgs = " ".join(q.message for q in run(defended) if q.hard)
+        expect("H3-defense", "cites F-404" not in msgs, "fixture drift")
+        expect("H7-defense", "not declared in record/pins.json" in msgs,
+               f"a defense page's undeclared pin was not seen: {msgs}")
+        ghosted = _plant(tmp / "t11", LAYERED_FINDINGS, {
+            "record/findings/F-1.md": "# F-1 — the defense — LIVE\n\nSuperseded by F-404.\n",
+        })
+        msgs = " ".join(q.message for q in run(ghosted) if q.hard)
+        expect("H3-defense-dangling", "cites F-404" in msgs,
+               f"a defense page citing a finding that does not exist was not caught: {msgs}")
+        unbannered = _plant(tmp / "t12", LAYERED_FINDINGS, {
+            "record/findings/F-1.md": "# F-1 — the defense\n\nNo status anywhere near the top.\n",
+        })
+        msgs = " ".join(q.message for q in run(unbannered) if q.hard)
+        expect("H5-defense", "no status in the opening lines" in msgs,
+               f"a defense page with no status banner was not caught: {msgs}")
+        numbers = _plant(tmp / "t13", LAYERED_FINDINGS, {
+            "record/findings/F-1.md": "# F-1 — the defense — LIVE\n\n## Results\n\n7/7 and 92.7% and 5000.\n",
+        })
+        expect("S2-defense-exempt", not any("cites no finding" in q.message for q in run(numbers)),
+               "a defense page's own numbers were read as uncited results")
+
+        # A date of the right shape that is no day at all.
+        badday = _plant(tmp / "t14", LAYERED_FINDINGS.replace("2026-08-25", "2026-13-45"), {
+            "record/findings/F-1.md": "# F-1 — the defense — LIVE\n\nPredictions as scored.\n",
+        })
+        res = run(badday)
+        expect("S5-calendar", any("is not a real YYYY-MM-DD day" in q.message and not q.hard for q in res),
+               f"an impossible date passed the shape check: {[q.render() for q in res]}")
+
+        # The kit's placeholder idiom, in a template nobody has filled in yet: warn, never fail.
+        blank = _plant(tmp / "t15", LAYERED_FINDINGS
+                       .replace("`evidence/mining.tsv`", "`experiments/<slug>/out/<file>`")
+                       .replace("`record/findings/F-1.md`", "`record/findings/F-<n>.md`")
+                       .replace("2026-08-25", "YYYY-MM-DD"), {})   # both placeholder idioms
+        res = run(blank)
+        expect("placeholder-soft", not [q for q in res if q.hard],
+               f"an unfilled template was reported as broken: {[q.render() for q in res if q.hard]}")
+        expect("placeholder-warns", len([q for q in res if "placeholder — fill in" in q.message]) == 3,
+               f"the placeholder anchor, defense and date must each warn: {[q.render() for q in res]}")
+
         # A missing Defense is only a warning once the lab says its ledger is layered.
         unmigrated = _plant(tmp / "t7", GOOD_FINDINGS, {})
         expect("S7-off", not any("**Defense:**" in q.message for q in run(unmigrated)),
@@ -970,7 +1086,7 @@ Pointer only: this row holds no numbers.
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("ladder_lint selftest ok (41 planted cases)")
+    print("ladder_lint selftest ok (51 planted cases)")
     return 0
 
 

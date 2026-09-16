@@ -24,13 +24,19 @@ You turn a concluded experiment's raw record into a scored verdict against its p
 5. **Promote — the ladder move.** Ask of each result: *is this a citable fact?* If yes, add a row to `record/findings.md`:
 
    ```markdown
-   ## F-<n> · <one-line statement of the fact>
-   **Status:** BANKED | PROVISIONAL · **Tier:** <reviewer-gated | lab finding>
+   ## F-<n> · <plain headline: the result and its number, ≤ 24 words, no ids>
+   **Status:** BANKED | PROVISIONAL
+   **Tier:** <reviewer-gated | lab finding>
+   **Date:** <YYYY-MM-DD, the day it was banked>
+   **Number:** <the number with its denominator and baseline>
+   **Bound:** <one sentence: the conditions under which it holds, and what it does not license>
+   **Why it matters:** <one sentence>
    **Anchor:** `experiments/<slug>/out/<file>`
    **Re-derive:** `<the exact command that reproduces the number>`
-
-   <the number, its scope, and the bound that travels with it>
+   **Defense:** `record/findings/F-<n>.md`
    ```
+
+   **The row is the interface, and the defense is a separate file.** Everything that argues for the number — the predictions as scored, the reviewer's verdict, the anomalies, the disclosures, the long-form bound — goes to `record/findings/F-<n>.md`, never as prose inside the row.
 
    Rules that make this worth having: **re-derive the number at promotion time**, not from the logbook entry that claimed it. A finding carries its **scope bound** in the same breath as its number — the conditions under which it holds. Tiers are never blurred: a reviewer-gated result and a lab finding under a locked pre-registration are not equal in weight, and prose must not pool them.
 
