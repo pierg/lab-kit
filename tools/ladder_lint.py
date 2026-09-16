@@ -16,7 +16,8 @@ per artifact and is *not* synced between them; numbers are never written twice a
 all -- each artifact cites a finding id, and this tool checks the joints:
 
   H1  every `## F-<n>` in record/findings.md carries Status + Anchor + Re-derive
-  H2  every anchor resolves to a real path, or to a declared pin in record/pins.json
+  H2  every anchor, and every `**Defense:**` path, resolves to a real path or to a
+      declared pin in record/pins.json
   H3  every `F-<n>` cited anywhere resolves to a finding that exists
   H4  every `## C-<n>` in record/claims.md cites at least one finding
   H5  every record/ops/paper document declares a status in its opening lines
@@ -24,8 +25,20 @@ all -- each artifact cites a finding id, and this tool checks the joints:
   H7  every cross-lab `<pin>:F-<n>` citation names a declared pin, and resolves to a
       real row in that lab when its checkout is reachable
 
-  S1  no dangling internal /<content>/... link                        (soft)
+  S1  no dangling internal /<content>/... link                         (soft)
   S2  no result-shaped number in a section that cites no finding       (soft)
+  S3  no finding headline over 24 words                                (soft)
+  S4  no ids (F-n, C-n, §, <pin>:) in a finding headline               (soft)
+  S5  a `**Date:**` field the chronicle can read (YYYY-MM-DD)          (soft)
+  S6  ops/STATE.md under 500 words — it is a pointer                   (soft)
+  S7  a finding row carries `**Defense:**`  ("findings_layered" labs)  (soft)
+
+A finding row is an **interface**: a plain headline, then Status · Tier · Date · Number · Bound ·
+Why it matters · Anchor · Re-derive · Defense, with the long-form defense — predictions as scored,
+the reviewer's verdict, the anomalies — at `record/findings/F-<n>.md`. S3-S7 are the rules that
+keep the row short, and they only ever warn: they are voice, they fire on every unmigrated ledger
+at once, and a check that fails from day one gets disabled (MIGRATION.md). A lab that has finished
+the migration sets `"findings_layered": true` in lab.json, which turns on S7.
 
 Ids are `F-<n>`, optionally sub-numbered (`F-21.1`). A lab arriving from a
 "numbers.md §n" convention sets `"citation_alias": "section"` in lab.json, and its
@@ -77,8 +90,16 @@ FINDING_HEAD = re.compile(rf"^#{{2,3}}\s+(F-{NUM})\b(.*)$", re.M)
 SECTION_HEAD = re.compile(rf"^#{{2,3}}\s+({NUM})\s*[·.]\s*(.*)$", re.M)
 # Any numbered heading, however it is punctuated — used to spot self-reference.
 ANY_NUMBERED_HEAD = re.compile(rf"^#{{1,6}}\s+({NUM})\b", re.M)
-FIELD = re.compile(r"^\*\*(Status|Anchor|Re-derive)\:\*\*\s*(.+)$", re.M)
+FIELD = re.compile(
+    r"^\*\*(Status|Tier|Date|Number|Bound|Why it matters|Anchor|Re-derive|Defense)\:\*\*\s*(.+)$", re.M)
 BACKTICKED = re.compile(r"`([^`]+)`")
+# The headline is the heading with its id and separator stripped — what a citer actually reads.
+HEAD_TITLE = re.compile(rf"^#{{2,6}}\s+(?:F-)?{NUM}\s*[·—–:.-]*\s*(.*)$")
+HEADLINE_WORDS = 24
+# Codes in a headline: a reader cannot expand them, and they date the row to a numbering scheme.
+HEADLINE_CODE = re.compile(rf"[FC]-{NUM}|§")
+ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+STATE_WORDS = 500
 # MOVED: the row is owned by another lab now. Distinct from SUPERSEDED (which means a
 # better result replaced it) and from RETRACTED (which means it was wrong). A by-question
 # split relocates rows that are perfectly correct, and calling that "superseded" would be
@@ -111,6 +132,9 @@ class Lab:
     findings: dict[str, int] = field(default_factory=dict)  # id -> line number
     pins: dict[str, str] = field(default_factory=dict)
     alias: bool = False  # accept "§n" as a citation of F-n
+    # The ledger has been layered: every row is an interface with its defense at a Defense path.
+    # Off by default — S7 would otherwise fire on every row of every ledger not migrated yet.
+    layered: bool = False
     # Where this lab keeps its ledgers. The convention is record/findings.md and
     # record/claims.md, and that stays the default. A lab migrating onto the ladder
     # may already hold its ledger somewhere else with hundreds of live by-path
@@ -213,8 +237,18 @@ def _anchor_ok(lab: Lab, target: str) -> bool:
     return candidate.parent.is_dir() and any(candidate.parent.glob(candidate.name))
 
 
+def _headline(body: str) -> str:
+    """The row's headline — the heading line minus its id and separator."""
+    m = HEAD_TITLE.match(body.partition("\n")[0])
+    return m.group(1).strip() if m else ""
+
+
 def check_findings(lab: Lab) -> list[Problem]:
-    """H1 + H2 — findings are well-formed and their evidence is reachable."""
+    """H1 + H2 — findings are well-formed and their evidence is reachable.
+
+    Plus the voice rules that keep a row an interface rather than a second essay: S3-S5 on every
+    row, S7 only where the lab says its ledger is layered. All four warn and never fail.
+    """
     probs: list[Problem] = []
     path = lab.findings_path
     rel = lab.findings_rel
@@ -260,11 +294,65 @@ def check_findings(lab: Lab) -> list[Problem]:
                         "(no such path, and no matching pin in record/pins.json)",
                     )
                 )
+        # The defense is a path like an anchor is a path: if it does not resolve, the row's
+        # long form is unreachable and the interface points at nothing.
+        for defense in BACKTICKED.findall(fields.get("Defense", "")):
+            if not _anchor_ok(lab, defense):
+                probs.append(
+                    Problem(
+                        f"{rel}:{line}",
+                        f"{ident} defense `{defense}` does not resolve "
+                        "(no such path, and no matching pin in record/pins.json)",
+                    )
+                )
+
         if "Re-derive" in fields and not BACKTICKED.search(fields["Re-derive"]):
             probs.append(
                 Problem(
                     f"{rel}:{line}",
                     f"{ident} re-derivation is not a backticked command",
+                )
+            )
+
+        title = _headline(body)
+        words = len(title.split())
+        if words > HEADLINE_WORDS:
+            probs.append(
+                Problem(
+                    f"{rel}:{line}",
+                    f"{ident} headline is {words} words (limit {HEADLINE_WORDS}) — the row is "
+                    "the interface; the argument belongs in its **Defense:** page",
+                    hard=False,
+                )
+            )
+        codes = sorted(set(HEADLINE_CODE.findall(title)) | {f"{p}:" for p in lab.pins if f"{p}:" in title})
+        if codes:
+            probs.append(
+                Problem(
+                    f"{rel}:{line}",
+                    f"{ident} headline carries {', '.join(codes)} — codes are links, not content",
+                    hard=False,
+                )
+            )
+
+        date = fields.get("Date", "")
+        if date and not ISO_DATE.match(date):
+            probs.append(
+                Problem(
+                    f"{rel}:{line}",
+                    f"{ident} **Date:** {date!r} is not YYYY-MM-DD — the chronicle cannot read "
+                    "it, and falls back to dating the row by git archaeology",
+                    hard=False,
+                )
+            )
+
+        if lab.layered and "Defense" not in fields:
+            probs.append(
+                Problem(
+                    f"{rel}:{line}",
+                    f"{ident} has no **Defense:** field — a layered row points at its long "
+                    f"form (record/findings/{ident}.md)",
+                    hard=False,
                 )
             )
     return probs
@@ -481,6 +569,28 @@ def check_uncited_numbers(lab: Lab) -> list[Problem]:
     return probs
 
 
+def check_state_size(lab: Lab) -> list[Problem]:
+    """S6 — STATE says what is running and why, and points at the record for the rest (soft).
+
+    A STATE.md that grows past a screen has started to be a second logbook: an append-only record
+    kept in a file whose whole contract is that it is overwritten.
+    """
+    path = lab.root / "ops" / "STATE.md"
+    if not path.is_file():
+        return []
+    words = len(path.read_text(encoding="utf-8", errors="replace").split())
+    if words <= STATE_WORDS:
+        return []
+    return [
+        Problem(
+            "ops/STATE.md",
+            f"{words} words (limit {STATE_WORDS}) — STATE is a pointer, not a record; "
+            "the detail belongs in a mission or a logbook",
+            hard=False,
+        )
+    ]
+
+
 def load_lab(root: Path) -> Lab:
     cfg = {"content": "content"}
     marker = root / "lab.json"
@@ -490,6 +600,7 @@ def load_lab(root: Path) -> Lab:
         root=root.resolve(),
         content=(root / cfg["content"]).resolve(),
         alias=cfg.get("citation_alias") == "section",
+        layered=cfg.get("findings_layered") is True,
         findings_rel=cfg.get("findings", "record/findings.md"),
         claims_rel=cfg.get("claims", "record/claims.md"),
     )
@@ -507,7 +618,7 @@ def run(root: Path) -> list[Problem]:
     probs = check_findings(lab)  # populates lab.findings, so it must run first
     for check in (
         check_citations, check_claims, check_status_banners,
-        check_twins, check_links, check_uncited_numbers,
+        check_twins, check_links, check_uncited_numbers, check_state_size,
     ):
         probs.extend(check(lab))
     return probs
@@ -534,6 +645,32 @@ Some prose and no fields at all.
 **Status:** BANKED
 **Anchor:** `evidence/does-not-exist.tsv`
 **Re-derive:** `cat evidence/does-not-exist.tsv`
+"""
+
+# The layered row: a short interface, with the long form at the Defense path.
+LAYERED_FINDINGS = """# Findings — LIVE
+
+## F-1 · The floor does not move under mining
+**Status:** BANKED
+**Tier:** reviewer-gated
+**Date:** 2026-08-25
+**Number:** 2 survivors of 5000 candidates, 0 of 6 converted
+**Bound:** one substrate and one miner — it says nothing about a second engine.
+**Why it matters:** mining is not the lever it looks like.
+**Anchor:** `evidence/mining.tsv`
+**Re-derive:** `awk -F'\\t' '$3=="survivor"' evidence/mining.tsv | wc -l`
+**Defense:** `record/findings/F-1.md`
+"""
+
+# Everything the voice rules exist to catch, in one row: a headline that argues instead of
+# stating, carries codes a reader cannot expand, and a date the chronicle cannot read.
+NOISY_FINDINGS = """# Findings — LIVE
+
+## F-1 · The floor does not move under mining, which is the same conclusion F-2 reached on the second substrate under a differently parameterised miner, at §4
+**Status:** BANKED
+**Date:** 2026-8-25
+**Anchor:** `evidence/mining.tsv`
+**Re-derive:** `wc -l evidence/mining.tsv`
 """
 
 
@@ -762,6 +899,65 @@ Pointer only: this row holds no numbers.
         hard = [q.render() for q in run(movedrow) if q.hard]
         expect("moved-status", not hard, f"MOVED pointer row rejected: {hard}")
 
+        # The layered row: the Defense path is checked exactly as an anchor is.
+        layered = _plant(tmp / "t1", LAYERED_FINDINGS, {
+            "record/findings/F-1.md": "# F-1 — the defense — LIVE\n\nPredictions as scored.\n",
+        })
+        res = run(layered)
+        expect("defense-ok", not [q for q in res if q.hard],
+               f"a layered row with a resolving defense was flagged: {[q.render() for q in res if q.hard]}")
+        expect("defense-quiet", not [q for q in res if "headline" in q.message or "Date" in q.message],
+               f"a well-formed layered row warned: {[q.render() for q in res]}")
+
+        dangling = _plant(tmp / "t2", LAYERED_FINDINGS.replace("F-1.md`", "F-404.md`"), {
+            "record/findings/F-1.md": "# F-1 — the defense — LIVE\n\nPredictions as scored.\n",
+        })
+        msgs = " ".join(q.message for q in run(dangling) if q.hard)
+        expect("H2-defense", "defense `record/findings/F-404.md` does not resolve" in msgs,
+               f"a dangling defense path was not caught: {msgs}")
+
+        # The voice rules: they fire, and they never turn into errors.
+        noisy = _plant(tmp / "t3", NOISY_FINDINGS, {})
+        res = run(noisy)
+        warns = " ".join(q.message for q in res if not q.hard)
+        expect("S3", "headline is 25 words (limit 24)" in warns, f"long headline not warned: {warns}")
+        expect("S4", "codes are links, not content" in warns and "F-2" in warns and "§" in warns,
+               f"ids in a headline not warned: {warns}")
+        expect("S5", "is not YYYY-MM-DD" in warns, f"malformed Date not warned: {warns}")
+        expect("voice-soft", not [q for q in res if q.hard],
+               f"a voice rule leaked into the hard findings: {[q.render() for q in res if q.hard]}")
+
+        # A declared pin's prefix is a code too — `dsl:F-12` in a headline reads as machinery.
+        pinhead = _plant(tmp / "t4", GOOD_FINDINGS.replace(
+            "## F-1 · The floor", "## F-1 · dsl:F-12 says the floor"), {
+            "record/pins.json": '{"dsl": {"repo": "x", "sha": "y"}}',
+        })
+        warns = " ".join(q.message for q in run(pinhead) if not q.hard)
+        expect("S4-pin", "dsl:" in warns and "codes are links" in warns,
+               f"a pin-qualified id in a headline was not warned: {warns}")
+
+        # STATE is overwritten, not appended to: past a screen it has become a second logbook.
+        bigstate = _plant(tmp / "t5", GOOD_FINDINGS, {
+            "ops/STATE.md": "# STATE — LIVE\n\n" + "status " * 600,
+        })
+        res = run(bigstate)
+        expect("S6", any("STATE is a pointer, not a record" in q.message and not q.hard for q in res),
+               f"an oversized STATE.md was not warned: {[q.render() for q in res]}")
+        smallstate = _plant(tmp / "t6", GOOD_FINDINGS, {
+            "ops/STATE.md": "# STATE — LIVE\n\nRunning: nothing. Next: the first probe.\n",
+        })
+        expect("S6-quiet", not any("STATE is a pointer" in q.message for q in run(smallstate)),
+               "a short STATE.md was warned")
+
+        # A missing Defense is only a warning once the lab says its ledger is layered.
+        unmigrated = _plant(tmp / "t7", GOOD_FINDINGS, {})
+        expect("S7-off", not any("**Defense:**" in q.message for q in run(unmigrated)),
+               "a lab that has not migrated was warned about Defense")
+        migrated = _plant(tmp / "t8", GOOD_FINDINGS, {}, cfg={"findings_layered": True})
+        res = run(migrated)
+        expect("S7", any("has no **Defense:** field" in q.message and not q.hard for q in res),
+               f"a layered lab's undefended row was not warned: {[q.render() for q in res]}")
+
         # Default stays the convention: no config, no relocation.
         missing = _plant(tmp / "r2", GOOD_FINDINGS, {})
         (missing / "record" / "findings.md").unlink()
@@ -774,7 +970,7 @@ Pointer only: this row holds no numbers.
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("ladder_lint selftest ok (27 planted cases)")
+    print("ladder_lint selftest ok (41 planted cases)")
     return 0
 
 
