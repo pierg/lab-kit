@@ -42,11 +42,8 @@ the migration sets `"findings_layered": true` in lab.json, which turns on S7.
 
 `**Defense:**` is read only on its own line and only as a backticked path — unlike Tier, which the
 chronicle also accepts inline for rows written before the layering. An unbackticked value is an
-error, because it would otherwise satisfy S7 while being checked by nothing. The defense pages are
-linted as the record documents they are (H3, H5, H7) and exempted from S2: a defense page is its
-own finding's evidence, so its numbers are anchored by the row it defends. A path or date still
-carrying the kit's `<placeholder>` idiom warns ("fill in") rather than failing, so a freshly
-scaffolded lab opens green.
+error, because it would otherwise satisfy S7 while being checked by nothing. The defense pages
+themselves are linted as the record documents they are (H3, H5, H7).
 
 Ids are `F-<n>`, optionally sub-numbered (`F-21.1`). A lab arriving from a
 "numbers.md §n" convention sets `"citation_alias": "section"` in lab.json, and its
@@ -109,11 +106,6 @@ HEADLINE_WORDS = 24
 HEADLINE_CODE = re.compile(rf"[FC]-{NUM}|§")
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 STATE_WORDS = 500
-# The kit's own placeholder idiom, in a template nobody has filled in yet: `experiments/<slug>/…`.
-# A scaffolded lab must not open with red errors — the reader cannot tell a real breakage from
-# the example row it was handed.
-PLACEHOLDER = re.compile(r"<[^<>]+>")
-DATE_PLACEHOLDER = "YYYY-MM-DD"  # the kit's own spelling of "fill this in", in the row template
 # MOVED: the row is owned by another lab now. Distinct from SUPERSEDED (which means a
 # better result replaced it) and from RETRACTED (which means it was wrong). A by-question
 # split relocates rows that are perfectly correct, and calling that "superseded" would be
@@ -158,6 +150,7 @@ class Lab:
     findings_rel: str = "record/findings.md"
     claims_rel: str = "record/claims.md"
     _pin_ids_cache: dict = field(default_factory=dict)
+    _defense_linked: set[Path] = field(default_factory=set)  # resolved **Defense:** paths that exist
 
     @property
     def findings_path(self) -> Path:
@@ -167,10 +160,17 @@ class Lab:
     def claims_path(self) -> Path:
         return self.root / self.claims_rel
 
-    @property
-    def defense_dir(self) -> Path:
-        """Where a layered row's long form lives — `record/findings/F-<n>.md` (LADDER.md)."""
-        return self.root / "record" / "findings"
+    def defense_pages(self) -> list[Path]:
+        """Every defense page: the ones rows link to, plus any sitting in the conventional
+        directory. The links are what matters — a lab may keep its long forms anywhere — but a
+        page that exists and is not yet linked is still a record document that has to declare
+        itself. `check_findings` fills `_defense_linked`, so it must run first (it already does).
+        """
+        found = set(self._defense_linked)
+        conventional = self.root / "record" / "findings"
+        if conventional.is_dir():
+            found.update(p.resolve() for p in conventional.glob("*.md"))
+        return sorted(found)
 
     def cites(self, text: str) -> list[tuple[str, int, bool]]:
         """Every finding id referenced in `text`, as (id, offset, canonical).
@@ -280,16 +280,12 @@ def _is_iso_date(value: str) -> bool:
 def _path_field(lab: Lab, ident: str, rel: str, line: int, kind: str, value: str) -> list[Problem]:
     """H2 — every backticked path in an Anchor / Defense field resolves.
 
-    A value still carrying the kit's `<placeholder>` idiom is a template nobody has filled in:
-    that is a warning ("fill in"), never a hard error.
+    The templates keep their example row inside a fenced block, spelled `## F-<n>`, so a
+    scaffolded lab has no row here to fail on — the ledger is empty until the lab writes one.
     """
     probs: list[Problem] = []
     for target in BACKTICKED.findall(value):
-        if PLACEHOLDER.search(target):
-            probs.append(
-                Problem(f"{rel}:{line}", f"{ident} {kind} `{target}` is a placeholder — fill in", hard=False)
-            )
-        elif not _anchor_ok(lab, target):
+        if not _anchor_ok(lab, target):
             probs.append(
                 Problem(
                     f"{rel}:{line}",
@@ -297,6 +293,12 @@ def _path_field(lab: Lab, ident: str, rel: str, line: int, kind: str, value: str
                     "(no such path, and no matching pin in record/pins.json)",
                 )
             )
+        elif kind == "defense" and ":" not in target:
+            # remember where this lab actually keeps its long forms, so the record checks find
+            # them wherever they are rather than only under record/findings/
+            page = (lab.root / target.lstrip("/")).resolve()
+            if page.is_file():
+                lab._defense_linked.add(page)
     return probs
 
 
@@ -386,11 +388,7 @@ def check_findings(lab: Lab) -> list[Problem]:
             )
 
         banked = fields.get("Date", "")
-        if banked and (PLACEHOLDER.search(banked) or banked == DATE_PLACEHOLDER):
-            probs.append(
-                Problem(f"{rel}:{line}", f"{ident} **Date:** {banked!r} is a placeholder — fill in", hard=False)
-            )
-        elif banked and not _is_iso_date(banked):
+        if banked and not _is_iso_date(banked):
             probs.append(
                 Problem(
                     f"{rel}:{line}",
@@ -417,9 +415,6 @@ def _cited_files(lab: Lab) -> list[Path]:
     for base, patterns in (
         (lab.content, ("**/*.html", "**/*.md", "**/*.tex")),
         (lab.root / "record", ("*.md",)),
-        # A defense page is an authored record document: it cites findings, it names pins, and
-        # nothing else scans it (record/*.md is deliberately not recursive).
-        (lab.defense_dir, ("*.md",)),
         (lab.root / "ops", ("**/*.md",)),
         # A relocated ledger's neighbours are authored documents too — they are the
         # ones most likely to cite it, so a lab does not lose coverage by not having
@@ -429,6 +424,9 @@ def _cited_files(lab: Lab) -> list[Path]:
         if base.is_dir():
             for pat in patterns:
                 out.extend(sorted(base.glob(pat)))
+    # A defense page is an authored record document: it cites findings and it names pins, and
+    # nothing else scans it (record/*.md is deliberately not recursive).
+    out.extend(lab.defense_pages())
     skip = {p.resolve() for p in (lab.findings_path, lab.claims_path) if p.is_file()}
     return [p for p in out if p.resolve() not in skip]
 
@@ -535,10 +533,10 @@ def check_status_banners(lab: Lab) -> list[Problem]:
     """H5 — a reader can tell in three lines whether a document is still true."""
     probs: list[Problem] = []
     targets: list[Path] = []
-    for base, pat in ((lab.root / "record", "*.md"), (lab.defense_dir, "*.md"),
-                      (lab.root / "ops", "*.md")):
+    for base, pat in ((lab.root / "record", "*.md"), (lab.root / "ops", "*.md")):
         if base.is_dir():
             targets.extend(sorted(base.glob(pat)))
+    targets.extend(lab.defense_pages())
     if lab.content.is_dir():
         targets.extend(sorted(lab.content.glob("papers/*/main.md")))
 
@@ -604,11 +602,11 @@ def check_uncited_numbers(lab: Lab) -> list[Problem]:
     probs: list[Problem] = []
     if not lab.content.is_dir():
         return probs
+    # Content pages only. If this ever scans record/, exempt the defense pages: a defense page is
+    # its own finding's evidence, so its numbers are anchored by the row it defends.
     for path in sorted(lab.content.rglob("*.md")):
         if path.name == "main.md" and (path.parent / "source.json").is_file():
             continue  # imported source text, not our claims
-        if path.parent == lab.defense_dir:
-            continue  # a defense page is its own finding's evidence: its numbers are the row's
         text = path.read_text(encoding="utf-8", errors="replace")
         marks = [(m.start(), text.count("\n", 0, m.start()) + 1) for m in SECTION.finditer(text)]
         spans = [
@@ -1040,11 +1038,14 @@ Pointer only: this row holds no numbers.
         msgs = " ".join(q.message for q in run(unbannered) if q.hard)
         expect("H5-defense", "no status in the opening lines" in msgs,
                f"a defense page with no status banner was not caught: {msgs}")
-        numbers = _plant(tmp / "t13", LAYERED_FINDINGS, {
-            "record/findings/F-1.md": "# F-1 — the defense — LIVE\n\n## Results\n\n7/7 and 92.7% and 5000.\n",
+        # ...and wherever the row says it lives, not only under record/findings/.
+        elsewhere = _plant(tmp / "t13", LAYERED_FINDINGS.replace(
+            "`record/findings/F-1.md`", "`record/defenses/F-1.md`"), {
+            "record/defenses/F-1.md": "# F-1 — the defense\n\nSuperseded by F-404.\n",
         })
-        expect("S2-defense-exempt", not any("cites no finding" in q.message for q in run(numbers)),
-               "a defense page's own numbers were read as uncited results")
+        msgs = " ".join(q.message for q in run(elsewhere) if q.hard)
+        expect("defense-nondefault", "no status in the opening lines" in msgs and "cites F-404" in msgs,
+               f"a defense page at a non-default path was not linted: {msgs}")
 
         # A date of the right shape that is no day at all.
         badday = _plant(tmp / "t14", LAYERED_FINDINGS.replace("2026-08-25", "2026-13-45"), {
@@ -1054,16 +1055,15 @@ Pointer only: this row holds no numbers.
         expect("S5-calendar", any("is not a real YYYY-MM-DD day" in q.message and not q.hard for q in res),
                f"an impossible date passed the shape check: {[q.render() for q in res]}")
 
-        # The kit's placeholder idiom, in a template nobody has filled in yet: warn, never fail.
-        blank = _plant(tmp / "t15", LAYERED_FINDINGS
-                       .replace("`evidence/mining.tsv`", "`experiments/<slug>/out/<file>`")
-                       .replace("`record/findings/F-1.md`", "`record/findings/F-<n>.md`")
-                       .replace("2026-08-25", "YYYY-MM-DD"), {})   # both placeholder idioms
-        res = run(blank)
-        expect("placeholder-soft", not [q for q in res if q.hard],
-               f"an unfilled template was reported as broken: {[q.render() for q in res if q.hard]}")
-        expect("placeholder-warns", len([q for q in res if "placeholder — fill in" in q.message]) == 3,
-               f"the placeholder anchor, defense and date must each warn: {[q.render() for q in res]}")
+        # The row template is an example, not a row: fenced, and spelled `## F-<n>`, so it parses
+        # as nothing at all rather than as a finding whose placeholder paths do not resolve.
+        example = _plant(tmp / "t15", (Path(__file__).parent.parent / "templates/record/findings.md")
+                         .read_text(encoding="utf-8"), {})
+        res = run(example)
+        expect("template-clean", not [q for q in res if q.hard],
+               f"the scaffolded row template reports errors: {[q.render() for q in res if q.hard]}")
+        expect("template-empty", any("no `## F-<n>` sections found" in q.message for q in res),
+               f"the template's example row was parsed as a real row: {[q.render() for q in res]}")
 
         # A missing Defense is only a warning once the lab says its ledger is layered.
         unmigrated = _plant(tmp / "t7", GOOD_FINDINGS, {})

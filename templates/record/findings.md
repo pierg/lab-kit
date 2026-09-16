@@ -8,13 +8,17 @@
 
 **The row is the interface.** It carries what a citer needs and nothing else; the defense — predictions as scored, the reviewer's verdict, the anomalies, the disclosures, the long-form bound — lives at the row's `Defense:` path and is never summarized back into the row.
 
-## F-1 · <plain headline: the result and its number, ≤ 24 words, no ids>
+The shape of a row — copy it, fill it in, and number it from 1. The example stays fenced so the gate reads this ledger as what it is until the first finding lands: empty.
+
+```markdown
+## F-<n> · <plain headline: the result and its number, ≤ 24 words, no ids>
 **Status:** BANKED
 **Tier:** reviewer-gated
-**Date:** YYYY-MM-DD
+**Date:** <YYYY-MM-DD, the day it was banked>
 **Number:** <the number with its denominator and baseline>
 **Bound:** <one sentence: the conditions under which it holds, and what it does not license>
 **Why it matters:** <one sentence>
 **Anchor:** `experiments/<slug>/out/<file>`
 **Re-derive:** `<the exact command that reproduces the number>`
 **Defense:** `record/findings/F-<n>.md`
+```

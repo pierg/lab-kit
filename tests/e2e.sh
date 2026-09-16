@@ -34,8 +34,8 @@ python3 -c 'import json; c=json.load(open("'"$LAB"'/lab.json")); assert c["chron
 ( cd "$LAB" && git init -q && git add -A && git status --porcelain kit/PIN | grep -q . ) \
   || { echo "e2e: kit/PIN is not stageable — it must be tracked, not ignored" >&2; exit 1; }
 rm -rf "$LAB/.git"
-# A scaffolded lab opens green: its example row is placeholders, and a placeholder warns, never errors.
-( cd "$LAB" && python3 kit/tools/ladder_lint.py | grep -q "0 error(s)" ) \
+# A scaffolded lab opens green: its ledger holds a fenced example, not a row, so there is nothing to fail on.
+( cd "$LAB" && python3 kit/tools/ladder_lint.py | grep -q ": 0 error(s)" ) \
   || { echo "e2e: a freshly scaffolded lab does not report 0 errors" >&2; ( cd "$LAB" && python3 kit/tools/ladder_lint.py >&2 ); exit 1; }
 # Every vendored tool's planted fixtures run from the lab copy, not just from the kit checkout.
 for t in ladder_lint chronicle_lab layer_findings; do

@@ -28,7 +28,10 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
-HEAD = re.compile(r"^(#{2,3})\s+(F-\d+(?:\.\d+)*)\s*·\s*(.+?)\s*$")
+# The same four separators chronicle_lab.ROW accepts. A heading this misses is not a row: its
+# fields land in the previous row's body, where last-wins would silently replace that row's own.
+HEAD = re.compile(r"^(#{2,3})\s+(F-\d+(?:\.\d+)*)\s*[·—–-]\s*(.+?)\s*$")
+ROWISH = re.compile(r"^#{2,3}\s+F-\d")  # looks like a row heading, whatever it turns out to be
 FIELD = re.compile(r"^\*\*(Status|Anchor|Re-derive):\*\*\s*(.+)$")
 BACKTICKED = re.compile(r"`([^`]+)`")
 STATUSES = ("BANKED", "PROVISIONAL", "RETRACTED", "SUPERSEDED", "MOVED")
@@ -203,8 +206,20 @@ def assemble(root: Path, drafts: dict[str, dict], migrated_on: str, tag: str,
     if not rows:
         raise SystemExit("layer_findings: no rows found")
     problems: list[str] = []
+    # A heading that looks like a row but does not parse as one, a field key that appears twice in
+    # a single body, and a draft no row consumed are the three faces of the same failure: a row
+    # boundary the parser did not see. Each is silent without these checks.
+    problems += [f"heading I cannot read: {ln.strip()[:70]!r}"
+                 for ln in text.split("\n") if ROWISH.match(ln) and not HEAD.match(ln)]
+    orphans = sorted(set(drafts) - {r.id for r in rows})
+    if orphans:
+        problems.append("drafts no row consumed: " + ", ".join(orphans))
     dates: dict[str, str] = {}
     for r in rows:
+        keys = [m.group(1) for m in (FIELD.match(x) for x in r.body) if m]
+        dupes = sorted({k for k in keys if keys.count(k) > 1})
+        if dupes:
+            problems.append(f"{r.id}: {', '.join(dupes)} appears twice in one row body")
         d = drafts.get(r.id)
         if d is None:
             problems.append(f"{r.id}: no draft")
@@ -244,12 +259,18 @@ def assemble(root: Path, drafts: dict[str, dict], migrated_on: str, tag: str,
 
 
 def write_out(root: Path, new_text: str, defenses: dict[str, str], ledger_rel: str = "record/findings.md") -> None:
-    (root / ledger_rel).write_text(new_text, encoding="utf-8")
+    # Everything is checked before anything is written: a refusal half-way through would leave a
+    # rewritten ledger pointing at defense files that were never created.
+    taken = sorted(rel for rel in defenses if (root / rel).exists())
+    if taken:
+        raise SystemExit("layer_findings: refusing to overwrite an existing defense file — " + ", ".join(taken))
+    ledger = root / ledger_rel
+    if not os.access(ledger.parent, os.W_OK) or (ledger.exists() and not os.access(ledger, os.W_OK)):
+        raise SystemExit(f"layer_findings: {ledger_rel} is not writable")
+    ledger.write_text(new_text, encoding="utf-8")
     for rel, body in defenses.items():
         p = root / rel
         p.parent.mkdir(parents=True, exist_ok=True)
-        if p.exists():
-            raise SystemExit(f"layer_findings: {rel} already exists — refusing to overwrite a defense file")
         p.write_text(body, encoding="utf-8")
 
 
@@ -271,7 +292,7 @@ Header paragraph.
 **Licensed sentence: seven of nine.** Long prose with a Correction (2026-01-02) that narrows it.
 
 
-## F-2 · Umbrella of two
+## F-2 — Umbrella of two
 **Status:** BANKED (umbrella) · **Tier:** declares its own tier
 **Anchor:** `record/x.md`
 **Re-derive:** `grep -c x record/x.md`
@@ -300,15 +321,25 @@ DRAFTS = {"rows": [
 ]}
 
 
+def _seed(root: Path, text: str) -> Path:
+    """A ledger in its own git repo — the bank dates come out of history, so history is the fixture.
+
+    `-c commit.gpgsign=false` and `--no-verify` because a host gitconfig that signs every commit,
+    or a global hooks path, would otherwise turn this selftest into an unhandled crash.
+    """
+    (root / "record").mkdir(parents=True)
+    (root / "record/findings.md").write_text(text, encoding="utf-8")
+    base = ["git", "-c", "user.email=t@t", "-c", "user.name=t", "-c", "commit.gpgsign=false"]
+    subprocess.run(["git", "init", "-q"], cwd=root, env=git_env(), check=True)
+    subprocess.run([*base, "add", "-A"], cwd=root, env=git_env(), check=True)
+    subprocess.run([*base, "commit", "--no-verify", "-qm", "seed"], cwd=root, env=git_env(), check=True)
+    return root
+
+
 def selftest() -> None:
     fails: list[str] = []
     with tempfile.TemporaryDirectory() as td:
-        root = Path(td)
-        (root / "record").mkdir()
-        (root / "record/findings.md").write_text(FIXTURE, encoding="utf-8")
-        subprocess.run(["git", "init", "-q"], cwd=root, env=git_env(), check=True)
-        subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", "add", "-A"], cwd=root, env=git_env(), check=True)
-        subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "seed"], cwd=root, env=git_env(), check=True)
+        root = _seed(Path(td) / "lab", FIXTURE)
         new_text, defenses, stats = assemble(root, load_drafts_obj(DRAFTS), "2026-09-16", "pre-layering-test")
         if stats["rows"] != 3:
             fails.append(f"expected 3 rows, got {stats['rows']}")
@@ -326,41 +357,68 @@ def selftest() -> None:
             fails.append("layered-rows note missing or after the first row")
         if not all(is_iso(d) for d in stats["dates"].values()):
             fails.append(f"dates not recovered: {stats['dates']}")
+        # F-2's heading is punctuated with an em dash: it must parse as its own row, and its
+        # fields must stay its own. Absorbed into F-1's body, last-wins would hand F-1 F-2's
+        # anchor and re-derivation, and the run would still exit 0.
+        if "**Anchor:** `experiments/x/out/a.tsv`" not in new_text or "**Anchor:** `record/x.md`" not in new_text:
+            fails.append("an em-dash heading did not parse as its own row: fields were merged")
         # negatives: an id in a headline, an invented anchor, a missing draft — each must refuse
         bad = json.loads(json.dumps(DRAFTS))
         bad["rows"][0]["headline"] = "Seven of nine, see F-0"
-        _expect_refusal(root, bad, "id in headline", fails)
+        _expect_refusal(root, bad, "id in headline", "carries a finding/claim id", fails)
         bad = json.loads(json.dumps(DRAFTS))
         bad["rows"][2]["anchor_primary"] = ["`experiments/y/out/invented.tsv`"]
-        _expect_refusal(root, bad, "invented anchor", fails)
+        _expect_refusal(root, bad, "invented anchor", "is not an anchor of the original row", fails)
         bad = json.loads(json.dumps(DRAFTS))
         bad["rows"].pop(1)
-        _expect_refusal(root, bad, "missing draft", fails)
-        # writing refuses to overwrite an existing defense file
+        _expect_refusal(root, bad, "missing draft", "F-2: no draft", fails)
+        bad = json.loads(json.dumps(DRAFTS))
+        bad["rows"].append(dict(bad["rows"][0], id="F-404"))
+        _expect_refusal(root, bad, "unconsumed draft", "drafts no row consumed: F-404", fails)
+        # ...and the two shapes of an unseen row boundary, in the ledger rather than the drafts
+        unreadable = _seed(Path(td) / "unreadable", FIXTURE.replace("## F-2 —", "## F-2:"))
+        _expect_refusal(unreadable, DRAFTS, "unreadable heading", "heading I cannot read", fails)
+        twice = _seed(Path(td) / "twice", FIXTURE.replace(
+            "**Re-derive:** `grep -c x record/x.md`",
+            "**Re-derive:** `grep -c x record/x.md`\n**Anchor:** `record/y.md`"))
+        _expect_refusal(twice, DRAFTS, "duplicate field key", "Anchor appears twice in one row body", fails)
+
+        # writing is all-or-nothing: one existing defense file refuses the whole run, and the
+        # ledger it would have rewritten is byte-unchanged afterwards
         write_out(root, new_text, defenses)
+        ledger = root / "record/findings.md"
+        before = ledger.read_bytes()
+        ledger.write_bytes(b"# Findings - LIVE\n\nnot yet migrated\n")
         try:
             write_out(root, new_text, defenses)
             fails.append("overwrite of an existing defense file was not refused")
         except SystemExit:
-            pass
+            if ledger.read_bytes() != b"# Findings - LIVE\n\nnot yet migrated\n":
+                fails.append("a refused run still rewrote the ledger")
+        ledger.write_bytes(before)
     if fails:
         print("layer_findings selftest FAILED:")
         for f in fails:
             print("  -", f)
         sys.exit(1)
-    print("layer_findings selftest ok (assembly, verbatim, nesting, dates, 3 refusals, no-overwrite)")
+    print("layer_findings selftest ok (assembly, verbatim, nesting, dates, em-dash heading, "
+          "6 refusals: id in headline · invented anchor · missing draft · unconsumed draft · "
+          "unreadable heading · duplicate field key, and an all-or-nothing write)")
 
 
 def load_drafts_obj(obj: dict) -> dict[str, dict]:
     return {r["id"]: r for r in obj["rows"]}
 
 
-def _expect_refusal(root: Path, drafts_obj: dict, what: str, fails: list[str]) -> None:
+def _expect_refusal(root: Path, drafts_obj: dict, what: str, because: str, fails: list[str]) -> None:
+    """Refused, and refused *for the stated reason* — every refusal here raises the same SystemExit,
+    so a fixture that trips a different check would otherwise pass while testing nothing."""
     try:
         assemble(root, load_drafts_obj(drafts_obj), "2026-09-16", "t")
         fails.append(f"{what}: was not refused")
-    except SystemExit:
-        pass
+    except SystemExit as e:
+        if because not in str(e):
+            fails.append(f"{what}: refused, but not for {because!r} — {e}")
 
 
 # ----------------------------------------------------------------------------- entry point

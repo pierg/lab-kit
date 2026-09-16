@@ -222,9 +222,10 @@ def parse_rows(root: Path, rel: str) -> list[dict]:
         status_raw = fields.get("Status") or ""
         sm = STATUS_WORD.search(status_raw.split("·")[0])
         # Line-anchored fields are canonical; every row written before the layering spells its
-        # tier inline, at the end of the Status line, so read it from there when it is absent.
+        # tier inline, at the end of the Status line, so read it from there when it is absent —
+        # bounded and stripped of markup, because a legacy tier runs to a paragraph.
         tier = fields.get("Tier") or (
-            status_raw.split(INLINE_TIER, 1)[1].strip() if INLINE_TIER in status_raw else "")
+            _plain(status_raw.split(INLINE_TIER, 1)[1], 120) if INLINE_TIER in status_raw else "")
         rows.append({
             "id": m.group(1), "title": _plain(m.group(2), 200),
             "status": sm.group(0) if sm else "",
