@@ -16,7 +16,8 @@ per artifact and is *not* synced between them; numbers are never written twice a
 all -- each artifact cites a finding id, and this tool checks the joints:
 
   H1  every `## F-<n>` in record/findings.md carries Status + Anchor + Re-derive
-  H2  every anchor resolves to a real path, or to a declared pin in record/pins.json
+  H2  every anchor, and every `**Defense:**` path, resolves to a real path or to a
+      declared pin in record/pins.json
   H3  every `F-<n>` cited anywhere resolves to a finding that exists
   H4  every `## C-<n>` in record/claims.md cites at least one finding
   H5  every record/ops/paper document declares a status in its opening lines
@@ -24,8 +25,25 @@ all -- each artifact cites a finding id, and this tool checks the joints:
   H7  every cross-lab `<pin>:F-<n>` citation names a declared pin, and resolves to a
       real row in that lab when its checkout is reachable
 
-  S1  no dangling internal /<content>/... link                        (soft)
+  S1  no dangling internal /<content>/... link                         (soft)
   S2  no result-shaped number in a section that cites no finding       (soft)
+  S3  no finding headline over 24 words                                (soft)
+  S4  no ids (F-n, C-n, §, <pin>:) in a finding headline               (soft)
+  S5  a `**Date:**` field the chronicle can read (YYYY-MM-DD)          (soft)
+  S6  ops/STATE.md under 500 words — it is a pointer                   (soft)
+  S7  a finding row carries `**Defense:**`  ("findings_layered" labs)  (soft)
+
+A finding row is an **interface**: a plain headline, then Status · Tier · Date · Number · Bound ·
+Why it matters · Anchor · Re-derive · Defense, with the long-form defense — predictions as scored,
+the reviewer's verdict, the anomalies — at `record/findings/F-<n>.md`. S3-S7 are the rules that
+keep the row short, and they only ever warn: they are voice, they fire on every unmigrated ledger
+at once, and a check that fails from day one gets disabled (MIGRATION.md). A lab that has finished
+the migration sets `"findings_layered": true` in lab.json, which turns on S7.
+
+`**Defense:**` is read only on its own line and only as a backticked path — unlike Tier, which the
+chronicle also accepts inline for rows written before the layering. An unbackticked value is an
+error, because it would otherwise satisfy S7 while being checked by nothing. The defense pages
+themselves are linted as the record documents they are (H3, H5, H7).
 
 Ids are `F-<n>`, optionally sub-numbered (`F-21.1`). A lab arriving from a
 "numbers.md §n" convention sets `"citation_alias": "section"` in lab.json, and its
@@ -46,6 +64,7 @@ import re
 import sys
 import tempfile
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 
 
@@ -77,8 +96,16 @@ FINDING_HEAD = re.compile(rf"^#{{2,3}}\s+(F-{NUM})\b(.*)$", re.M)
 SECTION_HEAD = re.compile(rf"^#{{2,3}}\s+({NUM})\s*[·.]\s*(.*)$", re.M)
 # Any numbered heading, however it is punctuated — used to spot self-reference.
 ANY_NUMBERED_HEAD = re.compile(rf"^#{{1,6}}\s+({NUM})\b", re.M)
-FIELD = re.compile(r"^\*\*(Status|Anchor|Re-derive)\:\*\*\s*(.+)$", re.M)
+FIELD = re.compile(
+    r"^\*\*(Status|Tier|Date|Number|Bound|Why it matters|Anchor|Re-derive|Defense)\:\*\*\s*(.+)$", re.M)
 BACKTICKED = re.compile(r"`([^`]+)`")
+# The headline is the heading with its id and separator stripped — what a citer actually reads.
+HEAD_TITLE = re.compile(rf"^#{{2,6}}\s+(?:F-)?{NUM}\s*[·—–:.-]*\s*(.*)$")
+HEADLINE_WORDS = 24
+# Codes in a headline: a reader cannot expand them, and they date the row to a numbering scheme.
+HEADLINE_CODE = re.compile(rf"[FC]-{NUM}|§")
+ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+STATE_WORDS = 500
 # MOVED: the row is owned by another lab now. Distinct from SUPERSEDED (which means a
 # better result replaced it) and from RETRACTED (which means it was wrong). A by-question
 # split relocates rows that are perfectly correct, and calling that "superseded" would be
@@ -111,6 +138,9 @@ class Lab:
     findings: dict[str, int] = field(default_factory=dict)  # id -> line number
     pins: dict[str, str] = field(default_factory=dict)
     alias: bool = False  # accept "§n" as a citation of F-n
+    # The ledger has been layered: every row is an interface with its defense at a Defense path.
+    # Off by default — S7 would otherwise fire on every row of every ledger not migrated yet.
+    layered: bool = False
     # Where this lab keeps its ledgers. The convention is record/findings.md and
     # record/claims.md, and that stays the default. A lab migrating onto the ladder
     # may already hold its ledger somewhere else with hundreds of live by-path
@@ -120,6 +150,7 @@ class Lab:
     findings_rel: str = "record/findings.md"
     claims_rel: str = "record/claims.md"
     _pin_ids_cache: dict = field(default_factory=dict)
+    _defense_linked: set[Path] = field(default_factory=set)  # resolved **Defense:** paths that exist
 
     @property
     def findings_path(self) -> Path:
@@ -128,6 +159,18 @@ class Lab:
     @property
     def claims_path(self) -> Path:
         return self.root / self.claims_rel
+
+    def defense_pages(self) -> list[Path]:
+        """Every defense page: the ones rows link to, plus any sitting in the conventional
+        directory. The links are what matters — a lab may keep its long forms anywhere — but a
+        page that exists and is not yet linked is still a record document that has to declare
+        itself. `check_findings` fills `_defense_linked`, so it must run first (it already does).
+        """
+        found = set(self._defense_linked)
+        conventional = self.root / "record" / "findings"
+        if conventional.is_dir():
+            found.update(p.resolve() for p in conventional.glob("*.md"))
+        return sorted(found)
 
     def cites(self, text: str) -> list[tuple[str, int, bool]]:
         """Every finding id referenced in `text`, as (id, offset, canonical).
@@ -213,8 +256,58 @@ def _anchor_ok(lab: Lab, target: str) -> bool:
     return candidate.parent.is_dir() and any(candidate.parent.glob(candidate.name))
 
 
+def _headline(body: str) -> str:
+    """The row's headline — the heading line minus its id and separator."""
+    m = HEAD_TITLE.match(body.partition("\n")[0])
+    return m.group(1).strip() if m else ""
+
+
+def _is_iso_date(value: str) -> bool:
+    """YYYY-MM-DD *and* a real calendar day. `2026-13-45` is the right shape and no day at all.
+
+    The shape is checked first because date.fromisoformat also accepts `20260916` and full
+    timestamps, neither of which the chronicle reads.
+    """
+    if not ISO_DATE.match(value):
+        return False
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
+def _path_field(lab: Lab, ident: str, rel: str, line: int, kind: str, value: str) -> list[Problem]:
+    """H2 — every backticked path in an Anchor / Defense field resolves.
+
+    The templates keep their example row inside a fenced block, spelled `## F-<n>`, so a
+    scaffolded lab has no row here to fail on — the ledger is empty until the lab writes one.
+    """
+    probs: list[Problem] = []
+    for target in BACKTICKED.findall(value):
+        if not _anchor_ok(lab, target):
+            probs.append(
+                Problem(
+                    f"{rel}:{line}",
+                    f"{ident} {kind} `{target}` does not resolve "
+                    "(no such path, and no matching pin in record/pins.json)",
+                )
+            )
+        elif kind == "defense" and ":" not in target:
+            # remember where this lab actually keeps its long forms, so the record checks find
+            # them wherever they are rather than only under record/findings/
+            page = (lab.root / target.lstrip("/")).resolve()
+            if page.is_file():
+                lab._defense_linked.add(page)
+    return probs
+
+
 def check_findings(lab: Lab) -> list[Problem]:
-    """H1 + H2 — findings are well-formed and their evidence is reachable."""
+    """H1 + H2 — findings are well-formed and their evidence is reachable.
+
+    Plus the voice rules that keep a row an interface rather than a second essay: S3-S5 on every
+    row, S7 only where the lab says its ledger is layered. All four warn and never fail.
+    """
     probs: list[Problem] = []
     path = lab.findings_path
     rel = lab.findings_rel
@@ -251,20 +344,67 @@ def check_findings(lab: Lab) -> list[Problem]:
                 )
             )
 
-        for anchor in BACKTICKED.findall(fields.get("Anchor", "")):
-            if not _anchor_ok(lab, anchor):
-                probs.append(
-                    Problem(
-                        f"{rel}:{line}",
-                        f"{ident} anchor `{anchor}` does not resolve "
-                        "(no such path, and no matching pin in record/pins.json)",
-                    )
+        probs += _path_field(lab, ident, rel, line, "anchor", fields.get("Anchor", ""))
+        # The defense is a path like an anchor is a path: if it does not resolve, the row's
+        # long form is unreachable and the interface points at nothing.
+        probs += _path_field(lab, ident, rel, line, "defense", fields.get("Defense", ""))
+        # ...and an unbackticked defense would be checked by nothing at all, while still
+        # satisfying S7 — the one hard check this field adds, defeated by forgetting a backtick.
+        if "Defense" in fields and not BACKTICKED.search(fields["Defense"]):
+            probs.append(
+                Problem(
+                    f"{rel}:{line}",
+                    f"{ident} defense path is not a backticked path",
                 )
+            )
+
         if "Re-derive" in fields and not BACKTICKED.search(fields["Re-derive"]):
             probs.append(
                 Problem(
                     f"{rel}:{line}",
                     f"{ident} re-derivation is not a backticked command",
+                )
+            )
+
+        title = _headline(body)
+        words = len(title.split())
+        if words > HEADLINE_WORDS:
+            probs.append(
+                Problem(
+                    f"{rel}:{line}",
+                    f"{ident} headline is {words} words (limit {HEADLINE_WORDS}) — the row is "
+                    "the interface; the argument belongs in its **Defense:** page",
+                    hard=False,
+                )
+            )
+        codes = sorted(set(HEADLINE_CODE.findall(title)) | {f"{p}:" for p in lab.pins if f"{p}:" in title})
+        if codes:
+            probs.append(
+                Problem(
+                    f"{rel}:{line}",
+                    f"{ident} headline carries {', '.join(codes)} — codes are links, not content",
+                    hard=False,
+                )
+            )
+
+        banked = fields.get("Date", "")
+        if banked and not _is_iso_date(banked):
+            probs.append(
+                Problem(
+                    f"{rel}:{line}",
+                    f"{ident} **Date:** {banked!r} is not a real YYYY-MM-DD day — the chronicle "
+                    "cannot read it, and falls back to dating the row by git archaeology",
+                    hard=False,
+                )
+            )
+
+        if lab.layered and "Defense" not in fields:
+            probs.append(
+                Problem(
+                    f"{rel}:{line}",
+                    f"{ident} has no **Defense:** field — a layered row points at its long "
+                    f"form (record/findings/{ident}.md)",
+                    hard=False,
                 )
             )
     return probs
@@ -284,6 +424,9 @@ def _cited_files(lab: Lab) -> list[Path]:
         if base.is_dir():
             for pat in patterns:
                 out.extend(sorted(base.glob(pat)))
+    # A defense page is an authored record document: it cites findings and it names pins, and
+    # nothing else scans it (record/*.md is deliberately not recursive).
+    out.extend(lab.defense_pages())
     skip = {p.resolve() for p in (lab.findings_path, lab.claims_path) if p.is_file()}
     return [p for p in out if p.resolve() not in skip]
 
@@ -393,6 +536,7 @@ def check_status_banners(lab: Lab) -> list[Problem]:
     for base, pat in ((lab.root / "record", "*.md"), (lab.root / "ops", "*.md")):
         if base.is_dir():
             targets.extend(sorted(base.glob(pat)))
+    targets.extend(lab.defense_pages())
     if lab.content.is_dir():
         targets.extend(sorted(lab.content.glob("papers/*/main.md")))
 
@@ -458,6 +602,8 @@ def check_uncited_numbers(lab: Lab) -> list[Problem]:
     probs: list[Problem] = []
     if not lab.content.is_dir():
         return probs
+    # Content pages only. If this ever scans record/, exempt the defense pages: a defense page is
+    # its own finding's evidence, so its numbers are anchored by the row it defends.
     for path in sorted(lab.content.rglob("*.md")):
         if path.name == "main.md" and (path.parent / "source.json").is_file():
             continue  # imported source text, not our claims
@@ -481,6 +627,28 @@ def check_uncited_numbers(lab: Lab) -> list[Problem]:
     return probs
 
 
+def check_state_size(lab: Lab) -> list[Problem]:
+    """S6 — STATE says what is running and why, and points at the record for the rest (soft).
+
+    A STATE.md that grows past a screen has started to be a second logbook: an append-only record
+    kept in a file whose whole contract is that it is overwritten.
+    """
+    path = lab.root / "ops" / "STATE.md"
+    if not path.is_file():
+        return []
+    words = len(path.read_text(encoding="utf-8", errors="replace").split())
+    if words <= STATE_WORDS:
+        return []
+    return [
+        Problem(
+            "ops/STATE.md",
+            f"{words} words (limit {STATE_WORDS}) — STATE is a pointer, not a record; "
+            "the detail belongs in a mission or a logbook",
+            hard=False,
+        )
+    ]
+
+
 def load_lab(root: Path) -> Lab:
     cfg = {"content": "content"}
     marker = root / "lab.json"
@@ -490,6 +658,7 @@ def load_lab(root: Path) -> Lab:
         root=root.resolve(),
         content=(root / cfg["content"]).resolve(),
         alias=cfg.get("citation_alias") == "section",
+        layered=cfg.get("findings_layered") is True,
         findings_rel=cfg.get("findings", "record/findings.md"),
         claims_rel=cfg.get("claims", "record/claims.md"),
     )
@@ -507,7 +676,7 @@ def run(root: Path) -> list[Problem]:
     probs = check_findings(lab)  # populates lab.findings, so it must run first
     for check in (
         check_citations, check_claims, check_status_banners,
-        check_twins, check_links, check_uncited_numbers,
+        check_twins, check_links, check_uncited_numbers, check_state_size,
     ):
         probs.extend(check(lab))
     return probs
@@ -534,6 +703,32 @@ Some prose and no fields at all.
 **Status:** BANKED
 **Anchor:** `evidence/does-not-exist.tsv`
 **Re-derive:** `cat evidence/does-not-exist.tsv`
+"""
+
+# The layered row: a short interface, with the long form at the Defense path.
+LAYERED_FINDINGS = """# Findings — LIVE
+
+## F-1 · The floor does not move under mining
+**Status:** BANKED
+**Tier:** reviewer-gated
+**Date:** 2026-08-25
+**Number:** 2 survivors of 5000 candidates, 0 of 6 converted
+**Bound:** one substrate and one miner — it says nothing about a second engine.
+**Why it matters:** mining is not the lever it looks like.
+**Anchor:** `evidence/mining.tsv`
+**Re-derive:** `awk -F'\\t' '$3=="survivor"' evidence/mining.tsv | wc -l`
+**Defense:** `record/findings/F-1.md`
+"""
+
+# Everything the voice rules exist to catch, in one row: a headline that argues instead of
+# stating, carries codes a reader cannot expand, and a date the chronicle cannot read.
+NOISY_FINDINGS = """# Findings — LIVE
+
+## F-1 · The floor does not move under mining, which is the same conclusion F-2 reached on the second substrate under a differently parameterised miner, at §4
+**Status:** BANKED
+**Date:** 2026-8-25
+**Anchor:** `evidence/mining.tsv`
+**Re-derive:** `wc -l evidence/mining.tsv`
 """
 
 
@@ -762,6 +957,123 @@ Pointer only: this row holds no numbers.
         hard = [q.render() for q in run(movedrow) if q.hard]
         expect("moved-status", not hard, f"MOVED pointer row rejected: {hard}")
 
+        # The layered row: the Defense path is checked exactly as an anchor is.
+        layered = _plant(tmp / "t1", LAYERED_FINDINGS, {
+            "record/findings/F-1.md": "# F-1 — the defense — LIVE\n\nPredictions as scored.\n",
+        })
+        res = run(layered)
+        expect("defense-ok", not [q for q in res if q.hard],
+               f"a layered row with a resolving defense was flagged: {[q.render() for q in res if q.hard]}")
+        expect("defense-quiet", not [q for q in res if "headline" in q.message or "Date" in q.message],
+               f"a well-formed layered row warned: {[q.render() for q in res]}")
+
+        dangling = _plant(tmp / "t2", LAYERED_FINDINGS.replace("F-1.md`", "F-404.md`"), {
+            "record/findings/F-1.md": "# F-1 — the defense — LIVE\n\nPredictions as scored.\n",
+        })
+        msgs = " ".join(q.message for q in run(dangling) if q.hard)
+        expect("H2-defense", "defense `record/findings/F-404.md` does not resolve" in msgs,
+               f"a dangling defense path was not caught: {msgs}")
+
+        # The voice rules: they fire, and they never turn into errors.
+        noisy = _plant(tmp / "t3", NOISY_FINDINGS, {})
+        res = run(noisy)
+        warns = " ".join(q.message for q in res if not q.hard)
+        expect("S3", "headline is 25 words (limit 24)" in warns, f"long headline not warned: {warns}")
+        expect("S4", "codes are links, not content" in warns and "F-2" in warns and "§" in warns,
+               f"ids in a headline not warned: {warns}")
+        expect("S5", "is not a real YYYY-MM-DD day" in warns, f"malformed Date not warned: {warns}")
+        expect("voice-soft", not [q for q in res if q.hard],
+               f"a voice rule leaked into the hard findings: {[q.render() for q in res if q.hard]}")
+
+        # A declared pin's prefix is a code too — `dsl:F-12` in a headline reads as machinery.
+        pinhead = _plant(tmp / "t4", GOOD_FINDINGS.replace(
+            "## F-1 · The floor", "## F-1 · dsl:F-12 says the floor"), {
+            "record/pins.json": '{"dsl": {"repo": "x", "sha": "y"}}',
+        })
+        warns = " ".join(q.message for q in run(pinhead) if not q.hard)
+        expect("S4-pin", "dsl:" in warns and "codes are links" in warns,
+               f"a pin-qualified id in a headline was not warned: {warns}")
+
+        # STATE is overwritten, not appended to: past a screen it has become a second logbook.
+        bigstate = _plant(tmp / "t5", GOOD_FINDINGS, {
+            "ops/STATE.md": "# STATE — LIVE\n\n" + "status " * 600,
+        })
+        res = run(bigstate)
+        expect("S6", any("STATE is a pointer, not a record" in q.message and not q.hard for q in res),
+               f"an oversized STATE.md was not warned: {[q.render() for q in res]}")
+        smallstate = _plant(tmp / "t6", GOOD_FINDINGS, {
+            "ops/STATE.md": "# STATE — LIVE\n\nRunning: nothing. Next: the first probe.\n",
+        })
+        expect("S6-quiet", not any("STATE is a pointer" in q.message for q in run(smallstate)),
+               "a short STATE.md was warned")
+
+        # An unbackticked defense path is checked by nothing and silences S7 — so it is an error.
+        bare = _plant(tmp / "t9", LAYERED_FINDINGS.replace("`record/findings/F-1.md`", "record/findings/F-1.md"), {
+            "record/findings/F-1.md": "# F-1 — the defense — LIVE\n\nPredictions as scored.\n",
+        }, cfg={"findings_layered": True})
+        res = run(bare)
+        expect("H2-defense-bare", any("defense path is not a backticked path" in q.message and q.hard for q in res),
+               f"an unbackticked defense was not caught: {[q.render() for q in res]}")
+        expect("H2-defense-bare-not-S7", not any("has no **Defense:**" in q.message for q in res),
+               "an unbackticked defense both silenced S7 and escaped the path check")
+
+        # A defense page is a record document: it is read for citations, pins and its status
+        # banner, and it is not second-guessed for uncited numbers.
+        defended = _plant(tmp / "t10", LAYERED_FINDINGS, {
+            "record/findings/F-1.md": "# F-1 — the defense — LIVE\n\nRests on F-1; compare dsl:F-3.\n",
+        })
+        msgs = " ".join(q.message for q in run(defended) if q.hard)
+        expect("H3-defense", "cites F-404" not in msgs, "fixture drift")
+        expect("H7-defense", "not declared in record/pins.json" in msgs,
+               f"a defense page's undeclared pin was not seen: {msgs}")
+        ghosted = _plant(tmp / "t11", LAYERED_FINDINGS, {
+            "record/findings/F-1.md": "# F-1 — the defense — LIVE\n\nSuperseded by F-404.\n",
+        })
+        msgs = " ".join(q.message for q in run(ghosted) if q.hard)
+        expect("H3-defense-dangling", "cites F-404" in msgs,
+               f"a defense page citing a finding that does not exist was not caught: {msgs}")
+        unbannered = _plant(tmp / "t12", LAYERED_FINDINGS, {
+            "record/findings/F-1.md": "# F-1 — the defense\n\nNo status anywhere near the top.\n",
+        })
+        msgs = " ".join(q.message for q in run(unbannered) if q.hard)
+        expect("H5-defense", "no status in the opening lines" in msgs,
+               f"a defense page with no status banner was not caught: {msgs}")
+        # ...and wherever the row says it lives, not only under record/findings/.
+        elsewhere = _plant(tmp / "t13", LAYERED_FINDINGS.replace(
+            "`record/findings/F-1.md`", "`record/defenses/F-1.md`"), {
+            "record/defenses/F-1.md": "# F-1 — the defense\n\nSuperseded by F-404.\n",
+        })
+        msgs = " ".join(q.message for q in run(elsewhere) if q.hard)
+        expect("defense-nondefault", "no status in the opening lines" in msgs and "cites F-404" in msgs,
+               f"a defense page at a non-default path was not linted: {msgs}")
+
+        # A date of the right shape that is no day at all.
+        badday = _plant(tmp / "t14", LAYERED_FINDINGS.replace("2026-08-25", "2026-13-45"), {
+            "record/findings/F-1.md": "# F-1 — the defense — LIVE\n\nPredictions as scored.\n",
+        })
+        res = run(badday)
+        expect("S5-calendar", any("is not a real YYYY-MM-DD day" in q.message and not q.hard for q in res),
+               f"an impossible date passed the shape check: {[q.render() for q in res]}")
+
+        # The row template is an example, not a row: fenced, and spelled `## F-<n>`, so it parses
+        # as nothing at all rather than as a finding whose placeholder paths do not resolve.
+        example = _plant(tmp / "t15", (Path(__file__).parent.parent / "templates/record/findings.md")
+                         .read_text(encoding="utf-8"), {})
+        res = run(example)
+        expect("template-clean", not [q for q in res if q.hard],
+               f"the scaffolded row template reports errors: {[q.render() for q in res if q.hard]}")
+        expect("template-empty", any("no `## F-<n>` sections found" in q.message for q in res),
+               f"the template's example row was parsed as a real row: {[q.render() for q in res]}")
+
+        # A missing Defense is only a warning once the lab says its ledger is layered.
+        unmigrated = _plant(tmp / "t7", GOOD_FINDINGS, {})
+        expect("S7-off", not any("**Defense:**" in q.message for q in run(unmigrated)),
+               "a lab that has not migrated was warned about Defense")
+        migrated = _plant(tmp / "t8", GOOD_FINDINGS, {}, cfg={"findings_layered": True})
+        res = run(migrated)
+        expect("S7", any("has no **Defense:** field" in q.message and not q.hard for q in res),
+               f"a layered lab's undefended row was not warned: {[q.render() for q in res]}")
+
         # Default stays the convention: no config, no relocation.
         missing = _plant(tmp / "r2", GOOD_FINDINGS, {})
         (missing / "record" / "findings.md").unlink()
@@ -774,7 +1086,7 @@ Pointer only: this row holds no numbers.
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("ladder_lint selftest ok (27 planted cases)")
+    print("ladder_lint selftest ok (51 planted cases)")
     return 0
 
 

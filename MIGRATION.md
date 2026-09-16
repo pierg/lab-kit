@@ -49,13 +49,16 @@ So for each finding, hoist three fields to the top of its section:
 
 On DSL's `numbers.md` that is **30 sections**, mechanical, and reviewable in one pass. Nothing else in the file needs to change.
 
+Those three fields are the minimum the gate needs, and they are what this step is measured on; they are not the whole row. The shape a row settles into — a plain headline, Number, Bound, Why it matters, Date, and a `Defense:` link to `record/findings/F-<n>.md` where the long form lives — is in `LADDER.md` ("The row is the interface") and in `templates/record/findings.md`. Hoist first, layer second: each is a pass you can review on its own.
+
 ## Order of work
 
 1. **Vendor the kit** (`install.sh`), keep `"ladder": "warn"`. The gate reports and does not block.
 2. **Set `citation_alias`** if the repo cites by `§n`. Confirm the finding count matches what you expect.
 3. **Hoist the three fields**, section by section. Re-derive each number as you go — that is the point of the pass, not a side effect of it.
 4. **Fix what the citation check reports.** These are real: a citation to a finding that does not exist is a claim resting on nothing.
-5. **Flip to `"ladder": "strict"`** once clean. Until then the gate is advisory, which is the honest state — a check that fails from day one gets disabled, and a disabled check is worse than no check.
+5. **Layer the rows** with `python3 kit/tools/layer_findings.py --lab . --drafts drafts.json --date <YYYY-MM-DD> --tag <pre-migration tag>`: it takes a drafts JSON of interface fields, writes each row as a short interface plus a defense file holding that row's original text verbatim, and refuses the whole run — writing nothing — on any violation (a row with no draft, an invented anchor, an id in a headline, a heading it cannot read, a draft no row consumed, an undatable row). Run it with `--dry-run` first and read the diff.
+6. **Flip to `"ladder": "strict"`** once clean. Until then the gate is advisory, which is the honest state — a check that fails from day one gets disabled, and a disabled check is worse than no check.
 
 ## What does not move
 

@@ -28,13 +28,25 @@ Non-promotion is recorded too. A triage nobody can audit gets re-litigated in th
 **Citation.** Everything above `finding` cites by **id**, never by path or by value. That is what lets a document move between directories, or a lab reorganize entirely, without breaking anything — and it is what `kit/tools/ladder_lint.py` checks:
 
 - every `F-<n>` carries Status, Anchor and Re-derive — status is one of BANKED · PROVISIONAL · RETRACTED · SUPERSEDED · **MOVED**, the last for a row a by-question split relocated to another lab (correct, not superseded, and not wrong)
-- every anchor resolves to real evidence, or to a pin declared in `record/pins.json` — this is what makes a cited repo renamable: the path lives in one declaration, not in every row
+- every anchor — and every `Defense:` path — resolves to real evidence, or to a pin declared in `record/pins.json` — this is what makes a cited repo renamable: the path lives in one declaration, not in every row
 - every cited `F-<n>` exists — including cross-lab `<pin>:F-<n>`, checked against the pinned lab itself whenever its `local` checkout is reachable. A citation that names a real pin but no real row is otherwise invisible to every other check
 - every `C-<n>` cites at least one finding
 - every record, ops and paper document declares its status
 - no markdown/HTML twin of the same authored document
 
 A lab arriving from a `numbers.md §n` convention keeps its existing citations — see `MIGRATION.md`.
+
+## The row is the interface
+
+A finding row carries exactly what a citer needs: a plain headline, the number with its denominator and baseline, a one-sentence bound, why it matters, status, tier, date, anchor, re-derivation. Nothing in it has to be read twice, and nothing in it is an argument.
+
+The argument is the **defense**, and it lives at the row's `Defense:` path — `record/findings/F-<n>.md`: the predictions as scored, the reviewer's verdict, the anomalies, the disclosures, the long-form bound, the reason the number is not something else. It is never summarized back into the row. A row that grows a defense inline stops being an interface: the ledger becomes a document nobody reads to the end, which is how a number gets quoted without its bound.
+
+So a reader loads the level they need — the row to cite it, the defense to challenge it, the evidence to re-derive it — and an agent orienting in a lab reads only rows.
+
+A row also carries its own `Date:`, the day the finding was banked. Without it the chronicle has to date each row by git archaeology, and the first ledger-wide rewrite silently re-dates every finding in the lab to the commit that rewrote it.
+
+What checks it: the `Defense:` path must resolve, exactly as an anchor must. The rest is voice, so the lint only warns — a headline over 24 words, a headline carrying `F-<n>` / `C-<n>` / `§` / a pin prefix (codes are links, not content), a `Date:` the chronicle cannot read, an `ops/STATE.md` past 500 words (STATE is a pointer, not a record), and — once a lab sets `"findings_layered": true` in `lab.json` — a row with no `Defense:` at all.
 
 ## Why the fan-out is not a pipeline
 

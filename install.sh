@@ -72,6 +72,7 @@ for f in DISCIPLINE.md LADDER.md MIGRATION.md; do cp "$KIT_SRC/$f" "$KIT/$f"; do
 for d in templates assets; do rm -rf "$KIT/$d"; cp -r "$KIT_SRC/$d" "$KIT/$d"; done   # the skills cite kit/templates/…
 cp "$KIT_SRC/tools/ladder_lint.py" "$KIT/tools/ladder_lint.py"
 cp "$KIT_SRC/tools/chronicle_lab.py" "$KIT/tools/chronicle_lab.py"
+cp "$KIT_SRC/tools/layer_findings.py" "$KIT/tools/layer_findings.py"
 cp "$KIT_SRC"/agents/*.md "$KIT/agents/"
 for s in mission experiment review; do
   rm -rf "$KIT/skills/$s"
