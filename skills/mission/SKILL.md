@@ -66,7 +66,7 @@ Before any PR merges, any result is promoted to a finding, or any pre-registrati
 ## 6 · Record and report
 
 - **The lab's record stays canonical.** Workers write `record/logbook/`. You write only the mission file (append-only), `ops/STATE.md` (a pointer, always current), and messages to the operator.
-- **Pages:** after a milestone lands, a blocker flips, or a review concludes — spawn **reporter**. Reporter commits, never pushes.
+- **Pages:** after a milestone lands, a blocker flips, or a review concludes — spawn **reporter** for the front door's dated "where we are" and, when a finding lands, its one new "what we've learned" line. The story page itself is produced by `/review` at the fold, not by reporter — reporter only touches an existing story later, if a row it cites changes status. Reporter commits, never pushes.
 - **Operator reporting:** plain terms — the question, the result, the decision needed, the direction; as a scientist briefing a collaborator, not an engineer briefing a reviewer. No SHAs, review mechanics, or worker choreography in operator-facing text — name the record instead of inlining it. For a decision: the question, the options, a recommendation, one line of why. Push-notify on mission completion, a blocker newly cleared or hit, a lock-adjacent question, budget thresholds, and any disagreement you cannot resolve.
 
 ## 7 · Escalation — only the operator decides

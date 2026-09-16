@@ -16,11 +16,13 @@ echo "--- install ---"
 bash "$KIT/install.sh" "$LAB" --name "Scratch Lab" --port 5399 >/dev/null
 
 for f in lab.json Makefile CLAUDE.md README.md QUESTIONS.md ops/STATE.md record/findings.md record/claims.md \
+         record/LESSONS.md \
          kit/PIN kit/DISCIPLINE.md kit/LADDER.md kit/tools/ladder_lint.py kit/verify.sh kit/tools/kit_hash.py \
          kit/shell/lib.css kit/genres/GENRES.md kit/craft/CRAFT.md kit/skills/present/SKILL.md kit/skills/address/SKILL.md \
          kit/templates/experiments/PROBE.md kit/assets/paper/preamble.tex kit/tools/chronicle_lab.py kit/tools/layer_findings.py; do
   [ -e "$LAB/$f" ] || { echo "e2e: install did not create $f" >&2; exit 1; }
 done
+grep -q '"record/LESSONS.md"' "$LAB/lab.json" || { echo "e2e: lab.json record list did not pick up record/LESSONS.md" >&2; exit 1; }
 [ -L "$LAB/.claude/skills/mission" ] || { echo "e2e: lab skills not symlinked" >&2; exit 1; }
 [ -L "$LAB/.claude/skills/present" ] || { echo "e2e: content skills not symlinked" >&2; exit 1; }
 [ -L "$LAB/.claude/agents/reviewer.md" ] || { echo "e2e: agents not symlinked" >&2; exit 1; }
@@ -51,6 +53,43 @@ echo "--- gate on a fresh lab ---"
 ( cd "$LAB" && ckit lint >/dev/null && make check >/dev/null ) \
   || { echo "e2e: make check failed after scaffolding a concept and ckit lint" >&2; exit 1; }
 echo "gate ok"
+
+echo "--- figures-check: an unprepared generator is a hard failure ---"
+GEN="$LAB/assets/figures/generators"
+mkdir -p "$GEN"
+cat > "$GEN/gen_fig_unprepared.py" <<'PY'
+open("wrote.marker", "w").write("drawn")
+PY
+( cd "$LAB" && make figures-check >/dev/null 2>&1 ) \
+  && { echo "e2e: figures-check passed a generator with no --check mode" >&2; exit 1; }
+[ -e "$GEN/wrote.marker" ] && { echo "e2e: the unprepared generator drew its figure before being refused" >&2; exit 1; }
+rm -f "$GEN/gen_fig_unprepared.py"
+echo "(a) unprepared generator: refused, nothing drawn — ok"
+cat > "$GEN/gen_fig_failing.py" <<'PY'
+import sys
+if "--check" in sys.argv:
+    sys.exit(1)
+PY
+( cd "$LAB" && make figures-check >/dev/null 2>&1 ) \
+  && { echo "e2e: figures-check passed a generator whose --check exits 1" >&2; exit 1; }
+rm -f "$GEN/gen_fig_failing.py"
+echo "(b) --check exits 1: figures-check failed — ok"
+cat > "$GEN/gen_fig_passing.py" <<'PY'
+import sys
+if "--check" in sys.argv:
+    sys.exit(0)
+PY
+( cd "$LAB" && make figures-check >/dev/null 2>&1 ) \
+  || { echo "e2e: figures-check failed a generator whose --check exits 0" >&2; exit 1; }
+rm -f "$GEN/gen_fig_passing.py"
+echo "(c) --check exits 0: figures-check passed — ok"
+rm -rf "$GEN"
+OUT="$( cd "$LAB" && make figures-check 2>&1 )" \
+  || { echo "e2e: figures-check failed with no generators present" >&2; exit 1; }
+echo "$OUT" | grep -q "nothing to check" \
+  || { echo "e2e: figures-check did not print the no-op line with no generators present" >&2; exit 1; }
+echo "(d) no generators: no-op, rc 0 — ok"
+echo "figures-check fixture ok"
 
 echo "--- the chronicle: a locked PROBE and its finding appear on the timeline ---"
 mkdir -p "$LAB/experiments/20260903-e9-planted/out"

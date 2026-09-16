@@ -60,6 +60,8 @@ So their **prose is written independently, three times**. What they share is not
 
 You never sync a number between artifacts. You cite one, and the gate checks it. That is what makes hand-syncing safe rather than a slow-motion drift.
 
+A lab's pages sort into the same few kinds, and naming them keeps the fan-out from collapsing back into a pipeline. **The front door** is a view: plain sentences and links over the record, updated in place, never re-argued. **A story** is sealed: one page per result, written once — at the fold — and touched again only when a row it is bound to changes status. **The book** holds the foundations: what does not change week to week, so a story or a front door never has to re-explain it. **The ledgers and the dashboard** are generated, never hand-maintained, so neither can drift from the record it summarizes. A finding's fold therefore produces three things in the same pass, not one: the row, its defense, and the story that tells a reader who was not there what the row means.
+
 ## The chronicle — the ladder as a timeline, generated
 
 `content/` shows the current direction. How it got there is the record — logbooks, missions, locked pre-registrations, findings — and the **chronicle** is a generated index over that record (`content/chronicle.json`, rendered by `/shell/chronicle.html`, with every event linking back into `/shell/record.html`, which renders the markdown file itself). Nobody writes it: `ckit lint` regenerates it, `ckit check` fails if it is stale, and `kit/tools/chronicle_lab.py` adds the ladder's vocabulary (PROBE locks with their question and kill rule, findings anchored into each experiment, claims, missions) to the generic dated headings.

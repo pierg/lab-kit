@@ -56,6 +56,7 @@ scaffold ops/STATE.md                templates/ops/STATE.md
 scaffold ops/missions/TEMPLATE.md    templates/ops/missions/TEMPLATE.md
 scaffold record/findings.md          templates/record/findings.md
 scaffold record/claims.md            templates/record/claims.md
+scaffold record/LESSONS.md           templates/record/LESSONS.md
 scaffold record/RETIRED.md           templates/record/RETIRED.md
 scaffold record/pins.json            templates/record/pins.json
 scaffold record/logbook              templates/record/logbook
@@ -113,10 +114,13 @@ if "record" not in cfg:
     cfg["record"] = [x for x in (
         "HISTORY.md", "QUESTIONS.md", "ARCHIVE.md",
         "ops/STATE.md",
-        "record/findings.md", "record/claims.md", "record/RETIRED.md",
+        "record/findings.md", "record/claims.md", "record/LESSONS.md", "record/RETIRED.md",
         "record/logbook/lab.md",
     ) if (lab / x).exists()]
     changed = True
+elif (lab / "record/LESSONS.md").exists() and "record/LESSONS.md" not in cfg["record"]:
+    print('  note    record/LESSONS.md exists but lab.json "record" does not list it — '
+          "the viewer and the chronicle will not see it until it is added")
 if "chronicle" not in cfg:
     # The scanner sweep: everything append-only the chronicle can extract dated headings from.
     sources = [x for x in ("HISTORY.md", "QUESTIONS.md", "ARCHIVE.md",
