@@ -54,6 +54,43 @@ echo "--- gate on a fresh lab ---"
   || { echo "e2e: make check failed after scaffolding a concept and ckit lint" >&2; exit 1; }
 echo "gate ok"
 
+echo "--- figures-check: an unprepared generator is a hard failure ---"
+GEN="$LAB/assets/figures/generators"
+mkdir -p "$GEN"
+cat > "$GEN/gen_fig_unprepared.py" <<'PY'
+open("wrote.marker", "w").write("drawn")
+PY
+( cd "$LAB" && make figures-check >/dev/null 2>&1 ) \
+  && { echo "e2e: figures-check passed a generator with no --check mode" >&2; exit 1; }
+[ -e "$GEN/wrote.marker" ] && { echo "e2e: the unprepared generator drew its figure before being refused" >&2; exit 1; }
+rm -f "$GEN/gen_fig_unprepared.py"
+echo "(a) unprepared generator: refused, nothing drawn — ok"
+cat > "$GEN/gen_fig_failing.py" <<'PY'
+import sys
+if "--check" in sys.argv:
+    sys.exit(1)
+PY
+( cd "$LAB" && make figures-check >/dev/null 2>&1 ) \
+  && { echo "e2e: figures-check passed a generator whose --check exits 1" >&2; exit 1; }
+rm -f "$GEN/gen_fig_failing.py"
+echo "(b) --check exits 1: figures-check failed — ok"
+cat > "$GEN/gen_fig_passing.py" <<'PY'
+import sys
+if "--check" in sys.argv:
+    sys.exit(0)
+PY
+( cd "$LAB" && make figures-check >/dev/null 2>&1 ) \
+  || { echo "e2e: figures-check failed a generator whose --check exits 0" >&2; exit 1; }
+rm -f "$GEN/gen_fig_passing.py"
+echo "(c) --check exits 0: figures-check passed — ok"
+rm -rf "$GEN"
+OUT="$( cd "$LAB" && make figures-check 2>&1 )" \
+  || { echo "e2e: figures-check failed with no generators present" >&2; exit 1; }
+echo "$OUT" | grep -q "nothing to check" \
+  || { echo "e2e: figures-check did not print the no-op line with no generators present" >&2; exit 1; }
+echo "(d) no generators: no-op, rc 0 — ok"
+echo "figures-check fixture ok"
+
 echo "--- the chronicle: a locked PROBE and its finding appear on the timeline ---"
 mkdir -p "$LAB/experiments/20260903-e9-planted/out"
 sed -e 's/^# <ID> — .*/# E9 — does the planted rule fire?/' -e 's/\*\*Status: DRAFT\*\*/**Status: LOCKED 2026-09-03T10:00Z**/' \

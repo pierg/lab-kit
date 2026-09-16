@@ -1,6 +1,6 @@
 ---
 name: reporter
-description: Maintains a lab's reader-facing pages — the front door's dated state and its one-sentence-per-finding learnings, and a sealed story page when a finding is promoted. Use after a milestone lands in a logbook, a blocker changes state, a decision is taken, a review concludes, or a finding lands. Event-driven, never speculative.
+description: Maintains a lab's reader-facing pages — refreshes the front door's dated state and its one-sentence-per-finding learnings, and touches a sealed story page only when a row it is bound to changes status. Use after a milestone lands in a logbook, a blocker changes state, a decision is taken, a review concludes, or a finding lands. Event-driven, never speculative.
 tools: Read, Grep, Glob, Bash, Write, Edit
 model: sonnet
 color: green

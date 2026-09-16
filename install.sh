@@ -118,6 +118,9 @@ if "record" not in cfg:
         "record/logbook/lab.md",
     ) if (lab / x).exists()]
     changed = True
+elif (lab / "record/LESSONS.md").exists() and "record/LESSONS.md" not in cfg["record"]:
+    print('  note    record/LESSONS.md exists but lab.json "record" does not list it — '
+          "the viewer and the chronicle will not see it until it is added")
 if "chronicle" not in cfg:
     # The scanner sweep: everything append-only the chronicle can extract dated headings from.
     sources = [x for x in ("HISTORY.md", "QUESTIONS.md", "ARCHIVE.md",

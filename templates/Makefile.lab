@@ -29,6 +29,7 @@ figures-check:
 	@if [ -d assets/figures/generators ] && ls assets/figures/generators/gen_fig_*.py >/dev/null 2>&1; then \
 		cd assets/figures/generators && for g in gen_fig_*.py; do \
 			echo "figures-check: $$g"; \
+			grep -q -- '--check' "$$g" || { echo "figures-check: $$g has no --check mode — every figure generator must verify its drawn data against the record" >&2; exit 1; }; \
 			python3 "$$g" --check || exit 1; \
 		done; \
 	else \
