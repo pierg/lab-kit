@@ -16,11 +16,13 @@ echo "--- install ---"
 bash "$KIT/install.sh" "$LAB" --name "Scratch Lab" --port 5399 >/dev/null
 
 for f in lab.json Makefile CLAUDE.md README.md QUESTIONS.md ops/STATE.md record/findings.md record/claims.md \
+         record/LESSONS.md \
          kit/PIN kit/DISCIPLINE.md kit/LADDER.md kit/tools/ladder_lint.py kit/verify.sh kit/tools/kit_hash.py \
          kit/shell/lib.css kit/genres/GENRES.md kit/craft/CRAFT.md kit/skills/present/SKILL.md kit/skills/address/SKILL.md \
          kit/templates/experiments/PROBE.md kit/assets/paper/preamble.tex kit/tools/chronicle_lab.py kit/tools/layer_findings.py; do
   [ -e "$LAB/$f" ] || { echo "e2e: install did not create $f" >&2; exit 1; }
 done
+grep -q '"record/LESSONS.md"' "$LAB/lab.json" || { echo "e2e: lab.json record list did not pick up record/LESSONS.md" >&2; exit 1; }
 [ -L "$LAB/.claude/skills/mission" ] || { echo "e2e: lab skills not symlinked" >&2; exit 1; }
 [ -L "$LAB/.claude/skills/present" ] || { echo "e2e: content skills not symlinked" >&2; exit 1; }
 [ -L "$LAB/.claude/agents/reviewer.md" ] || { echo "e2e: agents not symlinked" >&2; exit 1; }
