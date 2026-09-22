@@ -1,0 +1,63 @@
+{
+  "name": "Sorting crossover — an example lab",
+  "question": "Below how much disorder does insertion sort need fewer comparisons than merge sort?",
+  "content": "content",
+  "host": "127.0.0.1",
+  "port": 5189,
+  "ladder": "strict",
+  "dashboard": true,
+  "home": "content/projects/sorting-crossover/",
+  "ckit": "0.4.0",
+  "record": [
+    "QUESTIONS.md",
+    "ops/STATE.md",
+    "record/findings.md",
+    "record/claims.md",
+    "record/LESSONS.md",
+    "record/RETIRED.md",
+    "record/logbook/lab.md"
+  ],
+  "chronicle": {
+    "sources": [
+      "QUESTIONS.md",
+      "ops/",
+      "record/",
+      "experiments/*/PROBE.md"
+    ],
+    "extractors": [
+      "kit/tools/chronicle_lab.py"
+    ]
+  },
+  "genres": [
+    "kit/lab/genres/genres_lab.json"
+  ],
+  "checks": [
+    "kit/tools/checks_lab.py"
+  ],
+  "theme": [
+    "kit/lab/shell/lab.css"
+  ],
+  "refs": [
+    {
+      "pattern": "F-\\d+(?:\\.\\d+)?",
+      "href": "/shell/record.html?p=record/findings.md#{id}"
+    },
+    {
+      "pattern": "C-\\d+",
+      "href": "/shell/record.html?p=record/claims.md#{id}"
+    }
+  ],
+  "generators": [
+    "kit/tools/ladder.py"
+  ],
+  "shell_pages": {
+    "dashboard.html": "kit/lab/shell/dashboard.html"
+  },
+  "links": [
+    {
+      "label": "Dashboard",
+      "href": "/shell/dashboard.html",
+      "title": "The record as a status board"
+    }
+  ]
+}

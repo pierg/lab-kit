@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Insertion sort wins only while disorder stays near one percent</title>
+<link rel="stylesheet" href="/shell/lib.css">
+<script src="/shell/lib.js" defer></script>
+<meta name="tags" content="story, sorting, example">
+</head>
+<body class="hb">
+<main>
+
+<h1>Insertion sort wins only while disorder stays near one percent</h1>
+<p class="sub"><b>Status: LIVE</b> — a sealed story of one result, written 2026-09-03 against <code>F-1</code> and <code>F-2</code>; it changes only if one of those rows changes status. Part of <a href="/content/projects/sorting-crossover/">the sorting crossover</a>.</p>
+
+<h2 id="question">The question, in words</h2>
+<p>If a list is almost in order, is the simple sort that slides each element into place cheaper than the one that splits and merges — and how much disorder does it take before that stops being true?</p>
+
+<h2 id="why">Why we expected it to help</h2>
+<p>Insertion sort pays for each position an element has to travel, and an almost-ordered list has few such journeys; merge sort pays about the same whatever the order. So we expected insertion sort to win at a little disorder and lose quickly as disorder grew. We predicted, before running, that it would win at least 15 of 20 seeds at 1% displaced, and gave 40% to the advantage surviving to 5%. The rule fixed in advance: if it lost the majority even at 1%, the line was dead.</p>
+
+<h2 id="did">What we did</h2>
+<p>A thousand-element list, six levels of disorder from none to one in five positions displaced, twenty seeds at each level, and the comparisons of both sorts counted on every input. Only the disorder changed; the length, the seeds and the two routines were held fixed.</p>
+
+<h2 id="happened">What happened</h2>
+<p>At 1% displaced insertion sort compared less in 18 of 20 seeds, averaging 4044.6 comparisons against 5966.2 <code>F-1</code>. At 2% it won 4 of 20, and from 5% up it won none <code>F-2</code>. The first prediction hit; the second missed. The kill rule did not fire.</p>
+
+<h2 id="learned">What we learned</h2>
+<p>The window is narrow. A few swaps per hundred elements are enough to send some elements a long way, and insertion sort pays for every step of every long journey. The two seeds it lost at 1% are exactly those where one swap moved an element across most of the list.</p>
+
+<h2 id="not">What this does not show</h2>
+<ul>
+<li>Anything about running time: only comparisons were counted.</li>
+<li>Other lengths: every run used a thousand elements.</li>
+<li>Other kinds of disorder: displacement was by random swaps; runs of reversed elements or adjacent swaps would move the crossover.</li>
+<li>A located crossover: it is bracketed between 1% and 2%, the two levels measured either side of it.</li>
+<li>More than one lab's review: these rows are lab findings, not externally reviewed.</li>
+</ul>
+
+<h2 id="deeper">Go deeper</h2>
+<ul>
+<li>Rows: <a href="/shell/record.html?p=record/findings.md#F-1">F-1</a> · <a href="/shell/record.html?p=record/findings.md#F-2">F-2</a> · defenses: <a href="/shell/record.html?p=record/findings/F-1.md">F-1</a>, <a href="/shell/record.html?p=record/findings/F-2.md">F-2</a></li>
+<li>Pre-registration: <a href="/shell/record.html?p=experiments/20260901-e1-nearly-sorted/PROBE.md">experiments/20260901-e1-nearly-sorted/PROBE.md</a></li>
+<li>Evidence: <code>experiments/20260901-e1-nearly-sorted/out/</code></li>
+<li>Mission log: <a href="/shell/record.html?p=ops/missions/20260901-crossover.md">ops/missions/20260901-crossover.md</a></li>
+</ul>
+
+<h2 id="backlinks">Cited by</h2>
+<ul data-backlinks><li class="muted">Auto-populated by lint.</li></ul>
+
+</main>
+</body>
+</html>

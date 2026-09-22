@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comparison count</title>
+<link rel="stylesheet" href="/shell/lib.css">
+<script src="/shell/lib.js" defer></script>
+<meta name="tags" content="concept, sorting, measure">
+</head>
+<body class="hb">
+<main>
+
+<h1>Comparison count</h1>
+<p class="sub"><b>Status: LIVE</b> — the unit every result in this lab is counted in.</p>
+
+<blockquote class="defn" id="comparison-count"><span class="defn-name">Comparison count</span><br>The number of times a sorting routine tests one key against another while sorting one input. It depends on the routine and the input's order, and not on the machine that runs it.</blockquote>
+
+<h3>Why it matters here</h3>
+<p>Because it does not depend on the machine, a comparison count re-derives exactly from the committed evidence anywhere — which is why this lab measures it instead of time.</p>
+
+<h3>Worked example</h3>
+<p>Sorting an already-sorted list of n keys, insertion sort makes n − 1 comparisons, one per element, each confirming the element is already in place. Merge sort still splits and merges, making roughly half of n·log₂n.</p>
+
+<h3>The trap</h3>
+<p>A comparison count is not a running time. Moving elements, allocating buffers and cache behaviour all cost time and none of them is a comparison, so a routine can compare less and still run slower.</p>
+
+<h2 id="backlinks">Cited by</h2>
+<ul data-backlinks><li class="muted">Auto-populated by lint.</li></ul>
+
+</main>
+</body>
+</html>

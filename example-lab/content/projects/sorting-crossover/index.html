@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sorting crossover — when insertion sort compares less</title>
+<link rel="stylesheet" href="/shell/lib.css">
+<script src="/shell/lib.js" defer></script>
+<meta name="status" content="shipped">
+<meta name="tags" content="sorting, front-door, example">
+</head>
+<body class="hb">
+<main>
+
+<h1>Sorting crossover — when insertion sort compares less</h1>
+<p class="sub"><b>Status: LIVE</b> — updated 2026-09-06. The front door of lab-kit's example lab: what it asked, what it learned, where it stands, and why it turned when it did — each answer one click from its evidence.</p>
+
+<h2 id="asking">What we're asking</h2>
+<p>Two ways to sort a list: insertion sort, which slides each element left until it fits, and merge sort, which splits the list in halves and merges them back. The question is when the first needs fewer <a class="defn-link" href="/content/concepts/comparison-count/">comparisons</a> than the second. Codes like <code>F-1</code> are rows in the lab's ledger; clicking one lands on the full result. Everything below is counted in comparisons, never in seconds.</p>
+
+<h2 id="frame">The frame</h2>
+<p>A comparison is one "is this key smaller than that one?". Insertion sort pays one for every position an element moves, so its cost follows the disorder of the input; merge sort pays roughly the same on any input of a given length. Disorder here means a fraction of positions displaced by random swaps.</p>
+
+<h2 id="learned">What we've learned</h2>
+<p>With 1% of a thousand positions displaced, insertion sort compares less in 18 of 20 seeds <code>F-1</code> (<a href="/content/stories/nearly-sorted/">the story</a>).</p>
+<p>By 2% displaced it wins only 4 of 20, and from 5% up it never wins <code>F-2</code> (<a href="/content/stories/nearly-sorted/">the same story</a>).</p>
+<p>On small shuffled lists it never compares less on average, from 8 elements to 64; the kill rule fixed in advance fired <code>F-3</code> (<a href="/content/stories/small-arrays/">the story</a>).</p>
+
+<h2 id="not">What this does not show</h2>
+<p>Every result here counts comparisons for two textbook routines in one language; none says anything about running time, which is what sorting libraries tune for. The nearly-sorted results hold at one length, a thousand elements. Each story carries the rest of its own bounds.</p>
+
+<h2 id="now">Where we are (as of 2026-09-06)</h2>
+<ul>
+<li><b>Nothing is running.</b> Both experiments are folded; the example is complete.</li>
+<li><b>The last kept step</b> was the fold of the small-array experiment; there is no next one.</li>
+<li><b>No decision is open.</b> The generated board is the <a href="/shell/dashboard.html">dashboard</a>; the state pointer is <a href="/shell/record.html?p=ops/STATE.md">ops/STATE.md</a>.</li>
+</ul>
+
+<h2 id="path">Why we went this way</h2>
+<p>We counted comparisons rather than seconds so that every number re-derives exactly on any machine. Disorder came first because the folklore claim is about nearly-sorted input; once it was bracketed (<a href="/content/stories/nearly-sorted/">the story</a>), the other half of the folklore, small lists, was the obvious next question — and its kill rule closed it on this measure (<a href="/content/stories/small-arrays/">the story</a>).</p>
+
+<h2 id="screens">One screen per experiment</h2>
+<ul>
+<li><a href="/content/stories/nearly-sorted/">Insertion sort wins only while disorder stays near one percent</a> — the crossover lies between 1% and 2% displaced.</li>
+<li><a href="/content/stories/small-arrays/">Small lists do not make insertion sort compare less</a> — merge sort compares less from 8 elements up.</li>
+</ul>
+
+<h2 id="glossary">The words</h2>
+<dl>
+<dt>comparison</dt><dd>one test of two keys; the unit everything here is counted in — see its <a class="defn-link" href="/content/concepts/comparison-count/">concept page</a>.</dd>
+<dt>displaced</dt><dd>the fraction of positions moved from their sorted place by random swaps.</dd>
+<dt>seed</dt><dd>one deterministic random input; a result is reported as wins out of seeds.</dd>
+</dl>
+
+<h2 id="evidence">The board and the evidence</h2>
+<p>The generated state is the <a href="/shell/dashboard.html">dashboard</a>; the timeline is the <a href="/shell/chronicle.html">chronicle</a>. The ledger is <a href="/shell/record.html?p=record/findings.md">record/findings.md</a> with each row's defense beside it, and the raw measurements sit under <code>experiments/</code>. This page rests on <code>F-1</code>, <code>F-2</code> and <code>F-3</code>, and changes when one of them does.</p>
+
+<h2 id="backlinks">Cited by</h2>
+<ul data-backlinks><li class="muted">Auto-populated by lint.</li></ul>
+
+</main>
+</body>
+</html>

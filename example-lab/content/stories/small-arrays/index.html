@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Small lists do not make insertion sort compare less</title>
+<link rel="stylesheet" href="/shell/lib.css">
+<script src="/shell/lib.js" defer></script>
+<meta name="tags" content="story, sorting, null, example">
+</head>
+<body class="hb">
+<main>
+
+<h1>Small lists do not make insertion sort compare less</h1>
+<p class="sub"><b>Status: LIVE</b> — a sealed story of one result, written 2026-09-06 against <code>F-3</code>; it changes only if that row changes status. Part of <a href="/content/projects/sorting-crossover/">the sorting crossover</a>.</p>
+
+<h2 id="question">The question, in words</h2>
+<p>Sorting libraries switch to the simple sort for short lists. Is that because it needs fewer comparisons there?</p>
+
+<h2 id="why">Why we expected it to help</h2>
+<p>On a short list there is little room for an element to travel, so the simple sort's cost stays small, and merge sort's splitting has overhead of its own. We predicted, before running, that the simple sort would win most seeds below 16 elements. The rule fixed in advance: if it lost the majority at 8 elements, the line was closed on comparisons.</p>
+
+<h2 id="did">What we did</h2>
+<p>Shuffled lists of 4 to 64 elements, two hundred seeds per length, comparisons counted for both sorts. Only the length changed.</p>
+
+<h2 id="happened">What happened</h2>
+<p>At 8 elements the simple sort compared less in 27 of 200 seeds, averaging 19.0 comparisons against 15.8; from 16 elements up it won none <code>F-3</code>. At 4 elements the two were level. The prediction missed and the kill rule fired.</p>
+
+<h2 id="learned">What we learned</h2>
+<p>The libraries' rule of thumb is about time — cheap moves and data that stays in cache — not about comparisons. On comparisons, merge sort wins from 8 elements up. The question had to name its measure before it could be answered.</p>
+
+<h2 id="not">What this does not show</h2>
+<ul>
+<li>Anything about running time, which is what the libraries' threshold is tuned for.</li>
+<li>Lists with repeated keys: every list held distinct keys.</li>
+<li>More than one lab's review: this row is a lab finding.</li>
+</ul>
+
+<h2 id="deeper">Go deeper</h2>
+<ul>
+<li>Row: <a href="/shell/record.html?p=record/findings.md#F-3">F-3</a> · defense: <a href="/shell/record.html?p=record/findings/F-3.md">F-3</a></li>
+<li>Pre-registration: <a href="/shell/record.html?p=experiments/20260905-e2-small-n/PROBE.md">experiments/20260905-e2-small-n/PROBE.md</a></li>
+<li>Evidence: <code>experiments/20260905-e2-small-n/out/</code></li>
+<li>The lesson it left: <a href="/shell/record.html?p=record/LESSONS.md">record/LESSONS.md</a></li>
+</ul>
+
+<h2 id="backlinks">Cited by</h2>
+<ul data-backlinks><li class="muted">Auto-populated by lint.</li></ul>
+
+</main>
+</body>
+</html>
