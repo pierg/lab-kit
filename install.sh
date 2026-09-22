@@ -199,7 +199,8 @@ PY
 
 # Pin: lab-kit's source line after content-kit's; one hash over the whole tree. kit/PIN is
 # deliberately not ignored — it is the record of which kits this lab runs, and belongs in git.
-SRC_SHA="$(git -C "$KIT_SRC" rev-parse HEAD 2>/dev/null || echo unknown)"
+SRC_SHA="$(git -C "$KIT_SRC" rev-parse --verify -q HEAD 2>/dev/null || true)"
+SRC_SHA="${SRC_SHA:-unknown}"
 SRC_WHERE="$(python3 - "$KIT_SRC" <<'PY'
 import re, subprocess, sys
 src = sys.argv[1]
