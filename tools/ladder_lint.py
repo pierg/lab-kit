@@ -167,7 +167,7 @@ class Lab:
     # Where this lab keeps its ledgers. The convention is record/findings.md and
     # record/claims.md, and that stays the default. A lab migrating onto the ladder
     # may already hold its ledger somewhere else with hundreds of live by-path
-    # references into it (design-space-lab: docs/papers/proofs-rot/numbers.md); making
+    # references into it (a paper's docs/papers/<slug>/numbers.md, say); making
     # it move the file before the gate will run is how a migration gets abandoned.
     # Point the gate at the real file, move it later, on purpose.
     findings_rel: str = "record/findings.md"

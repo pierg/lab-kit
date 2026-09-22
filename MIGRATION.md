@@ -1,6 +1,6 @@
 # Migrating an existing repo onto the ladder
 
-Measured against `design-space-lab` on 2026-08-25, so the numbers below are real rather than estimated.
+Measured against a working lab's record on 2026-08-25, so the numbers below are real rather than estimated.
 
 ## What already works, unchanged
 
