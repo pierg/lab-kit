@@ -2,14 +2,18 @@
 """Chronicle extractor for a lab — PROBEs, findings, claims and missions as timeline events.
 
 The content-kit engine builds `content/chronicle.json` from every dated heading in the declared
-record (generic), and loads this file through lab.json to add the lab's own vocabulary:
+record (generic), and loads this file through kit.json to add the lab's own vocabulary:
 
     "record": ["HISTORY.md", "QUESTIONS.md", "ops/", "record/", "experiments/*/PROBE.md"],
     "chronicle": { "extractors": ["kit/tools/chronicle_lab.py"] }
 
+It declares its kinds (KINDS: experiment · finding · claim · mission, with the hues the timeline
+draws them in) and its cards (CARDS: one per experiment, under the chronicle's Experiments tab).
+The engine knows none of these words; they reach it only through this file.
+
 What it emits, and from where:
 
-  experiments[]  one per `experiments/<slug>/PROBE.md`: title (h1), question (the objective's
+  experiments    one per `experiments/<slug>/PROBE.md`: title (h1), question (the objective's
                  first paragraph, else the h1 after the dash), locked (`**Status: LOCKED <ts>**`,
                  else `**Date:**`, else the slug's date), status, kill rule (first line naming
                  a kill under a decision/kill heading), supersedes / superseded-by pointers from
@@ -39,24 +43,42 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
 from datetime import date as _date  # `date` is a local variable in half the functions here
 from pathlib import Path
 
-try:
-    from ckit.chronicle import slugify, viewer_href
-    from ckit.text import normalize
-except ImportError:  # run standalone (--selftest, --root): find the engine the way the shell does
-    _ckit = shutil.which("ckit")
-    if not _ckit:
-        raise SystemExit("chronicle_lab: the content-kit engine (ckit) is not on PATH — "
-                         "bash content-kit/install-engine.sh")
-    sys.path.insert(0, str(Path(os.path.realpath(_ckit)).parent.parent))
-    from ckit.chronicle import slugify, viewer_href
-    from ckit.text import normalize
+# The three helpers this file shares with content-kit's chronicle, restated here so the tool runs
+# standalone (--selftest, --root) whatever way the engine was installed. They must agree with
+# ckit.chronicle.slugify / viewer_href and ckit.text.normalize: the record viewer computes the same
+# anchors, so a link built here lands there.
+_SLUG_BAD = re.compile(r"[^a-z0-9]+")
+_WS = re.compile(r"\s+")
+
+
+def slugify(text: str) -> str:
+    return _SLUG_BAD.sub("-", text.lower()).strip("-")
+
+
+def viewer_href(rel: str, anchor: str | None = None) -> str:
+    return f"/shell/record.html?p={rel}" + (f"#{anchor}" if anchor else "")
+
+
+def normalize(text: str) -> str:
+    return _WS.sub(" ", text).strip()
+
+
+# The vocabulary this extractor adds to the chronicle: its event kinds (drawn in these shell hues,
+# all shown in the Story view) and its cards (the Experiments tab).
+KINDS = [
+    {"name": "experiment", "hue": "indigo"},
+    {"name": "finding", "hue": "kept"},
+    {"name": "claim", "hue": "blue"},
+    {"name": "mission", "hue": "teal"},
+]
+CARDS = {"view": "experiments", "label": "Experiments", "kind": "experiment",
+         "empty": "No experiments in this record — a lab pre-registers each one in experiments/<slug>/PROBE.md."}
 
 H1 = re.compile(r"^#\s+(.+?)\s*$", re.M)
 HEADING = re.compile(r"^(#{2,3})\s+(.+?)\s*$")
@@ -346,7 +368,8 @@ def ladder(root: Path, cfg: dict) -> dict:
 
 # ----------------------------------------------------------------------------- entry point
 
-def extract(root: Path, cfg: dict) -> dict:
+def _collect(root: Path, cfg: dict) -> tuple[list[dict], list[dict]]:
+    """(experiments with their anchored findings, timeline events)."""
     root = Path(root)
     findings_rel = cfg.get("findings", "record/findings.md")
     claims_rel = cfg.get("claims", "record/claims.md")
@@ -388,7 +411,38 @@ def extract(root: Path, cfg: dict) -> dict:
                            "summary": "", "href": c["href"], "source": claims_rel, "links": []})
 
     events.extend(parse_missions(root, cfg))
-    return {"events": events, "experiments": experiments}
+    experiments.sort(key=lambda x: (x.get("locked") or "", x["slug"]), reverse=True)
+    return experiments, events
+
+
+def experiments(root: Path, cfg: dict) -> list[dict]:
+    """Every pre-registration, newest lock first, each with the findings anchored in it — the
+    shape the dashboard's pipeline panel reads (tools/ladder.py)."""
+    return _collect(root, cfg)[0]
+
+
+def card(x: dict) -> dict:
+    """One experiment as a chronicle card: the fields the Experiments tab has always shown."""
+    fields: list[dict] = []
+    if x["question"]:
+        fields.append({"label": "Question", "text": x["question"]})
+    if x["kill_rule"]:
+        fields.append({"label": "Kill rule", "text": x["kill_rule"]})
+    fields.append({"label": "Pre-registration", "link": {"label": f"{x['slug']}/PROBE.md", "href": x["href"]}})
+    if x["supersedes"]:
+        fields.append({"label": "Supersedes", "text": x["supersedes"]})
+    if x["superseded_by"]:
+        fields.append({"label": "Superseded by", "text": x["superseded_by"]})
+    fields.append({"label": "Findings", "empty": "none anchored in this experiment yet",
+                   "items": [{"chip": f["status"] or "finding", "kind": "finding", "label": f["id"],
+                              "href": f["href"], "text": f["title"]} for f in x["findings"]]})
+    return {"title": x["title"], "href": x["href"], "date": x["locked"], "status": x["status"],
+            "slug": x["slug"], "fields": fields}
+
+
+def extract(root: Path, cfg: dict) -> dict:
+    exps, events = _collect(root, cfg)
+    return {"events": events, "cards": [card(x) for x in exps]}
 
 
 # ----------------------------------------------------------------------------- selftest
@@ -561,7 +615,7 @@ def selftest() -> int:
         (root / "ops" / "missions" / "20260902-planted.md").write_text(MISSION_FIXTURE, encoding="utf-8")
         (root / "ops" / "missions" / "TEMPLATE.md").write_text("# Mission <id>\n", encoding="utf-8")
         out = extract(root, {})
-        ex = {x["slug"]: x for x in out["experiments"]}
+        ex = {x["slug"]: x for x in experiments(root, {})}
         e9 = ex.get("20260903-e9-planted")
         if not e9:
             failures.append("PROBE not found")
@@ -594,6 +648,19 @@ def selftest() -> int:
             failures.append(f"mission not parsed from its file name / objective: {mi}")
         if any("TEMPLATE" in e["title"] for e in out["events"]):
             failures.append("the mission TEMPLATE must not become an event")
+        # --- the cards: one per experiment, newest lock first, the fields the tab has always shown
+        cards = {c["slug"]: c for c in out["cards"]}
+        c9 = cards.get("20260903-e9-planted", {})
+        labels = [f["label"] for f in c9.get("fields", [])]
+        if labels != ["Question", "Kill rule", "Pre-registration", "Supersedes", "Findings"]:
+            failures.append(f"experiment card fields wrong: {labels}")
+        elif [x["label"] for x in c9["fields"][-1]["items"]] != ["F-7", "F-9", "F-10"] \
+                or c9["fields"][-1]["items"][0]["chip"] != "BANKED":
+            failures.append(f"a card's findings must carry id, status chip and link: {c9['fields'][-1]}")
+        if [c["slug"] for c in out["cards"]] != [x["slug"] for x in experiments(root, {})]:
+            failures.append("cards must come in the experiments' order (newest lock first)")
+        if {k["name"] for k in KINDS} != {"experiment", "finding", "claim", "mission"} or CARDS["view"] != "experiments":
+            failures.append(f"KINDS / CARDS must declare the lab's vocabulary: {KINDS} {CARDS}")
 
         # --- the layered row: the interface fields are read, and the row dates itself
         rows = {r["id"]: r for r in parse_rows(root, "record/findings.md")}
@@ -651,7 +718,7 @@ def selftest() -> int:
     if failures:
         print("chronicle_lab selftest FAILED:\n- " + "\n- ".join(failures))
         return 1
-    print("chronicle_lab selftest ok (31 planted assertions)")
+    print("chronicle_lab selftest ok (35 planted assertions)")
     return 0
 
 
@@ -664,7 +731,8 @@ def main() -> int:
     if args.selftest:
         return selftest()
     root = (args.root or Path.cwd()).resolve()
-    cfg = json.loads((root / "lab.json").read_text()) if (root / "lab.json").is_file() else {}
+    marker = next((root / m for m in ("kit.json", "lab.json") if (root / m).is_file()), None)
+    cfg = json.loads(marker.read_text()) if marker else {}
     out = extract(root, cfg)
     print(json.dumps(out, indent=2, ensure_ascii=False))
     return 0

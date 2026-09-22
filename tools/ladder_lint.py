@@ -38,7 +38,7 @@ Why it matters · Anchor · Re-derive · Defense, with the long-form defense —
 the reviewer's verdict, the anomalies — at `record/findings/F-<n>.md`. S3-S7 are the rules that
 keep the row short, and they only ever warn: they are voice, they fire on every unmigrated ledger
 at once, and a check that fails from day one gets disabled (MIGRATION.md). A lab that has finished
-the migration sets `"findings_layered": true` in lab.json, which turns on S7.
+the migration sets `"findings_layered": true` in kit.json, which turns on S7.
 
 `**Defense:**` is read only on its own line and only as a backticked path — unlike Tier, which the
 chronicle also accepts inline for rows written before the layering. An unbackticked value is an
@@ -46,13 +46,14 @@ error, because it would otherwise satisfy S7 while being checked by nothing. The
 themselves are linted as the record documents they are (H3, H5, H7).
 
 Ids are `F-<n>`, optionally sub-numbered (`F-21.1`). A lab arriving from a
-"numbers.md §n" convention sets `"citation_alias": "section"` in lab.json, and its
+"numbers.md §n" convention sets `"citation_alias": "section"` in kit.json, and its
 existing `§12` citations and `## 12 · Title` headings are read as `F-12` — so a
 migration is a config flag rather than a sed across a few thousand references.
 
 Hard checks fail under --strict; soft checks always warn and never fail. A lab
 mid-migration runs the default until it is clean, then sets "ladder": "strict" in
-lab.json. Failing loud from day one would just mean the gate is disabled.
+kit.json (lab.json before content-kit 0.4; both are read). Failing loud from day one
+would just mean the gate is disabled.
 """
 
 from __future__ import annotations
@@ -68,23 +69,45 @@ from datetime import date
 from pathlib import Path
 
 
+# The lab's config: kit.json (content-kit 0.4+), else the deprecated lab.json it replaced.
+MARKERS = ("kit.json", "lab.json")
+
+
+def _config_file(root: Path) -> Path | None:
+    for name in MARKERS:
+        if (root / name).is_file():
+            return root / name
+    return None
+
+
+def _find_config_name(root: Path) -> str | None:
+    marker = _config_file(root)
+    return marker.name if marker else None
+
+
+def _load_config(root: Path) -> dict:
+    marker = _config_file(root)
+    return json.loads(marker.read_text(encoding="utf-8")) if marker else {}
+
+
 def _find_root() -> Path:
-    """The lab root: $LAB_ROOT, else the nearest ancestor of the working directory — then of
-    this file (the vendored layout is <lab>/kit/tools/) — that holds lab.json."""
-    env = os.environ.get("LAB_ROOT")
+    """The lab root: $CKIT_ROOT (or its old name $LAB_ROOT), else the nearest ancestor of the
+    working directory — then of this file (the vendored layout is <lab>/kit/tools/) — that holds
+    kit.json (or lab.json)."""
+    env = os.environ.get("CKIT_ROOT") or os.environ.get("LAB_ROOT")
     if env:
         return Path(env).resolve()
     for start in (Path.cwd(), Path(__file__).resolve()):
         for cand in [start, *start.parents]:
-            if (cand / "lab.json").is_file():
+            if _config_file(cand) is not None:
                 return cand
-    raise SystemExit("ladder_lint: no lab.json above the working directory — run inside a lab or pass --root")
+    raise SystemExit("ladder_lint: no kit.json above the working directory — run inside a lab or pass --root")
 
 
 NUM = r"\d+(?:\.\d+)*"
 FINDING_ID = re.compile(rf"\bF-({NUM})\b")
 # A lab migrating off a "numbers.md §n" convention sets citation_alias="section"
-# in lab.json and keeps its existing citations; ids are still F-<n> canonically.
+# in kit.json and keeps its existing citations; ids are still F-<n> canonically.
 # Both the markdown "§12" and the LaTeX "\S12" spellings, plus "§§10-21" ranges.
 SECTION_ID = re.compile(rf"(?:§|\\S)({NUM})\b")
 SECTION_RANGE = re.compile(rf"(?:§§|\\S\\S)(\d+)\s*[-–—]\s*(\d+)")
@@ -651,9 +674,7 @@ def check_state_size(lab: Lab) -> list[Problem]:
 
 def load_lab(root: Path) -> Lab:
     cfg = {"content": "content"}
-    marker = root / "lab.json"
-    if marker.is_file():
-        cfg.update(json.loads(marker.read_text(encoding="utf-8")))
+    cfg.update(_load_config(root))
     lab = Lab(
         root=root.resolve(),
         content=(root / cfg["content"]).resolve(),
@@ -1081,12 +1102,24 @@ Pointer only: this row holds no numbers.
         expect("default-path", "no findings ledger" in msgs,
                "a lab with no ledger at the default path was not reported")
 
+        # The config file: kit.json is read first, the deprecated lab.json second — a lab that
+        # has renamed it keeps every setting (here, the relocated ledger).
+        renamed = _plant(tmp / "kitjson", GOOD_FINDINGS, {}, {"findings": "ledger/findings.md"})
+        (renamed / "ledger").mkdir()
+        (renamed / "record" / "findings.md").rename(renamed / "ledger" / "findings.md")
+        (renamed / "lab.json").rename(renamed / "kit.json")
+        expect("kit.json", moved_ids(renamed) == {"F-1"} and _find_config_name(renamed) == "kit.json",
+               "a lab whose config is kit.json lost its settings")
+        (renamed / "lab.json").write_text(json.dumps({"findings": "nowhere.md"}), encoding="utf-8")
+        expect("kit.json-first", moved_ids(renamed) == {"F-1"},
+               "lab.json must not override kit.json when both exist")
+
     if failures:
         print("ladder_lint selftest FAILED:")
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("ladder_lint selftest ok (51 planted cases)")
+    print("ladder_lint selftest ok (53 planted cases)")
     return 0
 
 
@@ -1105,9 +1138,7 @@ def main() -> int:
     else:
         root = _find_root()
 
-    cfg = {}
-    if (root / "lab.json").is_file():
-        cfg = json.loads((root / "lab.json").read_text(encoding="utf-8"))
+    cfg = _load_config(root)
     strict = args.strict or cfg.get("ladder") == "strict"
 
     if cfg.get("ladder") == "off":
@@ -1132,7 +1163,7 @@ def main() -> int:
     if hard and strict:
         return 1
     if hard:
-        print('not failing the gate — set "ladder": "strict" in lab.json once this is clean')
+        print('not failing the gate — set "ladder": "strict" in kit.json once this is clean')
     return 0
 
 
