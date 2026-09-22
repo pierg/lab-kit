@@ -1,0 +1,28 @@
+{
+  "_": "lab-kit's genres, registered by install.sh under kit.json `genres` and deep-merged over content-kit's core set. The voice is in GENRES.md beside this file. `bound_ids` and `defn_no_findings` are provided by kit/tools/checks_lab.py (kit.json `checks`).",
+  "genres": {
+    "story": {
+      "dir": "stories",
+      "layout": "folder",
+      "skeleton": "kit/lab/genres/skeletons/story/index.html",
+      "register": "plain, sealed to its findings: the question in words, why it was expected to help, what was done, what happened, what was learned, what it does not show, where to go deeper",
+      "reader": "a sharp outsider who has never seen the lab",
+      "forbidden": "a rolling narrative; a lab code as the subject of a sentence; a number without its row id; a caveat the rows bind that is missing from what-it-does-not-show",
+      "checks": { "status": true, "require_sections": ["question", "why", "did", "happened", "learned", "not", "deeper", "backlinks"], "bound_ids": true },
+      "after": "project"
+    },
+    "project": {
+      "register": "the front door: plain sentences and links — what is being asked, what has been learned with each sentence carrying its rows, the top-level bounds, and dated state",
+      "reader": "arriving cold, deciding what to read next",
+      "forbidden": "undated state — the page is explicitly perishable; re-explaining what a story or a concept page owns; a bound that belongs to one result",
+      "skeleton": "kit/lab/genres/skeletons/project/index.html"
+    },
+    "concept": {
+      "forbidden": "a definition that depends on a running result — the defn must survive findings changing",
+      "checks": { "defn_no_findings": true }
+    },
+    "entry": {
+      "register": "analytical, takes a position, cites findings by id"
+    }
+  }
+}
