@@ -4,7 +4,7 @@ Measured against `design-space-lab` on 2026-08-25, so the numbers below are real
 
 ## What already works, unchanged
 
-A repo that cites a shared numbers file by section number is **already on the ladder**; it just spells the ids differently. Set this in `lab.json`:
+A repo that cites a shared numbers file by section number is **already on the ladder**; it just spells the ids differently. Set this in `kit.json` (called `lab.json` before content-kit 0.4; both are read):
 
 ```json
 { "citation_alias": "section" }
@@ -26,7 +26,7 @@ The one real gap, and it is the same gap in every section: **anchors and re-deri
 
 ### Point the gate at the ledger you already have
 
-The convention is `record/findings.md`, and it stays the default. But a migrating repo usually holds its ledger somewhere else with live by-path references into it, and making the file move a *precondition* for running the gate is how a migration gets abandoned. So `lab.json` takes an optional path:
+The convention is `record/findings.md`, and it stays the default. But a migrating repo usually holds its ledger somewhere else with live by-path references into it, and making the file move a *precondition* for running the gate is how a migration gets abandoned. So `kit.json` takes an optional path:
 
 ```json
 { "citation_alias": "section", "findings": "docs/papers/proofs-rot/numbers.md" }

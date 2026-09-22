@@ -1,37 +1,60 @@
 #!/usr/bin/env bash
 # Vendor lab-kit into a lab, and scaffold anything the lab is missing.
 #
-#   bash install.sh /path/to/lab [--name "Lab name"] [--port 5181] [--content-kit /path]
+#   bash install.sh /path/to/lab [--name "Lab name"] [--port 5181] [--content-kit /path/to/checkout]
 #
-# Two layers land in <lab>/kit/, in order:
-#   1. content-kit — the shell, genres, craft, the present/address skills, verify.sh, kit_hash
-#      (found beside this checkout as ../content-kit, or CONTENT_KIT=… / --content-kit)
-#   2. the lab layer — DISCIPLINE, LADDER, MIGRATION, the ladder lint, the agents, the
-#      mission / experiment / review skills, templates/ (the skills cite them), assets/paper
-# Both are recorded in kit/PIN; `make kit-verify` hashes the whole tree. The engine (`ckit`)
-# is not vendored — install it once with content-kit/install-engine.sh; the lab pins its version.
+# Needs only content-kit's engine, `ckit` ≥ 0.4, found in this order: --content-kit (a checkout;
+# its bin/ckit), $CONTENT_KIT (the same), the `ckit` on PATH (an installed release), then a
+# sibling checkout ../content-kit. No sibling is required.
 #
-# Vendoring rather than referencing is deliberate: an agent session opened on a lab must find
-# every rule inside that folder, with no sibling-repo path to resolve first.
+# What lands, in order:
+#   1. the lab layer: DISCIPLINE · LADDER · MIGRATION, the ladder lint and the other tools under
+#      kit/tools/, the agents, the mission / experiment / review skills, templates/ and assets/
+#      (the skills cite them), and kit/lab/ — the story genre and the lab's front door
+#      (kit/lab/genres/), the dashboard page and the lab's stylesheet (kit/lab/shell/)
+#   2. content-kit beside it, through `ckit init`: shell/ genres/ craft/ skills/{present,address},
+#      verify.sh, kit_hash — pinned in kit/PIN, with the engine version in kit.json
+#   3. the registration, in kit.json, through content-kit's extension points: genres, checks,
+#      theme, refs (F-<n> and C-<n> become links), the chronicle extractor, and — for a lab with
+#      "dashboard": true — the ladder generator, the dashboard shell page and its sidebar link
+#
+# Idempotent: re-running re-vendors, re-registers without duplicating, re-pins, and scaffolds only
+# what is missing. Vendoring rather than referencing is deliberate: an agent session opened on a
+# lab must find every rule inside that folder, with no sibling repo to resolve first.
 set -euo pipefail
 
 KIT_SRC="$(cd "$(dirname "$0")" && pwd)"
-CONTENT_KIT="${CONTENT_KIT:-$(dirname "$KIT_SRC")/content-kit}"
-LAB=""; NAME=""; PORT=""
-
+LAB=""; NAME=""; PORT=""; CK="${CONTENT_KIT:-}"
 while [ $# -gt 0 ]; do
   case "$1" in
     --name) NAME="$2"; shift 2 ;;
     --port) PORT="$2"; shift 2 ;;
-    --content-kit) CONTENT_KIT="$2"; shift 2 ;;
-    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
+    --content-kit) CK="$2"; shift 2 ;;
+    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
     *) LAB="$1"; shift ;;
   esac
 done
-
 [ -n "$LAB" ] || { echo "usage: bash install.sh /path/to/lab [--name N] [--port P] [--content-kit DIR]" >&2; exit 2; }
-[ -f "$CONTENT_KIT/install.sh" ] || {
-  echo "lab-kit: content-kit not found at $CONTENT_KIT — clone it beside lab-kit, or pass --content-kit" >&2; exit 1; }
+
+# content-kit's engine
+if [ -n "$CK" ]; then
+  [ -x "$CK/bin/ckit" ] || { echo "lab-kit: no content-kit checkout at $CK (expected $CK/bin/ckit)" >&2; exit 1; }
+  CKIT="$CK/bin/ckit"
+elif command -v ckit >/dev/null 2>&1; then
+  CKIT="ckit"
+elif [ -x "$(dirname "$KIT_SRC")/content-kit/bin/ckit" ]; then
+  CKIT="$(dirname "$KIT_SRC")/content-kit/bin/ckit"
+else
+  echo "lab-kit: content-kit's engine not found — uv tool install git+https://github.com/pierg/content-kit@v0.4.0, or pass --content-kit" >&2
+  exit 1
+fi
+CKIT_VERSION="$("$CKIT" version)"
+python3 - "$CKIT_VERSION" <<'PY' || { echo "lab-kit 0.2 needs content-kit ≥ 0.4 (its extension points); found ckit $CKIT_VERSION" >&2; exit 1; }
+import sys
+major, minor = (int(x) for x in sys.argv[1].split(".")[:2])
+sys.exit(0 if (major, minor) >= (0, 4) else 1)
+PY
+
 mkdir -p "$LAB"
 LAB="$(cd "$LAB" && pwd)"
 NAME="${NAME:-$(basename "$LAB")}"
@@ -44,11 +67,15 @@ scaffold() {  # scaffold <relative-target> <template-source>
   fi
 }
 
-# The lab's own templates go first, so content-kit's installer finds them and keeps them.
+# The lab's own templates go first, so content-kit's init finds them and keeps them.
 echo "scaffolding lab layout"
+if [ -f "$LAB/lab.json" ] && [ ! -f "$LAB/kit.json" ]; then
+  echo "  keep    lab.json  (deprecated — git mv lab.json kit.json when convenient)"
+else
+  scaffold kit.json                  templates/kit.json
+fi
 scaffold README.md                   templates/README.lab.md
 scaffold QUESTIONS.md                templates/QUESTIONS.md
-scaffold lab.json                    templates/lab.json
 scaffold Makefile                    templates/Makefile.lab
 scaffold CLAUDE.md                   templates/CLAUDE.md
 scaffold .gitignore                  templates/gitignore.lab
@@ -62,24 +89,29 @@ scaffold record/pins.json            templates/record/pins.json
 scaffold record/logbook              templates/record/logbook
 mkdir -p "$LAB"/experiments
 
-# 1. content-kit: shell, genres, craft, present/address, verify.sh, kit_hash, the engine pin.
-bash "$CONTENT_KIT/install.sh" "$LAB" --name "$NAME" ${PORT:+--port "$PORT"}
-
-# 2. the lab layer, beside it.
+# 1. the lab layer. It goes in before content-kit's init, because a lab's kit.json may already
+# name these files (a re-sync, or the example lab) and init regenerates the indices at its end.
+# init never touches them: it owns only kit/shell, kit/genres, kit/craft, its two skills,
+# kit/tools/kit_hash.py and kit/verify.sh.
 echo "vendoring lab-kit -> $LAB/kit"
 KIT="$LAB/kit"
 mkdir -p "$KIT/tools" "$KIT/agents" "$KIT/skills"
 for f in DISCIPLINE.md LADDER.md MIGRATION.md; do cp "$KIT_SRC/$f" "$KIT/$f"; done
-for d in templates assets; do rm -rf "$KIT/$d"; cp -r "$KIT_SRC/$d" "$KIT/$d"; done   # the skills cite kit/templates/…
-cp "$KIT_SRC/tools/ladder_lint.py" "$KIT/tools/ladder_lint.py"
-cp "$KIT_SRC/tools/chronicle_lab.py" "$KIT/tools/chronicle_lab.py"
-cp "$KIT_SRC/tools/layer_findings.py" "$KIT/tools/layer_findings.py"
+for d in templates assets; do rm -rf "${KIT:?}/$d"; cp -r "$KIT_SRC/$d" "$KIT/$d"; done   # the skills cite kit/templates/…
+for t in ladder_lint chronicle_lab layer_findings checks_lab ladder; do cp "$KIT_SRC/tools/$t.py" "$KIT/tools/$t.py"; done
 cp "$KIT_SRC"/agents/*.md "$KIT/agents/"
 for s in mission experiment review; do
-  rm -rf "$KIT/skills/$s"
+  rm -rf "${KIT:?}/skills/$s"
   cp -r "$KIT_SRC/skills/$s" "$KIT/skills/$s"
 done
-find "$KIT" -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || true
+rm -rf "${KIT:?}/lab"
+mkdir -p "$KIT/lab"
+cp -r "$KIT_SRC/genres" "$KIT/lab/genres"
+cp -r "$KIT_SRC/shell" "$KIT/lab/shell"
+find "$KIT" \( -name __pycache__ -o -name .DS_Store \) -prune -exec rm -rf {} + 2>/dev/null || true
+
+# 2. content-kit: the shell, genres, craft, present/address, verify.sh, kit_hash, the engine pin.
+"$CKIT" init "$LAB" --name "$NAME" ${PORT:+--port "$PORT"}
 
 # Skills and agents are symlinked, so a kit re-sync updates them and drift is visible.
 # `ln -sfn` onto an existing DIRECTORY silently creates the link *inside* it; a pre-existing
@@ -102,13 +134,25 @@ for f in "$KIT"/agents/*.md; do
   link_or_report "$LAB/.claude/agents/$b" "../../kit/agents/$b"
 done
 
-# The chronicle: the lab declares its record and its extractor once; a lab that has chosen
-# otherwise keeps its choice (only absent keys are set).
+# 3. Register the lab layer through content-kit's extension points. Only lab-kit's own entries are
+# added; whatever the lab declared itself is kept, after them where order matters.
 python3 - "$LAB" <<'PY'
 import json, sys
 from pathlib import Path
-lab = Path(sys.argv[1]); p = lab / "lab.json"; cfg = json.loads(p.read_text())
-changed = False
+lab = Path(sys.argv[1])
+p = lab / "kit.json" if (lab / "kit.json").is_file() or not (lab / "lab.json").is_file() else lab / "lab.json"
+cfg = json.loads(p.read_text())
+said = []
+
+def add(key, item, first=False):
+    cur = cfg.get(key)
+    items = [] if cur in (None, "", {}) else (list(cur) if isinstance(cur, list) else [cur])
+    if item in items:
+        return
+    items = [item] + items if first else items + [item]
+    cfg[key] = items
+    said.append(key)
+
 if "record" not in cfg:
     # The sidebar: the ledger and standing surfaces a reader browses. Files only.
     cfg["record"] = [x for x in (
@@ -117,38 +161,71 @@ if "record" not in cfg:
         "record/findings.md", "record/claims.md", "record/LESSONS.md", "record/RETIRED.md",
         "record/logbook/lab.md",
     ) if (lab / x).exists()]
-    changed = True
+    said.append("record")
 elif (lab / "record/LESSONS.md").exists() and "record/LESSONS.md" not in cfg["record"]:
-    print('  note    record/LESSONS.md exists but lab.json "record" does not list it — '
+    print('  note    record/LESSONS.md exists but kit.json "record" does not list it — '
           "the viewer and the chronicle will not see it until it is added")
 if "chronicle" not in cfg:
     # The scanner sweep: everything append-only the chronicle can extract dated headings from.
-    sources = [x for x in ("HISTORY.md", "QUESTIONS.md", "ARCHIVE.md",
-                           "ops/", "record/") if (lab / x).exists()]
+    sources = [x for x in ("HISTORY.md", "QUESTIONS.md", "ARCHIVE.md", "ops/", "record/") if (lab / x).exists()]
     sources.append("experiments/*/PROBE.md")
     cfg["chronicle"] = {"sources": sources, "extractors": ["kit/tools/chronicle_lab.py"]}
-    changed = True
-if changed:
-    p.write_text(json.dumps(cfg, indent=2, ensure_ascii=False) + "\n")
-    print("  set     lab.json record + chronicle (the timeline over the record)")
+    said.append("chronicle")
+else:
+    ex = cfg["chronicle"].setdefault("extractors", [])
+    if "kit/tools/chronicle_lab.py" not in ex:
+        ex.append("kit/tools/chronicle_lab.py")
+        said.append("chronicle.extractors")
+
+add("genres", "kit/lab/genres/genres_lab.json", first=True)   # the lab's own overrides stay after it
+add("checks", "kit/tools/checks_lab.py")
+add("theme", "kit/lab/shell/lab.css", first=True)              # the lab's own theme stays after it
+findings = cfg.get("findings", "record/findings.md")
+claims = cfg.get("claims", "record/claims.md")
+add("refs", {"pattern": r"F-\d+(?:\.\d+)?", "href": f"/shell/record.html?p={findings}#{{id}}"})
+add("refs", {"pattern": r"C-\d+", "href": f"/shell/record.html?p={claims}#{{id}}"})
+if cfg.get("dashboard") is True or cfg.get("home") in ("dashboard", "dashboard.html"):
+    add("generators", "kit/tools/ladder.py")
+    pages = cfg.get("shell_pages") or {}
+    if pages.get("dashboard.html") != "kit/lab/shell/dashboard.html":
+        pages["dashboard.html"] = "kit/lab/shell/dashboard.html"
+        cfg["shell_pages"] = pages
+        said.append("shell_pages")
+    add("links", {"label": "Dashboard", "href": "/shell/dashboard.html", "title": "The record as a status board"}, first=True)
+p.write_text(json.dumps(cfg, indent=2, ensure_ascii=False) + "\n")
+if said:
+    print(f"  set     {p.name}: " + ", ".join(dict.fromkeys(said)))
 PY
-
-# The lab declared its record above; regenerate the indices so the fresh gate is green.
-command -v ckit >/dev/null 2>&1 && (cd "$LAB" && ckit lint --no-nav >/dev/null 2>&1 || true; ckit nav >/dev/null 2>&1 && echo "  set     content/chronicle.json (the record's timeline)")
-
 
 # Pin: lab-kit's source line after content-kit's; one hash over the whole tree. kit/PIN is
 # deliberately not ignored — it is the record of which kits this lab runs, and belongs in git.
 SRC_SHA="$(git -C "$KIT_SRC" rev-parse HEAD 2>/dev/null || echo unknown)"
+SRC_WHERE="$(python3 - "$KIT_SRC" <<'PY'
+import re, subprocess, sys
+src = sys.argv[1]
+try:
+    r = subprocess.run(["git", "-C", src, "remote", "get-url", "origin"], capture_output=True, text=True).stdout.strip()
+except OSError:
+    r = ""
+m = re.match(r"^(?:ssh://)?git@([^:/]+)[:/](.+?)(?:\.git)?/?$", r)
+if m:
+    r = f"https://{m.group(1)}/{m.group(2)}"
+r = re.sub(r"\.git/?$", "", re.sub(r"^(https?://)[^@/]+@", r"\1", r)).rstrip("/")
+print(r or src)
+PY
+)"
 {
   grep -E '^source ' "$KIT/PIN" | grep -v '^source lab-kit '
-  echo "source lab-kit $KIT_SRC $SRC_SHA"
+  echo "source lab-kit $SRC_WHERE $SRC_SHA"
 } > "$KIT/PIN.tmp"
 mv "$KIT/PIN.tmp" "$KIT/PIN"
 bash "$KIT/verify.sh" --repin >/dev/null
 echo "pinned  lab-kit@${SRC_SHA:0:8}"
 
+# The registration changed what the indices cover; regenerate so the fresh gate is green.
+(cd "$LAB" && "$CKIT" nav >/dev/null) && echo "  set     content/ indices regenerated (ckit nav)"
+
 echo
 echo "done. next:"
-echo "  cd $LAB && make check     # the gate (content gate + ladder lint, warn mode)"
+echo "  cd $LAB && make check     # the gate (content gate + ladder lint)"
 echo "  cd $LAB && make docs      # read the pages on this lab's own port"

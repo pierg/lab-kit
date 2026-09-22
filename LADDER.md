@@ -46,7 +46,7 @@ So a reader loads the level they need — the row to cite it, the defense to cha
 
 A row also carries its own `Date:`, the day the finding was banked. Without it the chronicle has to date each row by git archaeology, and the first ledger-wide rewrite silently re-dates every finding in the lab to the commit that rewrote it.
 
-What checks it: the `Defense:` path must resolve, exactly as an anchor must. The rest is voice, so the lint only warns — a headline over 24 words, a headline carrying `F-<n>` / `C-<n>` / `§` / a pin prefix (codes are links, not content), a `Date:` the chronicle cannot read, an `ops/STATE.md` past 500 words (STATE is a pointer, not a record), and — once a lab sets `"findings_layered": true` in `lab.json` — a row with no `Defense:` at all.
+What checks it: the `Defense:` path must resolve, exactly as an anchor must. The rest is voice, so the lint only warns — a headline over 24 words, a headline carrying `F-<n>` / `C-<n>` / `§` / a pin prefix (codes are links, not content), a `Date:` the chronicle cannot read, an `ops/STATE.md` past 500 words (STATE is a pointer, not a record), and — once a lab sets `"findings_layered": true` in `kit.json` — a row with no `Defense:` at all.
 
 ## Why the fan-out is not a pipeline
 
