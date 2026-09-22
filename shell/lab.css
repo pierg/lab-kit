@@ -1,0 +1,4 @@
+/* lab-kit's additions to the shell, served inside /shell/theme.css (kit.json "theme").
+   The story genre is lab-kit's, so is the colour of its badge in the sidebar, the search
+   results and the backlinks. */
+.hb .hb-kind-story { color: var(--azure); border-color: var(--azure); }
