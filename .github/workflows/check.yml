@@ -1,0 +1,32 @@
+name: check
+
+# The same `make check` a contributor runs, against the content-kit release this version names
+# (CONTENT_KIT_PIN), installed the way a user installs it: `uv tool install`, no sibling checkout.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: astral-sh/setup-uv@v6
+      - name: Install content-kit at the pinned release
+        run: |
+          uv tool install "git+https://github.com/pierg/content-kit@$(cat CONTENT_KIT_PIN)"
+          ckit version
+      - name: make check
+        run: make check

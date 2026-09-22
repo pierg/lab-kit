@@ -1,63 +1,64 @@
 # lab-kit — LIVE
 
-**The shared operating system for a research lab repo.** One question per lab; everything a lab needs to answer it — the record ladder, the agent fleet, the gate, and the reader-facing pages — vendored into the lab folder so an agent session opened there has every rule locally, with no sibling repo to resolve first.
+**The record discipline for agent-run research labs.** One question per lab. A pre-registration locked by commit before any measurement. An append-only record. Finding rows as interfaces, each with a defense file. Claims that bound what may be said. A reviewer that is read-only by construction. A lint that fails when a published number has no row. And the pages a lab writes live beside the evidence they cite.
 
-lab-kit is a layer **on top of [content-kit](../content-kit)**: content-kit owns the reader path (the shell, the genres and their voice, the craft playbooks, the `/present` and `/address` skills, the session-free annotation loop, the content gate); lab-kit adds what makes a repo a lab (the discipline, the record ladder and its lint, the fleet, the `/mission` `/experiment` `/review` skills). A library such as `folio` vendors content-kit alone. A lab vendors lab-kit and gets both.
+lab-kit is a layer on [content-kit](https://github.com/pierg/content-kit): content-kit writes the pages (genres, the shell, the gate, the review loop); lab-kit decides which numbers those pages are allowed to say. Its vocabulary — the story genre, the record-id checks, the dashboard, the chronicle's experiments — reaches content-kit only through its extension points, so the engine never learns what a finding is. A lab that writes only a paper can use lab-kit without a single HTML page.
+
+**Example lab:** [`example-lab/`](example-lab/) — a small, complete, synthetic lab, green in strict mode, published at <https://pierg.github.io/lab-kit/>. It is the test fixture, the demo and the documentation at once.
+
+## Install
+
+```bash
+uv tool install git+https://github.com/pierg/content-kit@v0.4.0   # the engine, ckit — the only requirement
+git clone https://github.com/pierg/lab-kit
+bash lab-kit/install.sh /path/to/lab --name "My lab" --port 5181
+cd /path/to/lab
+make check     # the gate: the content gate + the ladder lint (warn mode until you say strict)
+make docs      # the lab's pages on its own port
+```
+
+`install.sh` is idempotent: it vendors both kits into the lab's `kit/`, pins them in `kit/PIN`, registers lab-kit in `kit.json`, and scaffolds only what the lab is missing. It finds content-kit's engine through `--content-kit <checkout>`, `$CONTENT_KIT`, the `ckit` on PATH, or a sibling `../content-kit` checkout — no sibling is required. `make kit-sync` re-vendors later (`LAB_KIT=/path/to/lab-kit` if the checkout is not beside the lab).
 
 ## What a lab looks like
 
 ```
 <lab>/
   README.md          the question, in one screen
-  CLAUDE.md          the operating contract — imports @kit/DISCIPLINE.md + @kit/LADDER.md
-  lab.json           name, question, content dir, port, ladder mode, engine pin, genre extensions
-  kit/               ← vendored, pinned in kit/PIN (both kits), verified by the gate; never edited in place
-    shell/ genres/ craft/ skills/{present,address}   from content-kit
-    DISCIPLINE.md LADDER.md tools/ladder_lint.py agents/ skills/{mission,experiment,review}   from lab-kit
-  .claude/           skills + agents, symlinked into kit/
-  ops/               STATE.md (what is true now) · missions/ (append-only chronicle)
-  lab/               the apparatus: substrate, harness, instruments, frozen tools
-  experiments/<id>/  PROBE.md (locked) · bin/ · out/ · RESULTS.md
-  record/            logbook/ · findings.md · findings/ (each row's defense) · claims.md · LESSONS.md · RETIRED.md · pins.json
-  content/           the reader path — pages by genre in the shared shell, served on this lab's port
-    stories/         one sealed page per result: question / why / did / happened / learned / not / deeper / backlinks
-  assets/figures/    format-agnostic figure sources (SVG · generators · fonts · Makefile) — usable by pages, papers, or posts
-  assets/paper/      LaTeX-only machinery: preamble.tex · references.bib
-  Makefile           make check (the gate) · make docs (the port)
+  CLAUDE.md          the operating contract — imports @kit/DISCIPLINE.md and @kit/LADDER.md
+  kit.json           name · question · ladder mode · engine pin · the layer's registrations
+  QUESTIONS.md       what is open, each question with its kill criterion
+  ops/               STATE.md (what is true now) · missions/ (append-only)
+  experiments/<id>/  PROBE.md (locked) · bin/ · out/ (the evidence, never edited)
+  record/            findings.md · findings/F-<n>.md (each row's defense) · claims.md · logbook/ · LESSONS.md · pins.json
+  content/           the reader's pages: stories/ (one sealed page per result) · projects/ (the front door) · …
+  kit/               vendored, pinned, never edited in place — content-kit's shell and genres, plus:
+    DISCIPLINE.md LADDER.md MIGRATION.md
+    tools/           ladder_lint.py · chronicle_lab.py · checks_lab.py · ladder.py · layer_findings.py
+    lab/             genres/ (the story genre, the front door) · shell/ (the dashboard, the lab's stylesheet)
+    agents/ skills/  scout · reviewer · runner · reporter · /mission · /experiment · /review
 ```
 
-## Install
+## What lab-kit registers in content-kit
 
-```bash
-git clone … content-kit && git clone … lab-kit          # siblings
-bash content-kit/install-engine.sh                        # `ckit` on PATH, once per machine
-bash lab-kit/install.sh /path/to/lab --name "Harness Lab" --port 5182
-cd /path/to/lab
-make check     # the gate: content gate + ladder lint (warn mode at first)
-make docs      # this lab's pages, on this lab's port
-```
-
-`install.sh` is idempotent: it re-vendors `kit/` from both kits and pins them, and scaffolds only what is missing — it never overwrites a file the lab already has. It finds content-kit beside this checkout, or at `CONTENT_KIT=…` / `--content-kit`.
-
-## What's in it
-
-| Path | What |
+| Extension point | What |
 |---|---|
-| `DISCIPLINE.md` | the shared operating contract — imported by each lab's `CLAUDE.md` |
-| `LADDER.md` | the record ladder: evidence → probe → logbook → finding → claim → page/paper/post |
-| `tools/ladder_lint.py` | **the ladder lint** — every published number traces to a finding |
-| `skills/` | `/mission` · `/experiment` · `/review` (content-kit brings `/present` · `/address`) |
-| `agents/` | `scout` · `reviewer` · `runner` · `reporter` |
-| `templates/` | what `install.sh` scaffolds: `CLAUDE.md`, `PROBE.md`, `STATE.md`, the record files |
+| `genres` | `kit/lab/genres/genres_lab.json`: the `story` genre (eight fixed sections, sealed to its rows) and the lab's front door (`project`) |
+| `checks` | `kit/tools/checks_lab.py`: `bound_ids`, `defn_no_findings`, `no_findings` |
+| `chronicle.extractors` | `kit/tools/chronicle_lab.py`: experiment · finding · claim · mission events, and the Experiments cards |
+| `refs` | `F-<n>` and `C-<n>` become links into the ledger (a pinned `<lab>:F-<n>` is left alone) |
+| `theme` | `kit/lab/shell/lab.css`: the story badge |
+| `generators` · `shell_pages` · `links` | with `"dashboard": true`: `kit/tools/ladder.py` writes `content/ladder.json`, served by `/shell/dashboard.html`, linked from the sidebar |
 
 ## The two ideas worth knowing
 
-**The ladder converges, then fans out.** Evidence, probes and logbooks converge into findings, findings into claims — and claims fan out into a living page, a paper frozen at submission, and a post. Those three are siblings, not derivations: their prose is written independently, and what they share is the **finding ids they cite**, the figure sources, and the bibliography. You never sync a number between artifacts; you cite one, and `make check` verifies it. See `LADDER.md`.
+**The ladder converges, then fans out.** Evidence, probes and logbooks converge into findings, findings into claims — and claims fan out into a living page, a paper frozen at submission, and a post. Those three are siblings, not derivations: their prose is written independently, and what they share is the **finding ids they cite**, the figure sources, and the bibliography. You never sync a number between artifacts; you cite one, and `make check` verifies it. See [`LADDER.md`](LADDER.md).
 
-**The kit is a frozen surface.** `make check` recomputes the vendored tree's hash and fails loud if it differs from `kit/PIN`. To change either kit you change it upstream and run `make kit-sync` in each lab. Editing `kit/` in place is how a shared kit becomes several different kits with the same name.
+**The kit is a frozen surface.** `make check` recomputes the vendored tree's hash and fails loud if it differs from `kit/PIN`. To change either kit you change it upstream and run `make kit-sync` in each lab — and in a lab, that re-sync is an instrument change, landed as a pull request. The ladder lint is an instrument: an upgrade must never change the judgment of results already taken.
 
 ## Develop
 
 ```bash
-make check     # the ladder lint's planted fixtures, plus an end-to-end install into a scratch lab (needs ../content-kit)
+make check     # every tool's planted fixtures · the example lab's gate in strict mode · an end-to-end install
 ```
+
+`CONTENT_KIT_PIN` names the content-kit release this version is checked against; CI installs exactly that. See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CHANGELOG.md`](CHANGELOG.md). MIT licensed.
