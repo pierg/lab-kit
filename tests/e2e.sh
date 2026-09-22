@@ -84,7 +84,10 @@ echo "fresh lab ok"
 echo "--- the example lab: installed, green in strict mode ---"
 LAB="$TMP/lab"
 rsync -a --exclude kit --exclude .claude --exclude 'content/*.json' "$KIT/example-lab/" "$LAB/"
+rm "$LAB/record/LESSONS.md"   # an existing lab without a lessons ledger: a kit upgrade must not add one
 bash "$KIT/install.sh" "$LAB" >/dev/null
+[ -e "$LAB/record/LESSONS.md" ] && fail "install added a file to an existing lab's record"
+cp "$KIT/example-lab/record/LESSONS.md" "$LAB/record/LESSONS.md"
 json_set "$LAB/kit.json" "c['port'] = $PORT"   # the example keeps its own port; the test needs a free one
 ( cd "$LAB" && ckit lint >/dev/null && make check >/dev/null ) \
   || { ( cd "$LAB" && make check >&2 ); fail "the example lab is not green"; }

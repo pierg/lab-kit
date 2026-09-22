@@ -67,13 +67,19 @@ scaffold() {  # scaffold <relative-target> <template-source>
   fi
 }
 
-# The lab's own templates go first, so content-kit's init finds them and keeps them.
-echo "scaffolding lab layout"
-if [ -f "$LAB/lab.json" ] && [ ! -f "$LAB/kit.json" ]; then
-  echo "  keep    lab.json  (deprecated — git mv lab.json kit.json when convenient)"
+# The lab's own templates go first, so content-kit's init finds them and keeps them. Only a
+# fresh lab is scaffolded: an existing lab's record, ops and experiments are its own, and a kit
+# upgrade never adds a file to them.
+if [ -f "$LAB/kit.json" ] || [ -f "$LAB/lab.json" ]; then
+  echo "existing lab: its layout is left exactly as it is"
+  [ -f "$LAB/lab.json" ] && [ ! -f "$LAB/kit.json" ] && echo "  keep    lab.json  (deprecated — git mv lab.json kit.json when convenient)"
+  FRESH=""
 else
-  scaffold kit.json                  templates/kit.json
+  echo "scaffolding lab layout"
+  FRESH=1
 fi
+[ -n "$FRESH" ] && {
+scaffold kit.json                    templates/kit.json
 scaffold README.md                   templates/README.lab.md
 scaffold QUESTIONS.md                templates/QUESTIONS.md
 scaffold Makefile                    templates/Makefile.lab
@@ -88,6 +94,7 @@ scaffold record/RETIRED.md           templates/record/RETIRED.md
 scaffold record/pins.json            templates/record/pins.json
 scaffold record/logbook              templates/record/logbook
 mkdir -p "$LAB"/experiments
+}
 
 # 1. the lab layer. It goes in before content-kit's init, because a lab's kit.json may already
 # name these files (a re-sync, or the example lab) and init regenerates the indices at its end.
