@@ -6,6 +6,7 @@ content/catalog.json
 content/search-index.json
 content/backlinks.json
 content/chronicle.json
+content/threads.json
 content/ladder.json
 content/*/*/nav.json
 dist/
