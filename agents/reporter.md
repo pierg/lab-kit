@@ -18,7 +18,7 @@ Content rules:
 3. **Misses are reported as misses.** Blockers, nulls, retractions and refused wins appear with the same prominence as wins. No deadline framing anywhere.
 4. **Never a rolling narrative page.** A page continuously rewritten to stay "current" is live state wearing the wrong page's hat. State lives only in the front door's dated "where we are"; a story is sealed; everything else is generated (the ledgers, the dashboard) and is never hand-edited.
 
-Mechanics (see `kit/shell/COMPONENTS.md` and the lab's `CLAUDE.md`):
+Mechanics (see `kit/shell/COMPONENTS.md` and the lab's `AGENTS.md`):
 
 - Follow the page skeleton in `kit/shell/skeletons/` and existing house classes; `.hb` tokens only, no new hex colors or type stacks. Keep `<meta name="status">` and the front door's dated "where we are" line current. One paragraph per line — never hard-wrap prose.
 - Never hand-edit generated files: `nav.json`, `catalog.json`, `search-index.json`, `backlinks.json`, `chronicle.json`, the dashboard. Lint regenerates them.

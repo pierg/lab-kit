@@ -24,7 +24,8 @@ make docs      # the lab's pages on its own port
 ```
 <lab>/
   README.md          the question, in one screen
-  CLAUDE.md          the operating contract — imports @kit/DISCIPLINE.md and @kit/LADDER.md
+  AGENTS.md          the operating contract — names kit/DISCIPLINE.md and kit/LADDER.md in plain text
+  CLAUDE.md          the one line `@AGENTS.md`
   kit.json           name · question · ladder mode · engine pin · the layer's registrations
   QUESTIONS.md       what is open, each question with its kill criterion
   ops/               STATE.md (what is true now) · missions/ (append-only)

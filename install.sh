@@ -83,7 +83,11 @@ scaffold kit.json                    templates/kit.json
 scaffold README.md                   templates/README.lab.md
 scaffold QUESTIONS.md                templates/QUESTIONS.md
 scaffold Makefile                    templates/Makefile.lab
-scaffold CLAUDE.md                   templates/CLAUDE.md
+scaffold AGENTS.md                   templates/AGENTS.md
+if [ ! -e "$LAB/CLAUDE.md" ] && [ ! -L "$LAB/CLAUDE.md" ]; then
+  printf '@AGENTS.md\n' > "$LAB/CLAUDE.md"
+  echo "  create  CLAUDE.md"
+fi
 scaffold .gitignore                  templates/gitignore.lab
 scaffold ops/STATE.md                templates/ops/STATE.md
 scaffold ops/missions/TEMPLATE.md    templates/ops/missions/TEMPLATE.md
@@ -120,25 +124,59 @@ find "$KIT" \( -name __pycache__ -o -name .DS_Store \) -prune -exec rm -rf {} + 
 # 2. content-kit: the shell, genres, craft, present/address, verify.sh, kit_hash, the engine pin.
 "$CKIT" init "$LAB" --name "$NAME" ${PORT:+--port "$PORT"}
 
-# Skills and agents are symlinked, so a kit re-sync updates them and drift is visible.
-# `ln -sfn` onto an existing DIRECTORY silently creates the link *inside* it; a pre-existing
-# real directory is the lab's own skill: leave it, say so, let the operator decide.
-echo "linking skills + agents into .claude/"
-mkdir -p "$LAB/.claude/skills" "$LAB/.claude/agents"
-link_or_report() {  # link_or_report <target-in-.claude> <kit-relative-source>
-  local dest="$1" src="$2"
-  if [ -e "$dest" ] && [ ! -L "$dest" ]; then
-    echo "  keep    ${dest#"$LAB/"}  (lab's own — kit's copy NOT linked)"
-  else
-    ln -sfn "$src" "$dest"
+# One body per kit skill, linked from .agents/skills. .claude/skills is a single relative
+# symlink to that directory. A real directory already using a kit skill's name is replaced.
+# A real directory left under .claude/skills whose name is not a kit skill stays: it belongs
+# to the lab and moves to .agents/skills. Agents stay per-name links under .claude/agents.
+echo "linking skills + agents"
+mkdir -p "$LAB/.agents/skills" "$LAB/.claude/agents"
+link_skill() {  # link_skill <skill-name> <absolute-body>
+  local skill="$1" body="$2"
+  local dest="$LAB/.agents/skills/$skill" rel
+  rel="$(python3 -c 'import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))' "$body" "$LAB/.agents/skills")"
+  if [ -L "$dest" ] && [ "$(readlink "$dest")" = "$rel" ]; then
+    return
   fi
+  if [ -d "$dest" ] && [ ! -L "$dest" ]; then
+    echo "  replace .agents/skills/$skill  (it shadowed the kit skill)"
+    rm -rf "$dest"
+  elif [ -L "$dest" ] || [ -f "$dest" ]; then
+    rm -f "$dest"
+  fi
+  ln -s "$rel" "$dest"
+  echo "  link    .agents/skills/$skill"
 }
-for s in mission experiment review; do
-  link_or_report "$LAB/.claude/skills/$s" "../../kit/skills/$s"
-done
+while IFS= read -r body; do
+  [ -n "$body" ] || continue
+  link_skill "$(basename "$body")" "$body"
+done < <(find "$KIT/skills" "$KIT"/*/skills -mindepth 1 -maxdepth 1 -type d -exec test -f '{}/SKILL.md' \; -print 2>/dev/null | sort -u)
+claude_skills="$LAB/.claude/skills"
+if [ -L "$claude_skills" ]; then
+  [ "$(readlink "$claude_skills")" = "../.agents/skills" ] || ln -sfn "../.agents/skills" "$claude_skills"
+elif [ -d "$claude_skills" ]; then
+  find "$claude_skills" -mindepth 1 -maxdepth 1 \( -type l -o -type f \) -exec rm -f {} +
+  if [ -n "$(find "$claude_skills" -mindepth 1 -maxdepth 1 -print -quit)" ]; then
+    find "$claude_skills" -mindepth 1 -maxdepth 1 -type d -print | while read -r kept; do
+      echo "  keep    .claude/skills/$(basename "$kept")  (lab's own — move it to .agents/skills/$(basename "$kept"))"
+    done
+  else
+    rmdir "$claude_skills"
+    ln -s "../.agents/skills" "$claude_skills"
+    echo "  link    .claude/skills"
+  fi
+else
+  mkdir -p "$LAB/.claude"
+  ln -s "../.agents/skills" "$claude_skills"
+  echo "  link    .claude/skills"
+fi
 for f in "$KIT"/agents/*.md; do
   b="$(basename "$f")"
-  link_or_report "$LAB/.claude/agents/$b" "../../kit/agents/$b"
+  dest="$LAB/.claude/agents/$b"
+  if [ -e "$dest" ] && [ ! -L "$dest" ]; then
+    echo "  keep    .claude/agents/$b  (lab's own)"
+  else
+    ln -sfn "../../kit/agents/$b" "$dest"
+  fi
 done
 
 # 3. Register the lab layer through content-kit's extension points. Only lab-kit's own entries are

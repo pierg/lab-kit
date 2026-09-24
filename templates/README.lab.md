@@ -24,7 +24,7 @@ Every number below cites a row in [`record/findings.md`](record/findings.md), wh
 3. [`record/findings.md`](record/findings.md) — every citable number.
 4. [`record/claims.md`](record/claims.md) — what may be said.
 5. [`record/logbook/lab.md`](record/logbook/lab.md) — what has already bitten. Read before trusting any surface.
-6. [`CLAUDE.md`](CLAUDE.md) — the operating contract, for anyone about to commit.
+6. [`AGENTS.md`](AGENTS.md) — the operating contract, for anyone about to commit. `CLAUDE.md` imports it.
 
 ## Run it
 

@@ -7,7 +7,7 @@
   "ladder": "strict",
   "dashboard": true,
   "home": "content/projects/sorting-crossover/",
-  "ckit": "0.4.0",
+  "ckit": "0.5.0",
   "record": [
     "QUESTIONS.md",
     "ops/STATE.md",

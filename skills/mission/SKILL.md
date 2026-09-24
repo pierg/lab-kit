@@ -13,7 +13,7 @@ Everything durable lives in files, so any process can die and the mission resume
 
 1. `ops/STATE.md` — the active mission, the fleet, the next step. On a fresh objective with no active mission, continue to planning. On restart or crash, jump to §8 first.
 2. `README.md` — the lab's question. `record/claims.md` — what may be said and at what strength. `record/findings.md` — every number and how to re-derive it. **No number enters a plan, a page, or a paper except by citing a finding id.**
-3. `CLAUDE.md` — the frozen surfaces and local disciplines.
+3. `AGENTS.md` — the frozen surfaces and local disciplines. `CLAUDE.md` imports it.
 4. Fleet and lab status: spawn **scout** for the sweep (logbook tails, live-run check, blocker states) and run `claude agents --json` for surviving workers. Keep raw reading out of your own context — your seat is the expensive one; you synthesize.
 
 ## 2 · Plan a mission
@@ -24,7 +24,7 @@ Planning rules: rank by dependency and information value, never by date. Token-f
 
 ## 3 · Dispatch
 
-Durable executors are background sessions dispatched **in the lab's own cwd**, so the lab's skills and `CLAUDE.md` load natively. Names are fixed — reuse them, never invent variants; one live session per name.
+Durable executors are background sessions dispatched **in the lab's own cwd**, so the lab's skills and `AGENTS.md` load natively (`CLAUDE.md` imports it). Names are fixed — reuse them, never invent variants; one live session per name.
 
 ```bash
 claude --bg --name <lab>-exec --model sonnet \
@@ -36,7 +36,7 @@ Every worker brief contains, always:
 
 ```
 Task: <one scoped task — one mission item, not the whole mission>.
-Method: use this lab's skills (/experiment, /review, …) and follow CLAUDE.md exactly:
+Method: use this lab's skills (/experiment, /review, …) and follow AGENTS.md exactly:
   records append-only straight to main; instrument changes via PR with the gate green;
   never touch a frozen surface; frozen roster — on failure terminate and resume, never
   swap models; experiments launch as the lab's own scripts and you WATCH them (arm a log

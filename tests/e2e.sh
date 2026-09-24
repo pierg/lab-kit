@@ -30,7 +30,7 @@ PY
 echo "--- a fresh lab: install into an empty directory, and it opens green ---"
 FRESH="$TMP/fresh"
 bash "$KIT/install.sh" "$FRESH" --name "Scratch Lab" --port $PORT >/dev/null
-for f in kit.json Makefile CLAUDE.md README.md QUESTIONS.md ops/STATE.md record/findings.md record/claims.md \
+for f in kit.json Makefile AGENTS.md CLAUDE.md README.md QUESTIONS.md ops/STATE.md record/findings.md record/claims.md \
          record/LESSONS.md kit/PIN kit/DISCIPLINE.md kit/LADDER.md kit/verify.sh kit/tools/kit_hash.py \
          kit/shell/lib.css kit/genres/GENRES.md kit/craft/CRAFT.md kit/skills/present/SKILL.md kit/skills/address/SKILL.md \
          kit/templates/experiments/PROBE.md kit/assets/paper/preamble.tex \
@@ -40,8 +40,12 @@ for f in kit.json Makefile CLAUDE.md README.md QUESTIONS.md ops/STATE.md record/
   [ -e "$FRESH/$f" ] || fail "install did not create $f"
 done
 [ -e "$FRESH/lab.json" ] && fail "a fresh lab must get kit.json, not lab.json"
-[ -L "$FRESH/.claude/skills/mission" ] || fail "lab skills not symlinked"
-[ -L "$FRESH/.claude/skills/present" ] || fail "content skills not symlinked"
+[ -L "$FRESH/.claude/skills" ] && [ "$(readlink "$FRESH/.claude/skills")" = "../.agents/skills" ] \
+  || fail ".claude/skills must be one relative symlink to ../.agents/skills"
+[ -L "$FRESH/.agents/skills/mission" ] || fail "lab skills not symlinked"
+[ -L "$FRESH/.agents/skills/present" ] || fail "content skills not symlinked"
+[ "$(cat "$FRESH/CLAUDE.md")" = "@AGENTS.md" ] || fail "CLAUDE.md must be exactly @AGENTS.md"
+[ -f "$FRESH/AGENTS.md" ] && [ ! -L "$FRESH/AGENTS.md" ] || fail "AGENTS.md must be a regular file"
 [ -L "$FRESH/.claude/agents/reviewer.md" ] || fail "agents not symlinked"
 grep -q '^source content-kit ' "$FRESH/kit/PIN" && grep -q '^source lab-kit ' "$FRESH/kit/PIN" || fail "PIN does not record both kits"
 [ "$(awk '/^source /{print NF}' "$FRESH/kit/PIN" | sort -u)" = 4 ] || fail "PIN source lines must keep four fields"

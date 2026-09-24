@@ -1,6 +1,6 @@
 # Discipline — the shared operating contract
 
-Every lab that vendors this kit inherits this file. A lab's own `CLAUDE.md` imports it and then adds only what is genuinely local: its question, its frozen surfaces, its gate.
+Every lab that vendors this kit inherits this file. A lab's own `AGENTS.md` names it in plain text — read `kit/DISCIPLINE.md` now — and then adds only what is genuinely local: its question, its frozen surfaces, its gate. `CLAUDE.md` is the one line `@AGENTS.md`.
 
 It exists because these rules were each learned by being broken, and because restating them in five places is how they drift apart.
 
@@ -39,7 +39,7 @@ Every script ships a `--selftest` wired into the gate. Every fold is validated a
 
 ## 6 · Frozen surfaces
 
-A lab names its frozen surfaces in its own `CLAUDE.md`: the vendored substrate, locked pre-registrations and their evidence, pinned image digests, judge-owned paths. These are never edited or reformatted in place — a known defect in a frozen surface is **recorded, not fixed**, because fixing it breaks comparability with results already taken against it.
+A lab names its frozen surfaces in its own `AGENTS.md`: the vendored substrate, locked pre-registrations and their evidence, pinned image digests, judge-owned paths. These are never edited or reformatted in place — a known defect in a frozen surface is **recorded, not fixed**, because fixing it breaks comparability with results already taken against it.
 
 Work is additive. If a frozen surface must change, stop and put the case to the operator.
 
