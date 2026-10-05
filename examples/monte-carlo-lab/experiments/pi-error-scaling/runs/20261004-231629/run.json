@@ -1,0 +1,31 @@
+{
+  "protocol": "pi-error-scaling",
+  "lock": "e1c5d07e7197f3bdcaa68881d18bff4399f0f2383b3a09215b55b090688c1afc",
+  "config": {
+    "language": "python 3, standard library only",
+    "substrate": "substrate/estimator.py",
+    "generator": "random.Random, one per estimate",
+    "sizes": [
+      64,
+      256,
+      1024,
+      4096,
+      16384
+    ],
+    "repeats": 100,
+    "seed": "size * 1000 + repeat",
+    "truth": "math.pi",
+    "budget": "none (token-free)"
+  },
+  "mission": "ops/missions/2026-10-04-pi-error-scaling.md",
+  "spend": false,
+  "command": [
+    "python3",
+    "experiments/pi-error-scaling/bin/sample.py"
+  ],
+  "started": "2026-10-04T23:16:29+00:00",
+  "ended": "2026-10-04T23:16:29+00:00",
+  "exit": 0,
+  "pid": 9402,
+  "spent": null
+}

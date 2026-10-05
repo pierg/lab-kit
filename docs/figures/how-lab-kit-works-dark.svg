@@ -1,0 +1,168 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" role="img" aria-label="How lab-kit works. You plan a mission with your coding agent in plain words and approve it; then it runs on its own while you ask how it is going. The agent picks one of lab-kit's skills, set-up-lab, plan-mission, run-mission, experiment or review, and uses folio's skills for documents; run-mission carries the approved mission into the lab. Every change passes lab-kit check before it is committed to the lab, a folder in git. The lab has two zones. The library, kept by folio, holds the question Q-1, Does Monte Carlo error shrink as 1/sqrt(n)?, its protocol, the result R-2, a claim, a report and a journal. The lab files, kept by lab-kit, hold lock.json, which locks the protocol, the runs with their sealed evidence, and score.yaml; after a reviewer pass the score becomes the result R-2." xmlns:c2pa="http://c2pa.org/manifest"><metadata><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYToyOGY1ZmFjYS02Y2EzLTQwOTAtYjhiOC05N2I0NzRjNzkzMjMAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaCAkAGT04f9SiTwm57XJOcAAAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDplNzU2ZDRkNC0zMTZmLTRlOTAtOWQzOC1mODVlNGExODI5NzdscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNolEAyd9Naaa5QRRc4AAi3ugAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFgg8LPxjfpE3x6yiNlf7oYykNOcBe0fZZKoYfUekU2jEIikZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaLad8mhHxLk2tfKoChtlGS8AAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYIFCCQy3DVwi9nYyT4mydP9FIvvS6iT4J09jE5xNhRaTiZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GQOwZmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOjI4ZjVmYWNhLTZjYTMtNDA5MC1iOGI4LTk3YjQ3NGM3OTMyMy9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOmY5NTRlMmY4LWFiYjYtNDdjYi1hNjQ4LTc5ZmMxMGQ5ZjI1OHJjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCDws/GN+kTfHrKI2V/uhjKQ05wF7R9lkqhh9R6RTaMQiKJjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFgg8Eh0XFtV8+yM1v7qC9ouz3sMNiqfk43mSKzPdkWCqh+iY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFggahB8AOL8hZcpj8C6miRGc7L+ooyVEvtcWi6Eb+IKqxZ0Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQE+7Qqo3RsSI7RVc6QRvDl7wyDgM40EK2gC0Sh7Do+OQIBVMmbWukOGcTcFjvV/FARdjyD8i6oIxS/BSX2qnjq0=</c2pa:manifest></metadata>
+<style>
+svg{--ink:#ece9e2;--ink-soft:#b7b1a6;--ink-faint:#868075;--rule:#2e2d29;--rule-strong:#4a4740;--panel:#1c1c19;--surface:#151513;--paper:#151513;--accent:#e09572;--accent-soft:#3a2a21;--link:#93bde4;--mark:#5a4b16;--ok:#8fcf98;--ok-soft:#1f3123;--lab:#a7abf3;--lab-soft:#23264a;}
+text{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+.mono,.lab,.lab-acc,.eyebrow{font-family:ui-monospace,'SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace}
+.serif{font-family:'Iowan Old Style',Charter,'Bitstream Charter',Cambria,Georgia,serif}
+.box{fill:var(--panel);stroke:var(--ink-soft);stroke-width:1.6}
+.tile{fill:var(--surface);stroke:var(--rule-strong);stroke-width:1.3}
+.chip{fill:var(--surface);stroke:var(--rule-strong);stroke-width:1.2}
+.chip-acc{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+.page{fill:var(--paper);stroke:var(--ink-soft);stroke-width:1.6}
+.bubble{fill:var(--surface);stroke:var(--rule-strong);stroke-width:1.3}
+.bubble-acc{fill:var(--surface);stroke:var(--accent);stroke-width:1.5}
+.sheet{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.3;stroke-dasharray:4 3}
+.bar{fill:var(--rule)}
+.hl{fill:var(--mark)}
+.fill-acc{fill:var(--accent)}
+.fill-ink{fill:var(--ink-soft)}
+.rule{stroke:var(--rule);stroke-width:1.2}
+.edge{fill:none;stroke:var(--ink-soft);stroke-width:1.6}
+.e-acc{fill:none;stroke:var(--accent);stroke-width:1.7}
+.link{fill:none;stroke:var(--ink-faint);stroke-width:1.3}
+.link-dash{fill:none;stroke:var(--ink-faint);stroke-width:1.3;stroke-dasharray:3 3}
+.t{fill:var(--ink);font-size:14px}
+.t-strong{fill:var(--ink);font-size:14px;font-weight:600}
+.soft{fill:var(--ink-soft);font-size:13px}
+.mono{fill:var(--ink);font-size:13.5px}
+.mono-soft{fill:var(--ink-soft);font-size:13px;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace}
+.lab{fill:var(--ink-soft);font-size:13px;letter-spacing:.06em}
+.lab-acc{fill:var(--accent);font-size:13px;letter-spacing:.04em}
+.eyebrow{fill:var(--accent);font-size:13px;font-weight:700;letter-spacing:.08em}
+.chip-t{fill:var(--ink);font-size:13.5px;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace}
+.chip-t-acc{fill:var(--accent);font-size:13.5px;font-weight:700;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace}
+.link-t{fill:var(--link);font-size:13.5px}
+.fill-lab{fill:var(--lab)}
+.e-lab{fill:none;stroke:var(--lab);stroke-width:1.7}
+.box-lab{fill:var(--lab-soft);stroke:var(--lab);stroke-width:1.6}
+.chip-lab{fill:var(--lab-soft);stroke:var(--lab);stroke-width:1.4}
+.lab-lab{fill:var(--lab);font-size:13px;letter-spacing:.06em;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace}
+.zone-acc{fill:var(--accent-soft)}
+.zone{fill:var(--panel)}
+.serif-t{fill:var(--ink);font-family:'Iowan Old Style',Charter,'Bitstream Charter',Cambria,Georgia,serif}
+.serif-soft{fill:var(--ink-soft);font-family:'Iowan Old Style',Charter,'Bitstream Charter',Cambria,Georgia,serif}
+.uline{stroke:var(--link);stroke-width:1.2;stroke-dasharray:1.5 2}
+</style>
+<defs>
+<marker id="ar" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" class="fill-ink"/></marker>
+<marker id="ar-acc" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" class="fill-acc"/></marker>
+<marker id="ar-lab" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" class="fill-lab"/></marker>
+</defs>
+
+<style>
+.outer{fill:var(--surface);stroke:var(--ink-soft);stroke-width:1.6}
+.lane-a{fill:var(--panel);stroke:var(--rule-strong);stroke-width:1.3}
+.lane-b{fill:var(--lab-soft);stroke:var(--lab);stroke-width:1.4}
+.node{fill:var(--surface);stroke:var(--ink-soft);stroke-width:1.5}
+.node-b{fill:var(--surface);stroke:var(--lab);stroke-width:1.5}
+.name{fill:var(--ink);font-size:15px;font-weight:650}
+.pill{fill:var(--surface);stroke:var(--lab);stroke-width:1}
+.pill-t{fill:var(--lab);font-size:13px;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace}
+.bar-lab{fill:var(--lab)}
+.tl{fill:none;stroke:var(--ink-faint);stroke-width:1.3;stroke-dasharray:2 4}
+.tick{fill:var(--surface);stroke:var(--accent);stroke-width:1.6}
+.bubble-lab{fill:var(--surface);stroke:var(--lab);stroke-width:1.5}
+.chip-dash{fill:none;stroke:var(--ink-faint);stroke-width:1.3;stroke-dasharray:4 3}
+.chip-t-lab{fill:var(--lab);font-size:13.5px;font-weight:700;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace}
+</style>
+
+<!-- ============ YOU ============ -->
+<text class="lab" x="16" y="30">YOU, IN PLAIN WORDS</text>
+<rect class="bubble" x="16" y="42" width="240" height="28" rx="14"/>
+<text class="t" x="30" y="61">“set up a lab for my question”</text>
+<rect class="bubble-lab" x="16" y="78" width="252" height="28" rx="14"/>
+<text class="t" x="30" y="97">“mission: test the 1/√n claim”</text>
+<rect class="bubble" x="16" y="114" width="214" height="28" rx="14"/>
+<text class="t" x="30" y="133">“approved, token-free only”</text>
+<path class="link" d="M276,80 L283,80 L283,140 L276,140"/>
+<text class="lab-lab" x="290" y="115">plan</text>
+<path class="link" d="M276,152 L283,152 L283,212 L276,212"/>
+<text class="lab-lab" x="290" y="187">run</text>
+<rect class="bubble" x="16" y="150" width="222" height="28" rx="14"/>
+<text class="t" x="30" y="169">“how is the mission going?”</text>
+<rect class="bubble" x="16" y="186" width="208" height="28" rx="14"/>
+<text class="t" x="30" y="205">“what should we do next?”</text>
+<path class="edge" d="M109,216 L109,241" marker-end="url(#ar)"/>
+
+<!-- ============ AGENT ============ -->
+<rect class="box" x="16" y="242" width="190" height="262" rx="10"/>
+<text class="lab" x="32" y="268">YOUR CODING AGENT</text>
+<text class="soft" x="32" y="288">lab-kit's skills</text>
+<rect class="chip" x="32" y="300" width="158" height="24" rx="5"/><text class="chip-t" x="111" y="317" text-anchor="middle">set-up-lab</text>
+<rect class="chip" x="32" y="328" width="158" height="24" rx="5"/><text class="chip-t" x="111" y="345" text-anchor="middle">plan-mission</text>
+<rect class="chip-lab" x="32" y="356" width="158" height="24" rx="5"/><text class="chip-t-lab" x="111" y="373" text-anchor="middle">run-mission</text>
+<rect class="chip" x="32" y="384" width="158" height="24" rx="5"/><text class="chip-t" x="111" y="401" text-anchor="middle">experiment</text>
+<rect class="chip" x="32" y="412" width="158" height="24" rx="5"/><text class="chip-t" x="111" y="429" text-anchor="middle">review</text>
+<rect class="chip-dash" x="32" y="446" width="158" height="44" rx="5"/>
+<text class="t" x="111" y="464" text-anchor="middle">folio's skills</text>
+<text class="soft" x="111" y="481" text-anchor="middle">for documents</text>
+
+<!-- ============ GATE ============ -->
+<path class="e-lab" d="M190,368 L329,368" marker-end="url(#ar-lab)"/>
+<text class="lab-lab" x="268" y="298" text-anchor="middle" font-weight="700">lab-kit check</text>
+<text class="soft" x="268" y="317" text-anchor="middle">before every</text>
+<text class="soft" x="268" y="334" text-anchor="middle">commit</text>
+<rect class="bar-lab" x="263" y="336" width="10" height="64" rx="2"/>
+
+<!-- ============ THE LAB ============ -->
+<rect class="outer" x="330" y="16" width="554" height="488" rx="10"/>
+<text class="lab" x="346" y="42">THE LAB · IN GIT</text>
+
+<!-- library -->
+<rect class="lane-a" x="346" y="56" width="522" height="196" rx="8"/>
+<text class="lab-acc" x="360" y="78" font-weight="700">THE LIBRARY · FOLIO</text>
+
+<rect class="node" x="360" y="90" width="494" height="46" rx="7"/>
+<text class="name" x="372" y="110">question</text><text class="mono-soft" x="372" y="128">Q-1</text>
+<text class="serif-t" x="458" y="119" style="font-size:16px;font-style:italic">Does Monte Carlo error shrink as 1/√n?</text>
+
+<rect class="node" x="360" y="150" width="96" height="48" rx="7"/>
+<text class="name" x="372" y="170">protocol</text><text class="mono-soft" x="372" y="189">locked</text>
+<rect class="node" x="610" y="150" width="78" height="48" rx="7"/>
+<text class="name" x="622" y="170">result</text><text class="mono-soft" x="622" y="189">R-2</text>
+<rect class="node" x="704" y="150" width="66" height="48" rx="7"/>
+<text class="name" x="716" y="170">claim</text><text class="mono-soft" x="716" y="189">C-1</text>
+<rect class="node" x="786" y="150" width="68" height="48" rx="7"/>
+<text class="name" x="798" y="179">report</text>
+<path class="edge" d="M688,174 L703,174" marker-end="url(#ar)"/>
+<path class="edge" d="M770,174 L785,174" marker-end="url(#ar)"/>
+<text class="soft" x="534" y="170" text-anchor="middle">folio decides</text>
+<text class="soft" x="534" y="187" text-anchor="middle">what a document is</text>
+
+<!-- journal -->
+<text class="mono-soft" x="360" y="236">journal</text>
+<path class="tl" d="M424,232 L854,232"/>
+
+<!-- lab files -->
+<rect class="lane-b" x="346" y="300" width="522" height="142" rx="8"/>
+<text class="lab-lab" x="854" y="322" text-anchor="end" font-weight="700">LAB FILES · LAB-KIT</text>
+<rect class="node-b" x="360" y="334" width="124" height="54" rx="7"/>
+<text class="name" x="372" y="355">lock.json</text><text class="soft" x="372" y="376">protocol hash</text>
+<rect class="node-b" x="504" y="334" width="108" height="54" rx="7"/>
+<text class="name" x="516" y="355">runs/</text><text class="soft" x="516" y="376">one per run</text>
+<rect class="node-b" x="632" y="334" width="124" height="54" rx="7"/>
+<text class="name" x="644" y="355">score.yaml</text><text class="soft" x="644" y="376">against the lock</text>
+<rect class="pill" x="504" y="398" width="160" height="22" rx="4"/><text class="pill-t" x="514" y="413">sealed evidence</text>
+<path class="e-lab" d="M484,361 L503,361" marker-end="url(#ar-lab)"/>
+<path class="e-lab" d="M612,361 L631,361" marker-end="url(#ar-lab)"/>
+<text class="t" x="812" y="358" text-anchor="middle" style="fill:var(--lab)">lab-kit decides</text>
+<text class="t" x="812" y="377" text-anchor="middle" style="fill:var(--lab)">what counts</text>
+
+<!-- crossings -->
+<path class="e-lab" d="M440,198 L440,333" marker-end="url(#ar-lab)"/>
+<rect class="bar-lab" x="420" y="272" width="40" height="7" rx="2"/>
+<text class="lab-lab" x="412" y="281" text-anchor="end" font-weight="700">lock</text>
+<path class="e-lab" d="M660,334 L660,199" marker-end="url(#ar-lab)"/>
+<rect class="bar-lab" x="640" y="272" width="40" height="7" rx="2"/>
+<text class="lab-lab" x="632" y="281" text-anchor="end" font-weight="700">reviewer pass</text>
+
+<!-- journal ticks, over the paths -->
+<rect class="tick" x="435" y="227" width="10" height="10" transform="rotate(45 440 232)"/>
+<text class="mono-soft" x="452" y="222">lock</text>
+<rect class="tick" x="553" y="227" width="10" height="10" transform="rotate(45 558 232)"/>
+<text class="mono-soft" x="570" y="222">run</text>
+<rect class="tick" x="655" y="227" width="10" height="10" transform="rotate(45 660 232)"/>
+<text class="mono-soft" x="672" y="222">result</text>
+
+<text class="soft" x="346" y="480">lab-kit check runs folio check, then every lab check</text>
+</svg>

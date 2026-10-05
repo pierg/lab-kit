@@ -1,0 +1,4 @@
+_site/
+.folio/serve.pid
+.folio/serve.log
+.folio/build/

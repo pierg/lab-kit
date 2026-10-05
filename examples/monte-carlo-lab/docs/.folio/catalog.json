@@ -1,0 +1,474 @@
+{
+  "documents": [
+    {
+      "description": "Only for this estimator and generator, from 64 to 16,384 points.",
+      "field_order": [
+        "strength"
+      ],
+      "fields": {
+        "strength": "indicative"
+      },
+      "genre": "claim",
+      "id": "C-1",
+      "parts": [],
+      "path": "content/claims/C-1.md",
+      "status": "live",
+      "tags": [
+        "monte-carlo",
+        "convergence"
+      ],
+      "title": "The pi estimator's error falls at the 1/sqrt(n) rate",
+      "topics": [
+        "research"
+      ],
+      "url": "/content/claims/C-1.md"
+    },
+    {
+      "description": "A small lab that tests how fast a Monte Carlo estimate converges.",
+      "field_order": [],
+      "fields": {},
+      "genre": "map",
+      "id": "home",
+      "parts": [],
+      "path": "content/index.html",
+      "rows": [],
+      "status": "live",
+      "tags": [],
+      "title": "Monte Carlo lab",
+      "topics": [
+        "research"
+      ],
+      "url": "/content/"
+    },
+    {
+      "description": "One experiment run, scored, recorded and reported; no spend.",
+      "field_order": [
+        "date",
+        "kind",
+        "about"
+      ],
+      "fields": {
+        "about": [
+          "Q-1",
+          "lab"
+        ],
+        "date": "2026-10-04",
+        "kind": "decision"
+      },
+      "genre": "journal",
+      "id": "2026-10-04-concluded-the-pi-error-scaling-mission",
+      "parts": [],
+      "path": "content/journal/2026/2026-10-04-concluded-the-pi-error-scaling-mission.md",
+      "status": "live",
+      "tags": [],
+      "title": "Concluded the pi error scaling mission",
+      "topics": [
+        "research"
+      ],
+      "url": "/content/journal/2026/2026-10-04-concluded-the-pi-error-scaling-mission.md"
+    },
+    {
+      "description": "Does the error of a Monte Carlo estimate of pi shrink as 1/sqrt(n)?",
+      "field_order": [
+        "date",
+        "kind",
+        "about"
+      ],
+      "fields": {
+        "about": [
+          "lab",
+          "Q-1"
+        ],
+        "date": "2026-10-04",
+        "kind": "decision"
+      },
+      "genre": "journal",
+      "id": "2026-10-04-lab-set-up",
+      "parts": [],
+      "path": "content/journal/2026/2026-10-04-lab-set-up.md",
+      "status": "live",
+      "tags": [],
+      "title": "Lab set up",
+      "topics": [
+        "research"
+      ],
+      "url": "/content/journal/2026/2026-10-04-lab-set-up.md"
+    },
+    {
+      "description": "Five sample sizes, 100 seeds each, three decision rules and four predictions.",
+      "field_order": [
+        "date",
+        "kind",
+        "about"
+      ],
+      "fields": {
+        "about": [
+          "pi-error-scaling",
+          "Q-1"
+        ],
+        "date": "2026-10-04",
+        "kind": "lock"
+      },
+      "genre": "journal",
+      "id": "2026-10-04-locked-the-pi-error-scaling-protocol",
+      "parts": [],
+      "path": "content/journal/2026/2026-10-04-locked-the-pi-error-scaling-protocol.md",
+      "status": "live",
+      "tags": [],
+      "title": "Locked the pi error scaling protocol",
+      "topics": [
+        "research"
+      ],
+      "url": "/content/journal/2026/2026-10-04-locked-the-pi-error-scaling-protocol.md"
+    },
+    {
+      "description": "One experiment on Q-1, token-free, with no spend.",
+      "field_order": [
+        "date",
+        "kind",
+        "about"
+      ],
+      "fields": {
+        "about": [
+          "Q-1",
+          "lab"
+        ],
+        "date": "2026-10-04",
+        "kind": "decision"
+      },
+      "genre": "journal",
+      "id": "2026-10-04-opened-the-pi-error-scaling-mission",
+      "parts": [],
+      "path": "content/journal/2026/2026-10-04-opened-the-pi-error-scaling-mission.md",
+      "status": "live",
+      "tags": [],
+      "title": "Opened the pi error scaling mission",
+      "topics": [
+        "research"
+      ],
+      "url": "/content/journal/2026/2026-10-04-opened-the-pi-error-scaling-mission.md"
+    },
+    {
+      "description": "The protocol's measure is the RMS error; R-1 fitted the slope to the mean absolute error by mistake.",
+      "field_order": [
+        "date",
+        "kind",
+        "about"
+      ],
+      "fields": {
+        "about": [
+          "R-1",
+          "pi-error-scaling"
+        ],
+        "date": "2026-10-04",
+        "kind": "correction"
+      },
+      "genre": "journal",
+      "id": "2026-10-04-r-1-fitted-the-mean-absolute-error",
+      "parts": [],
+      "path": "content/journal/2026/2026-10-04-r-1-fitted-the-mean-absolute-error.md",
+      "status": "live",
+      "tags": [],
+      "title": "R-1 fitted the mean absolute error, not the RMS error",
+      "topics": [],
+      "url": "/content/journal/2026/2026-10-04-r-1-fitted-the-mean-absolute-error.md"
+    },
+    {
+      "description": "One token-free run over all five sample sizes; it finished cleanly.",
+      "field_order": [
+        "date",
+        "kind",
+        "about"
+      ],
+      "fields": {
+        "about": [
+          "pi-error-scaling"
+        ],
+        "date": "2026-10-04",
+        "kind": "run"
+      },
+      "genre": "journal",
+      "id": "2026-10-04-ran-the-pi-error-scaling-protocol",
+      "parts": [],
+      "path": "content/journal/2026/2026-10-04-ran-the-pi-error-scaling-protocol.md",
+      "status": "live",
+      "tags": [],
+      "title": "Ran the pi error scaling protocol",
+      "topics": [],
+      "url": "/content/journal/2026/2026-10-04-ran-the-pi-error-scaling-protocol.md"
+    },
+    {
+      "description": "The fitted log-log slope of the estimate's error against the number of points.",
+      "field_order": [
+        "date",
+        "about"
+      ],
+      "fields": {
+        "about": [
+          "R-1",
+          "pi-error-scaling"
+        ],
+        "date": "2026-10-04"
+      },
+      "genre": "journal",
+      "id": "2026-10-04-recorded-r-1",
+      "parts": [],
+      "path": "content/journal/2026/2026-10-04-recorded-r-1.md",
+      "status": "live",
+      "tags": [],
+      "title": "Recorded R-1",
+      "topics": [],
+      "url": "/content/journal/2026/2026-10-04-recorded-r-1.md"
+    },
+    {
+      "description": "The RMS slope, which supersedes R-1.",
+      "field_order": [
+        "date",
+        "about"
+      ],
+      "fields": {
+        "about": [
+          "R-2",
+          "pi-error-scaling"
+        ],
+        "date": "2026-10-04"
+      },
+      "genre": "journal",
+      "id": "2026-10-04-recorded-r-2",
+      "parts": [],
+      "path": "content/journal/2026/2026-10-04-recorded-r-2.md",
+      "status": "live",
+      "tags": [],
+      "title": "Recorded R-2",
+      "topics": [],
+      "url": "/content/journal/2026/2026-10-04-recorded-r-2.md"
+    },
+    {
+      "description": "The report on how the error of the pi estimate scales with the sample size.",
+      "field_order": [
+        "date",
+        "about"
+      ],
+      "fields": {
+        "about": [
+          "pi-error-scaling-report",
+          "R-2"
+        ],
+        "date": "2026-10-04"
+      },
+      "genre": "journal",
+      "id": "2026-10-04-reported-the-pi-error-scaling-experiment",
+      "parts": [],
+      "path": "content/journal/2026/2026-10-04-reported-the-pi-error-scaling-experiment.md",
+      "status": "live",
+      "tags": [],
+      "title": "Reported the pi error scaling experiment",
+      "topics": [
+        "research"
+      ],
+      "url": "/content/journal/2026/2026-10-04-reported-the-pi-error-scaling-experiment.md"
+    },
+    {
+      "description": "D1 fired and the hypothesis is kept; P2 and P4 missed, because 100 seeds cannot pin one size's error that closely.",
+      "field_order": [
+        "date",
+        "kind",
+        "about"
+      ],
+      "fields": {
+        "about": [
+          "pi-error-scaling",
+          "R-2",
+          "pi-error-scaling-report",
+          "Q-1"
+        ],
+        "date": "2026-10-04",
+        "kind": "lesson"
+      },
+      "genre": "journal",
+      "id": "2026-10-04-the-square-root-law-holds-per-size-predictions",
+      "parts": [],
+      "path": "content/journal/2026/2026-10-04-the-square-root-law-holds-per-size-predictions.md",
+      "status": "live",
+      "tags": [],
+      "title": "The square-root law holds; per-size predictions were too tight",
+      "topics": [
+        "research"
+      ],
+      "url": "/content/journal/2026/2026-10-04-the-square-root-law-holds-per-size-predictions.md"
+    },
+    {
+      "description": "The lab's question, its experiment, what it found and what it may say.",
+      "field_order": [],
+      "fields": {},
+      "genre": "map",
+      "id": "research",
+      "parts": [],
+      "path": "content/maps/research.html",
+      "rows": [
+        "content/projects/lab/index.html",
+        "content/questions/Q-1.md",
+        "content/reports/pi-error-scaling-report/index.html",
+        "content/claims/C-1.md"
+      ],
+      "status": "live",
+      "tags": [],
+      "title": "Research",
+      "topics": [
+        "research"
+      ],
+      "url": "/content/maps/research.html"
+    },
+    {
+      "description": "Does the error of a Monte Carlo estimate of pi shrink as 1/sqrt(n)?",
+      "field_order": [
+        "reviewed"
+      ],
+      "fields": {
+        "reviewed": "2026-10-04"
+      },
+      "genre": "project",
+      "id": "lab",
+      "parts": [],
+      "path": "content/projects/lab/index.html",
+      "status": "live",
+      "tags": [],
+      "title": "Monte Carlo lab",
+      "topics": [
+        "research"
+      ],
+      "url": "/content/projects/lab/"
+    },
+    {
+      "description": "Varies the number of points drawn, and measures the root mean square error over 100 seeds.",
+      "field_order": [
+        "question"
+      ],
+      "fields": {
+        "question": "Q-1"
+      },
+      "genre": "protocol",
+      "id": "pi-error-scaling",
+      "parts": [],
+      "path": "content/protocols/pi-error-scaling.md",
+      "status": "locked",
+      "tags": [
+        "monte-carlo",
+        "convergence"
+      ],
+      "title": "How the error of the pi estimate scales with the sample size",
+      "topics": [],
+      "url": "/content/protocols/pi-error-scaling.md"
+    },
+    {
+      "description": "The answer says how many samples a given accuracy costs.",
+      "field_order": [
+        "rank"
+      ],
+      "fields": {
+        "rank": 1
+      },
+      "genre": "question",
+      "id": "Q-1",
+      "parts": [],
+      "path": "content/questions/Q-1.md",
+      "status": "answered",
+      "tags": [
+        "monte-carlo",
+        "convergence"
+      ],
+      "title": "Does the error of a Monte Carlo estimate of pi shrink as 1/sqrt(n)?",
+      "topics": [
+        "research"
+      ],
+      "url": "/content/questions/Q-1.md"
+    },
+    {
+      "description": "The RMS error of a Monte Carlo estimate of pi, at five sample sizes from 64 to 16,384 points.",
+      "field_order": [],
+      "fields": {},
+      "genre": "report",
+      "id": "pi-error-scaling-report",
+      "parts": [],
+      "path": "content/reports/pi-error-scaling-report/index.html",
+      "status": "live",
+      "tags": [
+        "monte-carlo",
+        "convergence"
+      ],
+      "title": "The error of the pi estimate fell as 1/sqrt(n), but tight per-size predictions missed",
+      "topics": [
+        "research"
+      ],
+      "url": "/content/reports/pi-error-scaling-report/"
+    },
+    {
+      "description": "The slope of the estimate's error against the number of points, over five sizes.",
+      "field_order": [
+        "protocol",
+        "number",
+        "baseline",
+        "bound",
+        "evidence",
+        "rederive",
+        "date"
+      ],
+      "fields": {
+        "baseline": "the theoretical slope of -0.5, for independent points",
+        "bound": "64 to 16,384 points, 100 seeds per size, Python's standard generator; the estimator in substrate/ only.",
+        "date": "2026-10-04",
+        "evidence": "experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv",
+        "number": "-0.483",
+        "protocol": "pi-error-scaling",
+        "rederive": "python3 experiments/pi-error-scaling/bin/fold.py experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv --stat slope --error mae"
+      },
+      "genre": "result",
+      "id": "R-1",
+      "parts": [],
+      "path": "content/results/R-1.md",
+      "status": "superseded",
+      "tags": [
+        "monte-carlo",
+        "convergence"
+      ],
+      "title": "The error of the pi estimate fell with a fitted log-log slope of -0.483",
+      "topics": [],
+      "url": "/content/results/R-1.md"
+    },
+    {
+      "description": "The slope of the estimate's RMS error over 100 seeds against the number of points, over five sizes.",
+      "field_order": [
+        "protocol",
+        "number",
+        "baseline",
+        "bound",
+        "evidence",
+        "rederive",
+        "date",
+        "supersedes"
+      ],
+      "fields": {
+        "baseline": "the theoretical slope of -0.5, for independent points",
+        "bound": "64 to 16,384 points, 100 seeds per size, Python's standard generator; the estimator in substrate/ only.",
+        "date": "2026-10-04",
+        "evidence": "experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv",
+        "number": "-0.493",
+        "protocol": "pi-error-scaling",
+        "rederive": "python3 experiments/pi-error-scaling/bin/fold.py experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv --stat slope",
+        "supersedes": "R-1"
+      },
+      "genre": "result",
+      "id": "R-2",
+      "parts": [],
+      "path": "content/results/R-2.md",
+      "status": "live",
+      "tags": [
+        "monte-carlo",
+        "convergence"
+      ],
+      "title": "The RMS error of the pi estimate fell with a fitted log-log slope of -0.493",
+      "topics": [],
+      "url": "/content/results/R-2.md"
+    }
+  ]
+}

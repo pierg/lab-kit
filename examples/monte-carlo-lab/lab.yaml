@@ -1,0 +1,6 @@
+lab-kit: 0.1.0               # the version this lab is checked with
+library: docs                # where folio.yaml is; "." for the root
+front: lab                   # the front door's id: a project document
+frozen: [substrate/]         # surfaces never edited in place; record each with `lab-kit freeze`
+tools: []                    # lab-wide scripts; each must pass --selftest
+rederive_timeout: 120        # seconds per re-derive command

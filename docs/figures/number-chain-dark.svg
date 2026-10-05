@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 512" role="img" aria-label="The chain behind one number, from the monte-carlo-lab example. A report says the RMS error of the pi estimate fell with a fitted log-log slope of -0.493 and cites R-2 (folio's uncited-number rule). Result R-2 holds the number -0.493 and a re-derive command that must print -0.493 again (lab-rederive). The evidence file estimates.tsv still matches the hash in MANIFEST.sha256 (lab-evidence-sealed). run.json names the lock hash e1c5d07e and started after the lock (lab-run-after-lock), and its configuration equals the protocol's pinned configuration (lab-roster-frozen). lock.json holds the hash the locked protocol's bytes still produce (lab-lock-intact)." xmlns:c2pa="http://c2pa.org/manifest"><metadata><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTowZjg2OTFjMi0xNWZlLTQwYjktYWYwZS05MDM4YmY5NDIzMjcAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaKpRys9/g4kXKWLHWAofIRwAAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDpjNzBkOTg5Yi02Yzg5LTRhNjAtYjRhMy05NDlmNzY3ZGZkOGFscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNoPzleNSs4+LqDOmYq9Uf23AAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFggwvJpUuO/CKGeq+KaLNY1wxTQ/89YaBfTt0sol8baTgukZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaOiU0g6MtktxHdLzJW3uxO0AAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYID5US1i6oWUXZre5DBr6jlFvr0mIkBHwS3anmCx7gFLFZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GQMnZmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOjBmODY5MWMyLTE1ZmUtNDBiOS1hZjBlLTkwMzhiZjk0MjMyNy9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOmZkMDVkYjk0LWMzZDItNDIxMS05OTZjLTA0MjFjMmVmMWQwMHJjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCDC8mlS478IoZ6r4pos1jXDFND/z1hoF9O3SyiXxtpOC6JjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFggWISbRLXvJ0cAeNiPIVzBf1j+M6ZfZB8nsve7g4eB8d6iY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFggHCOoOxnD5FaEb1+2idvkfqe6hxZV5DYSLzPZTWYp2qN0Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQB6NOU3/TI0jKcLwiuf4u4V6bZwVqq34HMT7/XC1k+0NslRj72kmdIb0NNdJSrLXVTM2lC7ZQrvfIN5kxACikps=</c2pa:manifest></metadata>
+<style>
+svg{--ink:#ece9e2;--ink-soft:#b7b1a6;--ink-faint:#868075;--rule:#2e2d29;--rule-strong:#4a4740;--panel:#1c1c19;--surface:#151513;--paper:#151513;--accent:#e09572;--accent-soft:#3a2a21;--link:#93bde4;--mark:#5a4b16;--ok:#8fcf98;--ok-soft:#1f3123;--lab:#a7abf3;--lab-soft:#23264a;}
+text{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+.mono,.lab,.lab-acc,.eyebrow{font-family:ui-monospace,'SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace}
+.serif{font-family:'Iowan Old Style',Charter,'Bitstream Charter',Cambria,Georgia,serif}
+.box{fill:var(--panel);stroke:var(--ink-soft);stroke-width:1.6}
+.tile{fill:var(--surface);stroke:var(--rule-strong);stroke-width:1.3}
+.chip{fill:var(--surface);stroke:var(--rule-strong);stroke-width:1.2}
+.chip-acc{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+.page{fill:var(--paper);stroke:var(--ink-soft);stroke-width:1.6}
+.bubble{fill:var(--surface);stroke:var(--rule-strong);stroke-width:1.3}
+.bubble-acc{fill:var(--surface);stroke:var(--accent);stroke-width:1.5}
+.sheet{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.3;stroke-dasharray:4 3}
+.bar{fill:var(--rule)}
+.hl{fill:var(--mark)}
+.fill-acc{fill:var(--accent)}
+.fill-ink{fill:var(--ink-soft)}
+.rule{stroke:var(--rule);stroke-width:1.2}
+.edge{fill:none;stroke:var(--ink-soft);stroke-width:1.6}
+.e-acc{fill:none;stroke:var(--accent);stroke-width:1.7}
+.link{fill:none;stroke:var(--ink-faint);stroke-width:1.3}
+.link-dash{fill:none;stroke:var(--ink-faint);stroke-width:1.3;stroke-dasharray:3 3}
+.t{fill:var(--ink);font-size:14px}
+.t-strong{fill:var(--ink);font-size:14px;font-weight:600}
+.soft{fill:var(--ink-soft);font-size:13px}
+.mono{fill:var(--ink);font-size:13.5px}
+.mono-soft{fill:var(--ink-soft);font-size:13px;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace}
+.lab{fill:var(--ink-soft);font-size:13px;letter-spacing:.06em}
+.lab-acc{fill:var(--accent);font-size:13px;letter-spacing:.04em}
+.eyebrow{fill:var(--accent);font-size:13px;font-weight:700;letter-spacing:.08em}
+.chip-t{fill:var(--ink);font-size:13.5px;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace}
+.chip-t-acc{fill:var(--accent);font-size:13.5px;font-weight:700;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace}
+.link-t{fill:var(--link);font-size:13.5px}
+.fill-lab{fill:var(--lab)}
+.e-lab{fill:none;stroke:var(--lab);stroke-width:1.7}
+.box-lab{fill:var(--lab-soft);stroke:var(--lab);stroke-width:1.6}
+.chip-lab{fill:var(--lab-soft);stroke:var(--lab);stroke-width:1.4}
+.lab-lab{fill:var(--lab);font-size:13px;letter-spacing:.06em;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace}
+.zone-acc{fill:var(--accent-soft)}
+.zone{fill:var(--panel)}
+.serif-t{fill:var(--ink);font-family:'Iowan Old Style',Charter,'Bitstream Charter',Cambria,Georgia,serif}
+.serif-soft{fill:var(--ink-soft);font-family:'Iowan Old Style',Charter,'Bitstream Charter',Cambria,Georgia,serif}
+.uline{stroke:var(--link);stroke-width:1.2;stroke-dasharray:1.5 2}
+</style>
+<defs>
+<marker id="ar" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" class="fill-ink"/></marker>
+<marker id="ar-acc" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" class="fill-acc"/></marker>
+<marker id="ar-lab" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" class="fill-lab"/></marker>
+</defs>
+
+<style>
+.card{fill:var(--surface);stroke:var(--ink-soft);stroke-width:1.5}
+.card-b{fill:var(--surface);stroke:var(--lab);stroke-width:1.5}
+.kind{font-size:13px;font-weight:700;letter-spacing:.06em;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace}
+.k-acc{fill:var(--accent)}
+.k-lab{fill:var(--lab)}
+.code{fill:var(--ink);font-size:13px;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace}
+.key{fill:var(--ink-soft)}
+.pill{fill:var(--surface);stroke:var(--lab);stroke-width:1.1}
+.pill-acc{fill:var(--surface);stroke:var(--accent);stroke-width:1.1}
+.pill-t{fill:var(--lab);font-size:13px;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace}
+.pill-t-acc{fill:var(--accent);font-size:13px;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace}
+.brk{fill:none;stroke:var(--lab);stroke-width:1.4}
+</style>
+
+<!-- ============ CARDS ============ -->
+<!-- 1 report -->
+<rect class="card" x="16" y="16" width="560" height="52" rx="8"/>
+<text class="kind k-acc" x="30" y="47">REPORT</text>
+<rect class="hl" x="364" y="33" width="54" height="20" rx="3"/>
+<text class="t" x="360" y="47" text-anchor="end">…fell with a fitted log-log slope of</text>
+<text class="t" x="368" y="47" font-weight="700">-0.493</text>
+<text class="t" x="424" y="47">(<tspan style="fill:var(--link)">R-2</tspan>)</text>
+
+<!-- 2 result -->
+<rect class="card" x="16" y="98" width="560" height="52" rx="8"/>
+<text class="kind k-acc" x="30" y="129">RESULT R-2</text>
+<rect class="hl" x="210" y="104" width="55" height="19" rx="3"/>
+<text class="code key" x="132" y="118">number</text><text class="code" x="214" y="118">-0.493</text>
+<text class="code key" x="290" y="118">protocol</text><text class="code" x="370" y="118">pi-error-scaling</text>
+<text class="code key" x="132" y="140">rederive</text><text class="code" x="214" y="140">fold.py estimates.tsv --stat slope</text>
+
+<!-- 3 evidence -->
+<rect class="card-b" x="16" y="180" width="560" height="52" rx="8"/>
+<text class="kind k-lab" x="30" y="211">EVIDENCE</text>
+<rect class="hl" x="282" y="186" width="78" height="19" rx="3"/><rect class="hl" x="282" y="208" width="78" height="19" rx="3"/>
+<text class="code" x="132" y="200">out/estimates.tsv</text><text class="code" x="286" y="200">b2a11d7c…</text><text class="soft" x="376" y="200">hashed now</text>
+<text class="code" x="132" y="222">MANIFEST.sha256</text><text class="code" x="286" y="222">b2a11d7c…</text><text class="soft" x="376" y="222">written when the run ended</text>
+
+<!-- 4 run -->
+<rect class="card-b" x="16" y="262" width="560" height="52" rx="8"/>
+<text class="kind k-lab" x="30" y="293">RUN</text>
+<rect class="hl" x="210" y="268" width="78" height="19" rx="3"/><rect class="hl" x="210" y="290" width="250" height="19" rx="3"/>
+<text class="code key" x="132" y="282">lock</text><text class="code" x="214" y="282">e1c5d07e…</text>
+<text class="code key" x="316" y="282">started</text><text class="code" x="384" y="282">23:16:29</text>
+<text class="code key" x="132" y="304">config</text><text class="code" x="214" y="304">sizes 64 to 16384 · repeats 100</text>
+
+<!-- 5 lock -->
+<rect class="card-b" x="16" y="344" width="560" height="52" rx="8"/>
+<text class="kind k-lab" x="30" y="375">LOCK</text>
+<rect class="hl" x="210" y="361" width="78" height="19" rx="3"/>
+<text class="code key" x="132" y="375">sha256</text><text class="code" x="214" y="375">e1c5d07e…</text>
+<text class="code key" x="316" y="375">locked</text><text class="code" x="384" y="375">23:16:15</text>
+
+<!-- 6 protocol -->
+<rect class="card" x="16" y="426" width="560" height="52" rx="8"/>
+<text class="kind k-acc" x="30" y="457">PROTOCOL</text>
+<rect class="hl" x="210" y="454" width="250" height="19" rx="3"/>
+<text class="code" x="132" y="446">pi-error-scaling.md</text><text class="code key" x="300" y="446">status</text><text class="code" x="360" y="446">locked</text>
+<text class="code key" x="132" y="468">pinned</text><text class="code" x="214" y="468">sizes 64 to 16384 · repeats 100</text>
+
+<!-- ============ LINKS DOWN THE CHAIN ============ -->
+<path class="e-acc" d="M72,68 L72,97" marker-end="url(#ar-acc)"/>
+<path class="e-lab" d="M72,150 L72,179" marker-end="url(#ar-lab)"/>
+<path class="e-lab" d="M72,232 L72,261" marker-end="url(#ar-lab)"/>
+<path class="e-lab" d="M72,314 L72,343" marker-end="url(#ar-lab)"/>
+<path class="e-lab" d="M72,396 L72,425" marker-end="url(#ar-lab)"/>
+
+<!-- ============ THE CHECKS THAT HOLD EACH LINK ============ -->
+<path d="M80,83 L610,83" fill="none" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="2 4"/>
+<path d="M80,165 L610,165" fill="none" stroke="var(--lab)" stroke-width="1.2" stroke-dasharray="2 4"/>
+<path d="M80,247 L610,247" fill="none" stroke="var(--lab)" stroke-width="1.2" stroke-dasharray="2 4"/>
+<path d="M80,329 L586,329 M602,329 L610,329" fill="none" stroke="var(--lab)" stroke-width="1.2" stroke-dasharray="2 4"/>
+<path d="M80,411 L586,411 M602,411 L610,411" fill="none" stroke="var(--lab)" stroke-width="1.2" stroke-dasharray="2 4"/>
+<rect class="pill-acc" x="612" y="73" width="130" height="20" rx="4"/><text class="pill-t-acc" x="622" y="87">uncited-number</text>
+<text class="soft" x="752" y="87">the page cites R-2</text>
+
+<rect class="pill" x="612" y="155" width="114" height="20" rx="4"/><text class="pill-t" x="622" y="169">lab-rederive</text>
+<text class="soft" x="736" y="169">prints -0.493 again</text>
+
+<rect class="pill" x="612" y="237" width="169" height="20" rx="4"/><text class="pill-t" x="622" y="251">lab-evidence-sealed</text>
+<text class="soft" x="791" y="251">hashes match</text>
+
+<rect class="pill" x="612" y="319" width="161" height="20" rx="4"/><text class="pill-t" x="622" y="333">lab-run-after-lock</text>
+<text class="soft" x="783" y="333">same hash, later</text>
+
+<path class="brk" d="M584,296 L594,296 L594,446 L584,446"/>
+<rect class="pill" x="612" y="360" width="153" height="20" rx="4"/><text class="pill-t" x="622" y="374">lab-roster-frozen</text>
+<text class="soft" x="775" y="374">the pinned config</text>
+<path class="brk" d="M594,370 L611,370"/>
+
+<rect class="pill" x="612" y="401" width="137" height="20" rx="4"/><text class="pill-t" x="622" y="415">lab-lock-intact</text>
+<text class="soft" x="759" y="415">protocol hashes to it</text>
+
+<!-- legend -->
+<rect x="16" y="494" width="10" height="10" rx="2" class="fill-acc"/><text class="soft" x="32" y="503">folio document, folio rule</text>
+<rect x="218" y="494" width="10" height="10" rx="2" class="fill-lab"/><text class="soft" x="234" y="503">lab file, lab-kit check</text>
+<rect x="404" y="494" width="22" height="10" rx="2" class="hl"/><text class="soft" x="432" y="503">values the gate compares</text>
+</svg>

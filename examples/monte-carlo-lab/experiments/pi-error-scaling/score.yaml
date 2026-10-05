@@ -1,0 +1,50 @@
+# The scorecard of experiment pi-error-scaling, against its lock.
+# A prediction's verdict: HIT, MISS, INDETERMINATE.
+# A decision rule's verdict: FIRED, NOT FIRED, INDETERMINATE.
+# `evidence` is a path from the lab root, inside a finished run.
+protocol: pi-error-scaling
+lock: e1c5d07e7197f3bdcaa68881d18bff4399f0f2383b3a09215b55b090688c1afc
+review:            # the independent reviewer's pass: `pass` or `fail`, and where its verdict is recorded
+  verdict: pass
+  record: ops/missions/2026-10-04-pi-error-scaling.md#log
+scores:
+  P1:
+    verdict: HIT
+    value: "slope -0.493, inside -0.55 to -0.45"
+    evidence: experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv
+  P2:
+    verdict: MISS
+    value: "scaled error 1.614, 1.569, 1.815, 1.547, 1.707; 1.815 at 1,024 points is 10.5% above 1.642"
+    evidence: experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv
+  P3:
+    verdict: HIT
+    value: "RMS error 0.0133 at 16,384 points, below 0.015"
+    evidence: experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv
+  P4:
+    verdict: MISS
+    value: "mean estimate 3.14413 at 16,384 points, 0.0025 from pi"
+    evidence: experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv
+  D1:
+    verdict: FIRED
+    value: "slope -0.493 lies between -0.6 and -0.4: the hypothesis is kept"
+    evidence: experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv
+  D2:
+    verdict: NOT FIRED
+    value: "slope -0.493 lies between -0.7 and -0.3"
+    evidence: experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv
+  D3:
+    verdict: NOT FIRED
+    value: "RMS error 0.0133 at 16,384 points is below 0.2017 at 64 points"
+    evidence: experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv
+# The numbers to record as results, each keyed by a short name, with the result's fields:
+# title, protocol, number, baseline, bound, evidence, rederive.
+record:
+  slope:
+    title: The RMS error of the pi estimate fell with a fitted log-log slope of -0.493
+    protocol: pi-error-scaling
+    number: "-0.493"
+    baseline: "the theoretical slope of -0.5, for independent points"
+    bound: "64 to 16,384 points, 100 seeds per size, Python's standard generator; the estimator in substrate/ only."
+    evidence: experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv
+    rederive: python3 experiments/pi-error-scaling/bin/fold.py experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv --stat slope
+    supersedes: R-1
