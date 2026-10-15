@@ -1,5 +1,7 @@
 # lab-kit
 
+[![PyPI](https://img.shields.io/pypi/v/lab-kit-cli)](https://pypi.org/project/lab-kit-cli/) [![CI](https://github.com/pierg/lab-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/pierg/lab-kit/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 lab-kit turns your coding agent into the staff of a research lab: it pre-registers each experiment, locks the plan before the first number, runs the lab's own code against the lock, scores the outcome against it, and records only numbers that re-derive from committed evidence. It is built on [folio](https://github.com/pierg/folio). folio decides what a document is; lab-kit decides when a result counts.
 
 You do not run lab-kit yourself, and you do not walk the agent through each step. You install it by handing your agent one line, set up the lab with its question, and then plan each mission with the agent in plain words. Once you approve the plan, the agent runs it end to end: it drafts the protocol, has a reviewer read it, locks it, runs it, scores it, has the numbers re-derived by an independent reviewer, records the result and writes the report, running the gate before every commit. It stops only where the plan and the method say it must.
@@ -70,6 +72,12 @@ Open it with your agent and ask "check this lab" or "re-derive R-2".
 ## Reference
 
 The `lab-kit` command is the interface for agents and CI, the way git is: `init`, `check`, `experiment`, `lock`, `run`, `runs`, `score`, `rederive`, `freeze`, `status` and `version`. Each is specified in [`docs/spec/lab-model.md`](docs/spec/lab-model.md) §6, the contract the skills, the roles, the checks and the command all build on. To work on lab-kit itself, see [CONTRIBUTING.md](CONTRIBUTING.md). Changes: [CHANGELOG.md](CHANGELOG.md).
+
+## Related
+
+folio, giro and lab-kit are three kits for working with coding agents: [folio](https://github.com/pierg/folio) for agent-maintained knowledge, [giro](https://github.com/pierg/giro) for implementation with guarantees, and [lab-kit](https://github.com/pierg/lab-kit) for rigorous automated research on top of folio.
+
+Made by [Pier Mallozzi](https://pierg.dev).
 
 ## License
 
