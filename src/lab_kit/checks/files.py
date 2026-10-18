@@ -249,7 +249,7 @@ def _lab_files(lab: Lab) -> list[str]:
         if records.lock_path(lab, slug).is_file():
             current.append(f"experiments/{slug}/{records.LOCK}")
     current.extend(run.path for run in records.runs(lab))
-    pattern = re.compile(r"^(ops/missions/[^/]+\.md|ops/budgets/[^/]+\.yaml|experiments/[^/]+/lock\.json|"
+    pattern = re.compile(r"^(ops/missions/[^/]+\.md|ops/budgets/[^/]+\.ya?ml|experiments/[^/]+/lock\.json|"
                          r"experiments/[^/]+/runs/[^/]+/run\.json)$")
     ever = [p for folder in ("ops/missions", "ops/budgets", "experiments") for p in gitlog.tracked(lab.root, folder)
             if pattern.match(p)]

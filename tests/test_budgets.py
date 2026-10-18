@@ -183,3 +183,31 @@ def test_the_unit_never_changes(make_lab, lab_kit) -> None:
     edit(root / BUDGET, "unit: USD", "unit: kUSD")
     code, found = problems(lab_kit, "lab-append-only")
     assert code == 1 and "unit of a standing budget never changes" in named(found, "lab-append-only")[0]["message"]
+
+
+def test_a_live_spending_run_is_not_bad_spend(make_lab, lab_kit) -> None:
+    def setup(root: Path) -> None:
+        budget(root)
+        live = mission(root, "first", 150)
+        edit_json(root / RUN / "run.json", spend=True, mission=live, spent=None)
+    make_lab(setup)
+    assert problems(lab_kit, "lab-mission-approved") == (0, [])
+
+
+def test_a_deleted_yml_budget_is_caught(make_lab, lab_kit) -> None:
+    def setup(root: Path) -> None:
+        budget(root)
+        (root / BUDGET).rename(root / "ops/budgets/credits.yml")
+    root = make_lab(setup)
+    (root / "ops/budgets/credits.yml").unlink()
+    code, found = problems(lab_kit, "lab-append-only")
+    assert code == 1 and "never deleted" in named(found, "lab-append-only")[0]["message"]
+
+
+def test_one_name_one_budget_file(make_lab, lab_kit) -> None:
+    def setup(root: Path) -> None:
+        budget(root)
+        (root / "ops/budgets/credits.yml").write_text((root / BUDGET).read_text(encoding="utf-8"), encoding="utf-8")
+    make_lab(setup)
+    code, found = problems(lab_kit, "lab-mission-approved")
+    assert code == 1 and "keep one" in named(found, "lab-mission-approved")[0]["message"]

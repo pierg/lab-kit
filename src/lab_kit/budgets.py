@@ -33,8 +33,8 @@ def spent_by_mission(lab: Lab, problems: list[tuple[str, str]]) -> dict[str, flo
     spent: dict[str, float] = {}
     for run in records.runs(lab):
         mission = _mission_path(run.data.get("mission"))
-        if run.data.get("spend") is not True or mission is None or "spent" not in run.data:
-            continue
+        if run.data.get("spend") is not True or mission is None or run.data.get("spent") is None:
+            continue  # not spending, or still running (lab-spend-recorded names an ended run with no spend)
         amount = ops.finite(run.data.get("spent"))
         if amount is None or amount < 0:
             problems.append((run.path, f"records spend `{run.data.get('spent')}`, not a finite number >= 0"))
@@ -49,7 +49,12 @@ def uses(lab: Lab, missions: list[ops.Mission] | None = None) -> tuple[dict[str,
     problems: list[tuple[str, str]] = []
     found: dict[str, Use] = {}
     broken: set[str] = set()
+    for name in ops.budget_clashes(lab):
+        problems.append((f"{ops.BUDGETS}/{name}.yml", f"budget `{name}` has both a .yaml and a .yml file; keep one"))
+        broken.add(name)
     for path in ops.budget_files(lab):
+        if path.stem in broken:
+            continue
         try:
             budget = ops.read_budget(lab, path)
         except LabError as exc:

@@ -123,6 +123,12 @@ def budget_files(lab: Lab) -> list[Path]:
     return sorted([*folder.glob("*.yaml"), *folder.glob("*.yml")]) if folder.is_dir() else []
 
 
+def budget_clashes(lab: Lab) -> list[str]:
+    """Budget names held by both a .yaml and a .yml file: one name, one file."""
+    stems = [p.stem for p in budget_files(lab)]
+    return sorted({s for s in stems if stems.count(s) > 1})
+
+
 def read_budget(lab: Lab, path: Path) -> Budget:
     where = lab.rel(path)
     try:
