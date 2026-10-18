@@ -44,6 +44,20 @@ It reports the result by id, the misses as plainly as the hits, and its recommen
 
 The documents (questions, protocols, results, claims, reports, the journal) are folio's, through its lab pack. The steps between them are lab-kit's skills: **set-up-lab** (once), **plan-mission** (with you, until you approve), **run-mission** (alone: dispatch, supervise, recover, report), **experiment** (draft, lock, launch, watch) and **review** (fold, score, record, report). Four agent roles do the work: **scout**, **runner**, **reviewer** and **reporter**.
 
+## What each step rules out
+
+The method is pre-registration, as clinical trials use it, applied to an agent: the hypothesis, the predictions that could refute it and the rules that decide them are fixed before the first run. Each step closes off a known way for research to go wrong, and a check holds it.
+
+| Step | Rules out | Held by |
+|---|---|---|
+| Predictions, each with a confidence, frozen before the run | Fitting the hypothesis to the result after seeing it | `lab-lock-intact`, `lab-run-after-lock` |
+| Decision rules, one of them a kill rule | Choosing the threshold after the data; an idea that cannot fail | `lab-score-exact` |
+| One variable, every other setting pinned | Tuning other settings until something works | `lab-roster-frozen` |
+| Run output sealed by a manifest | Quiet edits and silent re-runs | `lab-evidence-sealed` |
+| A re-derive command for every result | Numbers typed in, rounded or invented | `lab-rederive` |
+| An independent reviewer pass | Analysis that does not support the claim | `lab-result-grounded` |
+| Misses and kills recorded like hits | Writing up only what worked | `lab-scored-reported` (a warning) and the journal |
+
 ## The checks
 
 The gate, `lab-kit check`, runs folio's checks and then the lab's. It runs offline, names every problem in one pass, and changes nothing. CI runs the same command.
@@ -75,7 +89,7 @@ The `lab-kit` command is the interface for agents and CI, the way git is: `init`
 
 ## Related
 
-folio, giro and lab-kit are three kits for working with coding agents: [folio](https://github.com/pierg/folio) for agent-maintained knowledge, [giro](https://github.com/pierg/giro) for implementation with guarantees, and [lab-kit](https://github.com/pierg/lab-kit) for rigorous automated research on top of folio.
+folio, giro and lab-kit are three kits for working with coding agents: [folio](https://github.com/pierg/folio) keeps the documents, [giro](https://github.com/pierg/giro) takes a spec to proof on a branch, and [lab-kit](https://github.com/pierg/lab-kit) runs research on top of folio.
 
 Made by [Pier Mallozzi](https://pierg.dev).
 
