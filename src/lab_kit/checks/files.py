@@ -155,8 +155,10 @@ def selftest(lab: Lab, rep: Reporter) -> None:
 
 def mission_approved(lab: Lab, rep: Reporter) -> None:
     """Missions are draft, active or concluded; an active or concluded one records who approved it and when;
-    nothing runs under a draft, and the state never names a draft as active."""
+    nothing runs under a draft, and the state never names a draft as active. A mission under a standing
+    budget names one that exists, and the missions under a budget fit inside it."""
     statuses: dict[str, str] = {}
+    missions: list[ops.Mission] = []
     for path in ops.mission_files(lab):
         where = lab.rel(path)
         try:
@@ -165,6 +167,7 @@ def mission_approved(lab: Lab, rep: Reporter) -> None:
             rep.add(where, str(exc))
             continue
         statuses[where] = mission.status
+        missions.append(mission)
         if mission.status not in ops.STATUSES:
             rep.add(where, f"`status: {mission.status or '(none)'}` is not one of {', '.join(ops.STATUSES)}")
             continue
@@ -185,6 +188,55 @@ def mission_approved(lab: Lab, rep: Reporter) -> None:
         active = ops.active_mission(state.read_text(encoding="utf-8"))
         if active and statuses.get(active) == "draft":
             rep.add(ops.STATE, f"names {active} as the active mission, but it is a draft awaiting approval")
+    _budgets_hold(lab, rep, missions)
+
+
+def _spent_by_mission(lab: Lab) -> dict[str, float]:
+    spent: dict[str, float] = {}
+    for run in records.runs(lab):
+        mission, amount = run.data.get("mission"), run.data.get("spent")
+        if (run.data.get("spend") is True and isinstance(mission, str)
+                and isinstance(amount, (int, float)) and not isinstance(amount, bool)):
+            spent[mission] = spent.get(mission, 0.0) + float(amount)
+    return spent
+
+
+def _budgets_hold(lab: Lab, rep: Reporter, missions: list[ops.Mission]) -> None:
+    """Each budget is well formed, and what its missions commit fits inside what the operator granted: an
+    active mission commits its cap, a concluded one what its runs spent."""
+    budgets: dict[str, ops.Budget] = {}
+    for path in ops.budget_files(lab):
+        try:
+            budget = ops.read_budget(lab, path)
+        except LabError as exc:
+            rep.add(lab.rel(path), str(exc))
+            continue
+        for problem in budget.problems():
+            rep.add(budget.path, problem)
+        budgets[budget.name] = budget
+    spent = _spent_by_mission(lab)
+    committed: dict[str, list[tuple[str, float]]] = {}
+    for mission in missions:
+        if not mission.budget:
+            continue
+        if mission.budget not in budgets:
+            rep.add(mission.path, f"draws on budget `{mission.budget}`, but {ops.BUDGETS}/{mission.budget}.yaml "
+                                  "does not exist")
+            continue
+        if mission.status == "draft":
+            continue
+        if mission.cap is None:
+            rep.add(mission.path, f"draws on budget `{mission.budget}` but records no numeric `cap:`")
+            continue
+        amount = spent.get(mission.path, 0.0) if mission.status == "concluded" else mission.cap
+        committed.setdefault(mission.budget, []).append((mission.path, amount))
+    for name, uses in sorted(committed.items()):
+        budget = budgets[name]
+        total = sum(amount for _, amount in uses)
+        if total > budget.amount:
+            listed = ", ".join(f"{path} {amount:g}" for path, amount in uses)
+            rep.add(budget.path, f"its missions commit {total:g} ({listed}), past the {budget.amount:g} the "
+                                 "operator granted; a new grant is the operator's")
 
 
 def spend_recorded(lab: Lab, rep: Reporter) -> None:
@@ -227,21 +279,22 @@ def spend_recorded(lab: Lab, rep: Reporter) -> None:
 
 
 def _lab_files(lab: Lab) -> list[str]:
-    """The append-only lab files: missions, lock records and run records, now or ever committed."""
-    current = [lab.rel(p) for p in ops.mission_files(lab)]
+    """The append-only lab files: missions, budgets, lock records and run records, now or ever committed."""
+    current = [lab.rel(p) for p in ops.mission_files(lab)] + [lab.rel(p) for p in ops.budget_files(lab)]
     for slug in lab.experiment_slugs():
         if records.lock_path(lab, slug).is_file():
             current.append(f"experiments/{slug}/{records.LOCK}")
     current.extend(run.path for run in records.runs(lab))
-    pattern = re.compile(r"^(ops/missions/[^/]+\.md|experiments/[^/]+/lock\.json|"
+    pattern = re.compile(r"^(ops/missions/[^/]+\.md|ops/budgets/[^/]+\.yaml|experiments/[^/]+/lock\.json|"
                          r"experiments/[^/]+/runs/[^/]+/run\.json)$")
-    ever = [p for folder in ("ops/missions", "experiments") for p in gitlog.tracked(lab.root, folder)
+    ever = [p for folder in ("ops/missions", "ops/budgets", "experiments") for p in gitlog.tracked(lab.root, folder)
             if pattern.match(p)]
     return sorted(set(current) | set(ever))
 
 
 def append_only(lab: Lab, rep: Reporter) -> None:
-    """Committed mission log entries, lock records and run records are unchanged in later commits."""
+    """Committed mission log entries, budget grants, lock records and run records are unchanged in later
+    commits."""
     if not gitlog.in_git(lab.root):
         rep.warn("lab.yaml", "the lab is not in a git repository, so lab-append-only could not be checked")
         return
@@ -263,6 +316,19 @@ def append_only(lab: Lab, rep: Reporter) -> None:
                     rep.add(path, f"its log was changed in {label}: entries are only ever added at the bottom")
                     break
                 previous = log
+            continue
+        if path.startswith(ops.BUDGETS + "/"):
+            granted = ops.grants_of(first) or []
+            for sha, text in history[1:]:
+                label = "the working tree" if sha == gitlog.WORKING else f"commit {sha[:7]}"
+                if text is None:
+                    rep.add(path, f"was deleted in {label}; a standing budget is never deleted")
+                    break
+                grants = ops.grants_of(text)
+                if grants is None or grants[:len(granted)] != granted:
+                    rep.add(path, f"its grants were changed in {label}: a grant is only ever added at the bottom")
+                    break
+                granted = grants
             continue
         for sha, text in history[1:]:
             label = "the working tree" if sha == gitlog.WORKING else f"commit {sha[:7]}"

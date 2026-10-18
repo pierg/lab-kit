@@ -1,4 +1,5 @@
-"""The operator's files: `ops/STATE.md` and the missions under `ops/missions/`."""
+"""The operator's files: `ops/STATE.md`, the missions under `ops/missions/` and the standing budgets under
+`ops/budgets/`."""
 
 from __future__ import annotations
 
@@ -7,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import yaml
 from folio.errors import FolioError
 from folio.frontmatter import split
 
@@ -15,6 +17,7 @@ from .lab import Lab
 
 STATE = "ops/STATE.md"
 MISSIONS = "ops/missions"
+BUDGETS = "ops/budgets"
 LOG_HEADING = re.compile(r"^## Log[ \t]*$", re.M)
 ACTIVE = re.compile(r"^\s*Active mission:\s*(.+?)\s*$", re.M | re.I)
 
@@ -40,6 +43,11 @@ class Mission:
     def status(self) -> str:
         return str(self.meta.get("status") or "").strip()
 
+    @property
+    def budget(self) -> str:
+        """The standing budget the mission draws on, by name, or "" when the operator approved it alone."""
+        return str(self.meta.get("budget") or "").strip()
+
     def approval_problem(self) -> str | None:
         """Why this mission may not run, or None when it is approved and active."""
         if self.status == "draft":
@@ -59,6 +67,75 @@ DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 def approved_names_a_date(approved: str) -> bool:
     """`approved` says who and when: some words, and a date as YYYY-MM-DD."""
     return bool(DATE.search(approved)) and bool(DATE.sub("", approved).strip(" ,;:.-"))
+
+
+@dataclass
+class Grant:
+    amount: float | None
+    approved: str
+
+
+@dataclass
+class Budget:
+    """A standing budget: money the operator granted once for many missions, in grants that only grow."""
+
+    path: str  # from the lab root
+    name: str
+    meta: dict[str, Any]
+
+    @property
+    def grants(self) -> list[Grant]:
+        found = self.meta.get("grants")
+        out: list[Grant] = []
+        for grant in found if isinstance(found, list) else []:
+            grant = grant if isinstance(grant, dict) else {}
+            amount = grant.get("amount")
+            number = float(amount) if isinstance(amount, (int, float)) and not isinstance(amount, bool) else None
+            out.append(Grant(number, str(grant.get("approved") or "").strip()))
+        return out
+
+    @property
+    def amount(self) -> float:
+        return sum(g.amount for g in self.grants if g.amount is not None and g.amount > 0)
+
+    def problems(self) -> list[str]:
+        """What makes the file not a standing budget, empty when it is one."""
+        found = self.meta.get("grants")
+        if not isinstance(found, list) or not found:
+            return ["has no `grants:`, the list of the operator's grants, each with `amount` and `approved`"]
+        out = []
+        for number, grant in enumerate(self.grants, 1):
+            if grant.amount is None or grant.amount <= 0:
+                out.append(f"grant {number} has no positive numeric `amount`")
+            if not approved_names_a_date(grant.approved):
+                out.append(f"grant {number} must record `approved`: who granted it and the date, as YYYY-MM-DD")
+        return out
+
+
+def budget_files(lab: Lab) -> list[Path]:
+    folder = lab.root / BUDGETS
+    return sorted(folder.glob("*.yaml")) if folder.is_dir() else []
+
+
+def read_budget(lab: Lab, path: Path) -> Budget:
+    where = lab.rel(path)
+    try:
+        meta = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise LabError(f"{where} is not valid YAML: {exc}") from exc
+    if not isinstance(meta, dict):
+        raise LabError(f"{where} is not a mapping with `grants:`")
+    return Budget(where, path.stem, meta)
+
+
+def grants_of(text: str | None) -> list[Any] | None:
+    """The raw `grants` list of a budget file's text, or None when it does not parse to one."""
+    try:
+        meta = yaml.safe_load(text or "")
+    except yaml.YAMLError:
+        return None
+    found = meta.get("grants") if isinstance(meta, dict) else None
+    return found if isinstance(found, list) else None
 
 
 def mission_files(lab: Lab) -> list[Path]:

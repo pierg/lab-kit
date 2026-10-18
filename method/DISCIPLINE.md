@@ -97,6 +97,8 @@ Two things survive being wrong in place: a result, superseded or retracted and n
 
 No live spend without the operator's word, recorded in a mission with a cap. Checked by `lab-spend-recorded`, which checks the record, not the word.
 
+The operator gives that word for one mission, or once for many as a standing budget: `ops/budgets/<name>.yaml`, a list of grants, each with an amount and who granted it and when. A mission that draws on it names it in `budget:` and still records its own cap. The caps of the active missions under a budget, with what its concluded missions spent, fit inside the sum of its grants. Checked by `lab-mission-approved`. New money is a new grant at the bottom of the list, and only the operator makes one; a grant is never changed or removed. Checked by `lab-append-only`.
+
 Prefer token-free stages first, to de-risk a live run. Use cheap models for mechanical work. Keep the expensive seat for synthesis. Judged, not checked.
 
 Provider keys are never exported to a child process, written to a file, or committed. Judged, not checked.
@@ -105,6 +107,8 @@ No deadline drives the science. Never trim or rush a result to meet a date. Judg
 
 ## 14. The operator approves the mission
 
-A mission has two phases. It is planned with the operator, then it runs on its own. The plan names the questions it serves, what counts as done, its scope, its spend, what it never touches and where it stops. It stays a draft until the operator approves it, and the mission file records who approved it and when. Nothing runs under a draft. Checked by `lab-mission-approved`, which checks the record, not the word.
+A mission has two phases. It is planned, then it runs on its own. The plan names the questions it serves, what counts as done, its scope, its spend, what it never touches and where it stops. It stays a draft until it is approved, and the mission file records who approved it and when. Nothing runs under a draft. Checked by `lab-mission-approved`, which checks the record, not the word.
 
-A running mission comes back to the operator only at the stops its plan names and at the method's own: a frozen surface, a lock, spend past the cap, publishing outside the lab. Everything else it decides and records. Judged, not checked.
+The operator approves a mission. Under a standing budget the commander may approve one itself when the mission fits inside what is left of the budget and needs nothing that stays the operator's: new money, credentials, publishing outside the lab, or a change to a frozen surface, a lock or a record. It records the approval as its own, with the budget named, and reports it to the operator without waiting. Judged, except that the budget is checked by `lab-mission-approved`.
+
+A running mission comes back to the operator only at the stops its plan names and at the method's own: a frozen surface, a lock, spend past the cap, publishing outside the lab. Everything else it decides and records. Under a standing budget the commander also decides the stops its own plan names, and re-splits spend between missions inside the budget, recording each call in the mission's log and reporting it afterwards. Judged, not checked.

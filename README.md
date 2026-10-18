@@ -66,7 +66,7 @@ The gate, `lab-kit check`, runs folio's checks and then the lab's. It runs offli
 - **Runs.** Every run started after its lock, used exactly the pinned configuration, and its evidence matches its manifest (`lab-run-after-lock`, `lab-roster-frozen`, `lab-evidence-sealed`).
 - **Results.** Every live result re-derives exactly, rests on a finished run of a locked protocol, and passed an independent reviewer (`lab-rederive`, `lab-result-grounded`).
 - **Scores.** A scorecard scores exactly the ids the lock names (`lab-score-exact`), and a scored experiment is reported or explained (`lab-scored-reported`).
-- **Lab files.** Ids resolve, frozen surfaces are untouched, scripts pass `--selftest`, nothing runs under an unapproved mission, spend stays within its cap, records only grow, the method is current, and the state file stays a short pointer.
+- **Lab files.** Ids resolve, frozen surfaces are untouched, scripts pass `--selftest`, nothing runs under an unapproved mission, spend stays within its cap and its standing budget, records only grow, the method is current, and the state file stays a short pointer.
 
 Together they hold a chain from every number on a page back to the lock:
 

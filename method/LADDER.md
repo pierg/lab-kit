@@ -24,6 +24,7 @@ evidence -> protocol -> journal -> result -> claim -+-> report  (frozen once liv
 | Paper | the library's papers (documents) | the venue article | frozen at submission (folio's `frozen`) |
 | State | `ops/STATE.md` (lab file) | what is true now and what is next | a pointer, rewritten freely (`lab-state-pointer`) |
 | Missions | `ops/missions/` (lab files) | one operator objective, its approved plan and its log | approved before it runs (`lab-mission-approved`); the log is append-only (`lab-append-only`) |
+| Standing budgets | `ops/budgets/` (lab files) | money the operator granted once for many missions | the missions under it fit inside it (`lab-mission-approved`); grants are only added (`lab-append-only`) |
 
 ## Promotion
 
