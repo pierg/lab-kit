@@ -9,7 +9,7 @@ from pathlib import Path
 
 from folio.checks.rules import measurements
 
-from .. import __version__, data, frozen, gitlog, ops, records
+from .. import __version__, budgets, data, frozen, gitlog, ops, records
 from ..records import script_env
 from ..errors import LabError
 from ..lab import Lab
@@ -191,52 +191,16 @@ def mission_approved(lab: Lab, rep: Reporter) -> None:
     _budgets_hold(lab, rep, missions)
 
 
-def _spent_by_mission(lab: Lab) -> dict[str, float]:
-    spent: dict[str, float] = {}
-    for run in records.runs(lab):
-        mission, amount = run.data.get("mission"), run.data.get("spent")
-        if (run.data.get("spend") is True and isinstance(mission, str)
-                and isinstance(amount, (int, float)) and not isinstance(amount, bool)):
-            spent[mission] = spent.get(mission, 0.0) + float(amount)
-    return spent
-
-
 def _budgets_hold(lab: Lab, rep: Reporter, missions: list[ops.Mission]) -> None:
-    """Each budget is well formed, and what its missions commit fits inside what the operator granted: an
-    active mission commits its cap, a concluded one what its runs spent."""
-    budgets: dict[str, ops.Budget] = {}
-    for path in ops.budget_files(lab):
-        try:
-            budget = ops.read_budget(lab, path)
-        except LabError as exc:
-            rep.add(lab.rel(path), str(exc))
-            continue
-        for problem in budget.problems():
-            rep.add(budget.path, problem)
-        budgets[budget.name] = budget
-    spent = _spent_by_mission(lab)
-    committed: dict[str, list[tuple[str, float]]] = {}
-    for mission in missions:
-        if not mission.budget:
-            continue
-        if mission.budget not in budgets:
-            rep.add(mission.path, f"draws on budget `{mission.budget}`, but {ops.BUDGETS}/{mission.budget}.yaml "
-                                  "does not exist")
-            continue
-        if mission.status == "draft":
-            continue
-        if mission.cap is None:
-            rep.add(mission.path, f"draws on budget `{mission.budget}` but records no numeric `cap:`")
-            continue
-        amount = spent.get(mission.path, 0.0) if mission.status == "concluded" else mission.cap
-        committed.setdefault(mission.budget, []).append((mission.path, amount))
-    for name, uses in sorted(committed.items()):
-        budget = budgets[name]
-        total = sum(amount for _, amount in uses)
-        if total > budget.amount:
-            listed = ", ".join(f"{path} {amount:g}" for path, amount in uses)
-            rep.add(budget.path, f"its missions commit {total:g} ({listed}), past the {budget.amount:g} the "
-                                 "operator granted; a new grant is the operator's")
+    """Each budget is well formed, and what its missions commit fits inside what the operator granted."""
+    found, problems = budgets.uses(lab, missions)
+    for path, message in problems:
+        rep.add(path, message)
+    for name, use in sorted(found.items()):
+        if use.committed > use.budget.amount:
+            listed = ", ".join(f"{path} {amount:g}" for path, amount in use.missions)
+            rep.add(use.budget.path, f"its missions commit {use.committed:g} ({listed}), past the "
+                                     f"{use.budget.amount:g} the operator granted; a new grant is the operator's")
 
 
 def spend_recorded(lab: Lab, rep: Reporter) -> None:
@@ -318,17 +282,20 @@ def append_only(lab: Lab, rep: Reporter) -> None:
                 previous = log
             continue
         if path.startswith(ops.BUDGETS + "/"):
-            granted = ops.grants_of(first) or []
+            granted, unit = ops.grants_of(first) or ([], None)
             for sha, text in history[1:]:
                 label = "the working tree" if sha == gitlog.WORKING else f"commit {sha[:7]}"
                 if text is None:
                     rep.add(path, f"was deleted in {label}; a standing budget is never deleted")
                     break
-                grants = ops.grants_of(text)
-                if grants is None or grants[:len(granted)] != granted:
+                now = ops.grants_of(text)
+                if now is None or now[0][:len(granted)] != granted:
                     rep.add(path, f"its grants were changed in {label}: a grant is only ever added at the bottom")
                     break
-                granted = grants
+                if now[1] != unit:
+                    rep.add(path, f"its unit was changed in {label}: the unit of a standing budget never changes")
+                    break
+                granted = now[0]
             continue
         for sha, text in history[1:]:
             label = "the working tree" if sha == gitlog.WORKING else f"commit {sha[:7]}"

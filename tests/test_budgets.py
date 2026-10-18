@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from conftest import commit
 from test_checks import RUN, edit, edit_json, named, problems
 
@@ -85,7 +87,7 @@ def test_a_mission_under_a_budget_has_a_cap(make_lab, lab_kit) -> None:
         edit(root / mission(root, "first", 50), "cap: 50\n", "")
     make_lab(setup)
     code, found = problems(lab_kit, "lab-mission-approved")
-    assert code == 1 and "records no numeric `cap:`" in named(found, "lab-mission-approved")[0]["message"]
+    assert code == 1 and "a finite number >= 0" in named(found, "lab-mission-approved")[0]["message"]
 
 
 def test_a_grant_records_who_and_when(make_lab, lab_kit) -> None:
@@ -97,7 +99,7 @@ def test_a_grant_records_who_and_when(make_lab, lab_kit) -> None:
 def test_a_grant_has_an_amount(make_lab, lab_kit) -> None:
     make_lab(lambda r: budget(r, GRANT.replace("amount: 200", "amount: lots")))
     code, found = problems(lab_kit, "lab-mission-approved")
-    assert code == 1 and "no positive numeric `amount`" in named(found, "lab-mission-approved")[0]["message"]
+    assert code == 1 and "no positive, finite numeric `amount`" in named(found, "lab-mission-approved")[0]["message"]
 
 
 def test_grants_are_only_added(make_lab, lab_kit) -> None:
@@ -124,4 +126,60 @@ def test_status_shows_the_budgets(make_lab, lab_kit) -> None:
         mission(root, "first", 120)
     make_lab(setup)
     code, out = lab_kit("status")
-    assert code == 0 and "credits: 200 granted" in out and "2026-10-05-first.md (active, cap 120)" in out
+    assert code == 0 and "credits: 200 USD granted, 120 committed, 80 left" in out
+    assert "ops/missions/2026-10-05-first.md: 120" in out
+
+
+@pytest.mark.parametrize("cap", ["-100", ".nan", ".inf"])
+def test_a_cap_under_a_budget_is_finite_and_not_negative(make_lab, lab_kit, cap) -> None:
+    def setup(root: Path) -> None:
+        budget(root)
+        mission(root, "first", 150)
+        edit(root / mission(root, "second", 1), "cap: 1\n", f"cap: {cap}\n")
+    make_lab(setup)
+    code, found = problems(lab_kit, "lab-mission-approved")
+    assert code == 1 and "a finite number >= 0" in named(found, "lab-mission-approved")[0]["message"]
+
+
+def test_an_infinite_grant_is_no_grant(make_lab, lab_kit) -> None:
+    make_lab(lambda r: budget(r, GRANT.replace("amount: 200", "amount: .inf")))
+    code, found = problems(lab_kit, "lab-mission-approved")
+    assert code == 1 and "finite numeric `amount`" in named(found, "lab-mission-approved")[0]["message"]
+
+
+def test_a_negative_spend_is_refused(make_lab, lab_kit) -> None:
+    def setup(root: Path) -> None:
+        budget(root)
+        done = mission(root, "first", 150, status="concluded")
+        edit_json(root / RUN / "run.json", spend=True, mission=done, spent=-500)
+    make_lab(setup)
+    code, found = problems(lab_kit, "lab-mission-approved")
+    assert code == 1 and "not a finite number >= 0" in named(found, "lab-mission-approved")[0]["message"]
+
+
+def test_an_active_mission_commits_what_it_spent_past_its_cap(make_lab, lab_kit) -> None:
+    def setup(root: Path) -> None:
+        budget(root)
+        active = mission(root, "first", 10)
+        mission(root, "second", 150)
+        edit_json(root / RUN / "run.json", spend=True, mission="./" + active, spent=90)
+    make_lab(setup)
+    code, found = problems(lab_kit, "lab-mission-approved")
+    assert code == 1 and "commit 240" in named(found, "lab-mission-approved")[0]["message"]
+
+
+def test_a_budget_that_does_not_parse_is_named(make_lab, lab_kit) -> None:
+    def setup(root: Path) -> None:
+        (root / "ops/budgets").mkdir()
+        (root / BUDGET).write_text("- just a list\n", encoding="utf-8")
+        mission(root, "first", 50)
+    make_lab(setup)
+    code, found = problems(lab_kit, "lab-mission-approved")
+    assert code == 1 and any("not a valid budget" in p["message"] for p in named(found, "lab-mission-approved"))
+
+
+def test_the_unit_never_changes(make_lab, lab_kit) -> None:
+    root = make_lab(budget)
+    edit(root / BUDGET, "unit: USD", "unit: kUSD")
+    code, found = problems(lab_kit, "lab-append-only")
+    assert code == 1 and "unit of a standing budget never changes" in named(found, "lab-append-only")[0]["message"]

@@ -4,28 +4,19 @@ by status."""
 from __future__ import annotations
 
 from .. import ops, records
-from ..errors import LabError
+from ..budgets import uses as budget_uses
 from ..lab import Lab
 
 
 def budgets(lab: Lab) -> list[str]:
-    """One line per standing budget: what the operator granted and the missions drawing on it."""
+    """One line per standing budget: granted, committed and left, then the missions drawing on it."""
+    found, _ = budget_uses(lab)
     lines: list[str] = []
-    missions = []
-    for path in ops.mission_files(lab):
-        try:
-            missions.append(ops.read_mission(lab, path))
-        except LabError:
-            continue
-    for path in ops.budget_files(lab):
-        try:
-            budget = ops.read_budget(lab, path)
-        except LabError as exc:
-            lines.append(f"  {lab.rel(path)}: {exc}")
-            continue
-        under = [m for m in missions if m.budget == budget.name and m.status != "draft"]
-        named = ", ".join(f"{m.path} ({m.status}, cap {m.cap:g})" if m.cap is not None else m.path for m in under)
-        lines.append(f"  {budget.name}: {budget.amount:g} granted; missions: {named or 'none'}")
+    for name, use in sorted(found.items()):
+        unit = f" {use.budget.meta['unit']}" if use.budget.meta.get("unit") else ""
+        lines.append(f"  {name}: {use.budget.amount:g}{unit} granted, {use.committed:g} committed, "
+                     f"{use.left:g} left")
+        lines.extend(f"    {path}: {amount:g}" for path, amount in use.missions)
     return ["Standing budgets:", *lines] if lines else ["Standing budgets: none"]
 
 

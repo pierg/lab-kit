@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -69,6 +70,13 @@ def approved_names_a_date(approved: str) -> bool:
     return bool(DATE.search(approved)) and bool(DATE.sub("", approved).strip(" ,;:.-"))
 
 
+def finite(value: Any) -> float | None:
+    """A real, finite number, or None: booleans, strings, NaN and infinities are not amounts."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
+        return float(value)
+    return None
+
+
 @dataclass
 class Grant:
     amount: float | None
@@ -89,9 +97,7 @@ class Budget:
         out: list[Grant] = []
         for grant in found if isinstance(found, list) else []:
             grant = grant if isinstance(grant, dict) else {}
-            amount = grant.get("amount")
-            number = float(amount) if isinstance(amount, (int, float)) and not isinstance(amount, bool) else None
-            out.append(Grant(number, str(grant.get("approved") or "").strip()))
+            out.append(Grant(finite(grant.get("amount")), str(grant.get("approved") or "").strip()))
         return out
 
     @property
@@ -106,7 +112,7 @@ class Budget:
         out = []
         for number, grant in enumerate(self.grants, 1):
             if grant.amount is None or grant.amount <= 0:
-                out.append(f"grant {number} has no positive numeric `amount`")
+                out.append(f"grant {number} has no positive, finite numeric `amount`")
             if not approved_names_a_date(grant.approved):
                 out.append(f"grant {number} must record `approved`: who granted it and the date, as YYYY-MM-DD")
         return out
@@ -114,7 +120,7 @@ class Budget:
 
 def budget_files(lab: Lab) -> list[Path]:
     folder = lab.root / BUDGETS
-    return sorted(folder.glob("*.yaml")) if folder.is_dir() else []
+    return sorted([*folder.glob("*.yaml"), *folder.glob("*.yml")]) if folder.is_dir() else []
 
 
 def read_budget(lab: Lab, path: Path) -> Budget:
@@ -128,14 +134,14 @@ def read_budget(lab: Lab, path: Path) -> Budget:
     return Budget(where, path.stem, meta)
 
 
-def grants_of(text: str | None) -> list[Any] | None:
-    """The raw `grants` list of a budget file's text, or None when it does not parse to one."""
+def grants_of(text: str | None) -> tuple[list[Any], Any] | None:
+    """The raw `grants` list and `unit` of a budget file's text, or None when it does not parse to them."""
     try:
         meta = yaml.safe_load(text or "")
     except yaml.YAMLError:
         return None
     found = meta.get("grants") if isinstance(meta, dict) else None
-    return found if isinstance(found, list) else None
+    return (found, meta.get("unit")) if isinstance(found, list) else None
 
 
 def mission_files(lab: Lab) -> list[Path]:
