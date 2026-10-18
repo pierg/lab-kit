@@ -23,7 +23,7 @@ lab-kit owns no documents. Every document a lab produces is written through foli
 
 lab-kit depends on folio and switches the lab pack on. It adds no genres and no document skills. folio's seven skills stay fixed. lab-kit's five skills sit beside them and call them. Their names never take one of folio's: folio's `set-up` makes a library, lab-kit's `set-up-lab` makes a lab around one.
 
-A file is a **document** when it lives in the library's `content/`. A file is a **lab file** when it lives anywhere else in the lab: evidence, run records, lock records, score files, state and missions. Lab files hold pointers and data, never an argument. An argument goes in a document.
+A file is a **document** when it lives in the library's `content/`. A file is a **lab file** when it lives anywhere else in the lab: evidence, run records, lock records, score files, state, missions and standing budgets. Lab files hold pointers and data, never an argument. An argument goes in a document.
 
 ## 3. A lab's layout
 
@@ -55,6 +55,7 @@ A lab is a repository. Its folio library sits at the root or in a folder such as
   ops/
     STATE.md                 what is true now and what is next; a pointer, never a record
     missions/{date}-{slug}.md  one per operator objective; its log is append-only
+    budgets/{name}.yaml      a standing budget: the operator's grants for many missions; grants only grow
   .lab/
     method/                  DISCIPLINE.md and LADDER.md, copied by lab-kit, never hand-edited
     frozen.sha256            the hashes of the surfaces lab.yaml declares frozen
@@ -66,7 +67,7 @@ A lab is a repository. Its folio library sits at the root or in a folder such as
 `lab.yaml`:
 
 ```yaml
-lab-kit: 0.1.0               # the version this lab is checked with
+lab-kit: 0.2.0               # the version this lab is checked with
 library: docs                # where folio.yaml is; "." for the root
 front: lab                   # the front door's id: a project document
 frozen:                      # surfaces never edited in place
@@ -81,7 +82,9 @@ Paths in `lab.yaml`, `run.json`, `score.yaml`, and a result's `evidence` and `re
 
 `run.json` holds `protocol`, `lock` (the hash the run was checked against), `config` (the pinned configuration, copied from the protocol), `mission`, `spend`, `command`, `started`, `ended`, `exit`, `pid` and `spent`. Times are UTC, to the second. A run's command finds its folders in the environment: `LAB_RUN_DIR`, `LAB_OUT` and `LAB_WORK`. A run that spends writes `out/spend.json` with `{"spent": <number>}`, in the unit of its mission's cap, and `lab-kit run` copies it into `spent` when the command exits.
 
-A mission file starts with YAML front matter: `title`, `status` (`draft`, `active` or `concluded`), `rests_on` (the ids it rests on), `approved` (who approved the mission, and when, with the date as `YYYY-MM-DD`) and `cap` (a number, in the unit its runs report spend; `0` when nothing spends). A mission is `draft` until the operator approves it; `approved` is required from `active` on. Its log is everything under its `## Log` heading; entries are only added at the bottom. `ops/STATE.md` has one line `Active mission: <path>` or `Active mission: none`, and never names a draft.
+A mission file starts with YAML front matter: `title`, `status` (`draft`, `active` or `concluded`), `rests_on` (the ids it rests on), `approved` (who approved the mission, and when, with the date as `YYYY-MM-DD`) and `cap` (a number, in the unit its runs report spend; `0` when nothing spends), and optionally `budget` (the name of a standing budget it draws on). A mission is `draft` until it is approved; `approved` is required from `active` on. Its log is everything under its `## Log` heading; entries are only added at the bottom. `ops/STATE.md` has one line `Active mission: <path>` or `Active mission: none`, and never names a draft.
+
+A standing budget, `ops/budgets/<name>.yaml`, holds `title`, `unit` and `grants`: a list, each grant with `amount` (a positive number, in the unit of its missions' caps) and `approved` (who granted it, and when, with the date as `YYYY-MM-DD`). The budget's amount is the sum of its grants. A mission under it commits its `cap` while it is `active` (or what its runs spent, when that is more) and what its runs spent once it is `concluded`; a draft commits nothing. Its `cap` is a finite number, never negative, and every grant amount and recorded spend is finite. What its missions commit never exceeds its amount. Grants are only added at the bottom. The operator approves a mission alone, or grants a standing budget under which the commander approves missions that fit inside it, as the method says (DISCIPLINE §13, §14).
 
 A mission has two phases, one skill each. **plan-mission** is interactive: the operator states an objective, the agent reads the lab and asks only what it cannot look up (the questions served, the milestones and their observables, the scope, the spend, what is never touched, the stops), writes the file as `draft`, and revises it until the operator approves. It then records `approved`, sets `status: active`, and adds a journal entry of kind `decision`. It never starts work. **run-mission** is autonomous: it refuses a mission that is a draft or records no approval, carries out the rest without asking, and stops only at the stops the mission names and the method's own.
 
@@ -128,9 +131,9 @@ A result that is not promoted is recorded too: a journal entry about the protoco
 | `lab-ids-resolve` | Every id cited in a lab file (state, missions, lock records, runs, scores) resolves to a document in the library. |
 | `lab-frozen-intact` | Every surface listed under `frozen:` matches its hash in `.lab/frozen.sha256`. |
 | `lab-selftest` | Every script in `experiments/*/bin/` and under `tools:` passes `--selftest`. |
-| `lab-mission-approved` | Every mission file has status `draft`, `active` or `concluded`. An `active` or `concluded` mission records `approved`, naming who and a date. No run names a draft mission, and `ops/STATE.md` names no draft as the active mission. |
+| `lab-mission-approved` | Every mission file has status `draft`, `active` or `concluded`. An `active` or `concluded` mission records `approved`, naming who and a date. No run names a draft mission, and `ops/STATE.md` names no draft as the active mission. Every standing budget has grants, each with a positive `amount` and an `approved` naming who and a date. A mission's `budget` names a budget that exists; past draft, such a mission records a numeric `cap`; and what the missions under a budget commit fits inside its amount. |
 | `lab-spend-recorded` | A run marked as spending names a mission that records the operator's approval and a cap, and its recorded spend is within the cap. |
-| `lab-append-only` | Lab files only: committed mission log entries, lock records and run records are unchanged in later commits. Journal entries and results are folio's `permanent` check. |
+| `lab-append-only` | Lab files only: committed mission log entries, standing budget grants and units, lock records and run records are unchanged in later commits; a mission file or a budget is never deleted. Journal entries and results are folio's `permanent` check. |
 | `lab-method-current` | `.lab/method/`, the five skills and the four roles match the lab-kit version in `lab.yaml`. |
 | `lab-state-pointer` | `ops/STATE.md` names an active mission file or "none", stays under 300 words, and cites ids for any number (warning). |
 | `lab-scored-reported` | Every scored experiment has a report citing its results, or a journal entry about its protocol saying why not (warning). |
@@ -154,7 +157,7 @@ Only skills call it, the way an agent calls git. Every command that changes file
 | `lab-kit score <slug>` | Creates `score.yaml` from the locked protocol's prediction and rule ids, with empty verdicts. |
 | `lab-kit rederive <R-n>` | Runs one result's re-derive command and compares its output with the number. |
 | `lab-kit freeze <path>` | Records a frozen surface's hash. Only the operator asks for this. |
-| `lab-kit status` | Prints the state, the active mission, live and orphaned runs, and draft and locked protocols. |
+| `lab-kit status` | Prints the state, the active mission, each standing budget (granted, committed and left, and the missions under it), live and orphaned runs, and draft and locked protocols. |
 | `lab-kit version` | The lab-kit version. |
 
 ## 7. What lab-kit does not do
@@ -163,4 +166,4 @@ Only skills call it, the way an agent calls git. Every command that changes file
 - It adds no genres, states or journal kinds. The lab pack holds them all, and lab-kit uses its names exactly.
 - It does not wrap an experiment in an agent. A run is the lab's own command.
 - It does not decide a question. The locked protocol's rules and the reviewer do.
-- It does not spend. The operator does, and the mission records it.
+- It does not spend. The operator does, and the mission, or the standing budget it draws on, records it.
