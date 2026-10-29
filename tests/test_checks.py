@@ -205,6 +205,51 @@ def test_append_only_reads_history(make_lab, lab_kit) -> None:
     assert code == 1 and "after its first commit" in named(found, "lab-append-only")[0]["message"]
 
 
+def open_run(root: Path) -> None:
+    """The example run as it was while still going: its closing fields not yet filled in."""
+    edit_json(root / RUN / "run.json", ended=None, exit=None, spent=None)
+
+
+def test_append_only_allows_a_run_closed_after_commit(make_lab, lab_kit) -> None:
+    root = make_lab(open_run)
+    edit_json(root / RUN / "run.json", ended="2026-10-04T23:16:29+00:00")
+    commit(root, "the run ended")
+    edit_json(root / RUN / "run.json", exit=0, spent=0.5)
+    assert problems(lab_kit, "lab-append-only") == (0, [])
+    commit(root, "its exit and spend")
+    assert problems(lab_kit, "lab-append-only") == (0, [])
+
+
+@pytest.mark.parametrize("change, message", [
+    ({"exit": 1}, "its `exit` was changed after it was set"),
+    ({"ended": None}, "its `ended` was changed after it was set"),
+    ({"pid": 1}, "was changed outside ended, exit, spent"),
+    ({"note": "x"}, "was changed outside ended, exit, spent"),
+])
+def test_append_only_refuses_a_closed_run_changed_again(make_lab, lab_kit, change, message) -> None:
+    root = make_lab(open_run)
+    edit_json(root / RUN / "run.json", ended="2026-10-04T23:16:29+00:00", exit=0)
+    commit(root, "the run ended")
+    edit_json(root / RUN / "run.json", **change)
+    code, found = problems(lab_kit, "lab-append-only")
+    assert code == 1 and message in named(found, "lab-append-only")[0]["message"]
+
+
+def test_append_only_refuses_closing_fields_rewritten(make_lab, lab_kit) -> None:
+    # The example run was committed already ended: its closing fields are set and never change.
+    root = make_lab()
+    edit_json(root / RUN / "run.json", ended="2026-10-05T00:00:00+00:00")
+    code, found = problems(lab_kit, "lab-append-only")
+    assert code == 1 and "its `ended` was changed" in named(found, "lab-append-only")[0]["message"]
+
+
+def test_append_only_refuses_a_deleted_run(make_lab, lab_kit) -> None:
+    root = make_lab(open_run)
+    (root / RUN / "run.json").unlink()
+    code, found = problems(lab_kit, "lab-append-only")
+    assert code == 1 and "was deleted" in named(found, "lab-append-only")[0]["message"]
+
+
 def test_append_only_allows_a_new_log_entry(make_lab, lab_kit) -> None:
     root = make_lab()
     with (root / MISSION).open("a", encoding="utf-8") as handle:
