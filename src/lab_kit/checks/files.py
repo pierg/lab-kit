@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 from folio.checks.rules import measurements
 
@@ -256,9 +258,43 @@ def _lab_files(lab: Lab) -> list[str]:
     return sorted(set(current) | set(ever))
 
 
+CLOSING = ("ended", "exit", "spent")  # the run record's fields lab-kit fills in when the run ends
+
+
+def _record(text: str | None) -> dict[str, Any] | None:
+    try:
+        data = json.loads(text or "")
+    except ValueError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _closing_fields(first: str | None) -> dict[str, Any] | None:
+    """The closing fields already set in a run record's first committed version, or None if it is not one."""
+    data = _record(first)
+    if data is None:
+        return None
+    return {k: data[k] for k in CLOSING if data.get(k) is not None}
+
+
+def _closing(first: str | None, text: str, closed: dict[str, Any]) -> str | None:
+    """None if `text` differs from the first version only by closing fields set once from null; else what
+    changed. `closed` holds the closing fields set so far and grows as they are filled in."""
+    before, after = _record(first), _record(text)
+    if before is None or after is None:
+        return "was changed"
+    if {k: v for k, v in after.items() if k not in CLOSING} != {k: v for k, v in before.items() if k not in CLOSING}:
+        return "was changed outside " + ", ".join(CLOSING)
+    for k in CLOSING:
+        if k in closed and after.get(k) != closed[k]:
+            return f"its `{k}` was changed after it was set"
+    closed.update({k: after[k] for k in CLOSING if after.get(k) is not None})
+    return None
+
+
 def append_only(lab: Lab, rep: Reporter) -> None:
     """Committed mission log entries, budget grants, lock records and run records are unchanged in later
-    commits."""
+    commits, except that a run record committed while its run was going may fill in its closing fields once."""
     if not gitlog.in_git(lab.root):
         rep.warn("lab.yaml", "the lab is not in a git repository, so lab-append-only could not be checked")
         return
@@ -297,13 +333,22 @@ def append_only(lab: Lab, rep: Reporter) -> None:
                     break
                 granted = now[0]
             continue
+        closed = _closing_fields(first) if path.endswith("/" + records.RUN) else None
         for sha, text in history[1:]:
             label = "the working tree" if sha == gitlog.WORKING else f"commit {sha[:7]}"
-            if text != first:
-                what = "deleted" if text is None else "changed"
-                rep.add(path, f"was {what} in {label} after its first commit {first_sha[:7]}; "
-                              "lock and run records never change once committed")
+            if closed is not None and text is not None:
+                problem = _closing(first, text, closed)
+                if problem is None:
+                    continue
+                rep.add(path, f"{problem} in {label} after its first commit {first_sha[:7]}; a run record "
+                              f"changes only by filling in {', '.join(CLOSING)} once, when its run ends")
                 break
+            if text == first:
+                continue
+            what = "deleted" if text is None else "changed"
+            rep.add(path, f"was {what} in {label} after its first commit {first_sha[:7]}; "
+                          "lock and run records never change once committed")
+            break
 
 
 def method_current(lab: Lab, rep: Reporter) -> None:
