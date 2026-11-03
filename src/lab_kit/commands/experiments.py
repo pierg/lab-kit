@@ -52,6 +52,8 @@ def lock(lab: Lab, slug: str) -> list[str]:
         "path": proto.path,
         "sha256": protocol_mod.hash_text(proto.text()),
         "locked": records.now(),
+        "instrument": records.instrument_hash(folder / "bin"),
+        **records.provenance(lab.root),
     })
     return [f"created experiments/{proto.slug}/{records.LOCK}"]
 

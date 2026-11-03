@@ -44,7 +44,8 @@ def lock_recorded(lab: Lab, rep: Reporter) -> None:
 
 
 def lock_intact(lab: Lab, rep: Reporter) -> None:
-    """A locked protocol, its status set aside, hashes to the value in its lock.json."""
+    """A locked protocol, its status set aside, hashes to the value in its lock.json, and the experiment's
+    `bin/` hashes to the lock's `instrument` when the lock records one."""
     for slug in lab.experiment_slugs():
         path = f"experiments/{slug}/{records.LOCK}"
 
@@ -59,6 +60,11 @@ def lock_intact(lab: Lab, rep: Reporter) -> None:
             if actual != lock.sha256:
                 rep.add(proto.path, f"changed since its lock: its hash, status set aside, is {actual[:12]}, "
                                     f"and {path} records {lock.sha256[:12]}")
+            if lock.instrument is not None:
+                bin_hash = records.instrument_hash(lab.experiments / slug / "bin")
+                if bin_hash != lock.instrument:
+                    rep.add(f"experiments/{slug}/bin", f"bin/ changed since its lock: it hashes to {bin_hash[:12]}, "
+                                                       f"and {path} records {lock.instrument[:12]}")
         rep.guard(path, one)
 
 

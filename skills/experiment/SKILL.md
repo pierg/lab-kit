@@ -47,12 +47,12 @@ You take one question from a draft protocol to a finished run with its evidence 
    - what it cannot show.
 2. **Make its folder.** Run `lab-kit experiment <slug>`. Put the lab's scripts in `experiments/<slug>/bin/`, each with a `--selftest`. Run `lab-kit check --only lab-selftest`.
 3. **Review the draft.** Send a reviewer with fresh context. Fold its points into the draft through the write skill. A protocol is cheap to fix before the lock and impossible to fix after.
-4. **Lock.** Through the write skill, set the protocol's status to `locked`. Run `lab-kit lock <slug>`. Record it: `folio journal add --title .. --description .. --body .. --kind lock --about <slug>,<Q-n>`. Run `folio index`, then `lab-kit check`. Commit exactly the protocol, `lock.json`, the `lock` journal entry and `.folio/` together; that commit is the lock. From here folio's `frozen` check and `lab-lock-intact` hold it.
+4. **Lock.** Commit `bin/` first: the lock hashes it, and `lab-lock-intact` fails if it changes after. Through the write skill, set the protocol's status to `locked`. Run `lab-kit lock <slug>`. Record it: `folio journal add --title .. --description .. --body .. --kind lock --about <slug>,<Q-n>`. Run `folio index`, then `lab-kit check`. Commit exactly the protocol, `lock.json`, the `lock` journal entry and `.folio/` together; that commit is the lock. From here folio's `frozen` check and `lab-lock-intact` hold it.
 5. **De-risk.** Run the token-free stages first, with `lab-kit run`. Fix the apparatus only before the lock. After it, an apparatus fault ends the run as invalid.
 6. **Launch.** Run `lab-kit run <slug> -- <command>`. Add `--spend --mission <file>` for a run that spends. Watch it at once: arm one watcher on its log that fires on the end marker or an error signature. A silent launch failure can waste a whole night.
 7. **Supervise.** Write a journal entry of kind `run` about the protocol for each launch, checkpoint, surprise and termination, with `folio journal add`. Keep each entry to what changed. Record a deviation the moment you see it. Commit each entry with `.folio/` after `folio index`; never stage the run's working files.
 8. **On failure.** End the run. Start a fresh one with the same configuration. Disclose it in a `run` entry. Never swap a model or a tool mid-run.
-9. **Conclude.** When the run ends, `lab-kit run` writes the manifest of `out/`. Commit `out/`, `MANIFEST.sha256` and `run.json` in one commit. Run `lab-kit check`. Hand the experiment to the review skill. Do not score your own run.
+9. **Conclude.** When the run ends, `lab-kit run` writes the manifest of `out/`. Commit `out/`, `MANIFEST.sha256`, `work.sha256` and `run.json` in one commit; `work/` stays out of git, and `work.sha256` is what any copy of it is verified against. Run `lab-kit check`. Hand the experiment to the review skill. Do not score your own run.
 
 ## Stops
 

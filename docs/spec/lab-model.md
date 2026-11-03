@@ -45,12 +45,14 @@ A lab is a repository. Its folio library sits at the root or in a folder such as
       ...                    maps, concepts, the front door, papers
   experiments/{slug}/        one per protocol, same slug
     bin/                     the lab's own scripts for this experiment, each with --selftest
-    lock.json                the lock record: protocol id, its sha256 with the status field set aside, the lock time (UTC)
+    lock.json                the lock record: protocol id, its sha256 with the status field set aside, the lock time (UTC),
+                             the instrument (a hash of bin/), the git commit and the lab-kit version
     runs/{run-id}/
-      run.json               protocol hash, frozen configuration, mission, start, end, exit code
+      run.json               protocol hash, frozen configuration, mission, start, end, exit code, commit, lab-kit version
       out/                   the evidence, committed at the end of the run, never edited
       MANIFEST.sha256        a hash of every file in out/, written when the run ends
-      work/  run.log         scratch and log, gitignored
+      work/  run.log         raw output and log, gitignored
+      work.sha256            a hash of every file in work/, written when the run ends; committed
     score.yaml               the review's scorecard against the lock, and the results to record
   ops/
     STATE.md                 what is true now and what is next; a pointer, never a record
@@ -67,7 +69,7 @@ A lab is a repository. Its folio library sits at the root or in a folder such as
 `lab.yaml`:
 
 ```yaml
-lab-kit: 0.2.0               # the version this lab is checked with
+lab-kit: 0.3.0               # the version this lab is checked with
 library: docs                # where folio.yaml is; "." for the root
 front: lab                   # the front door's id: a project document
 frozen:                      # surfaces never edited in place
@@ -80,7 +82,9 @@ Paths in `lab.yaml`, `run.json`, `score.yaml`, and a result's `evidence` and `re
 
 `score.yaml` names its `protocol` and the lock's hash (`lock`), and has three parts. `review` holds the independent reviewer's `verdict` (`pass` or `fail`) and `record`, the path of the file where that verdict is recorded, usually the mission file. `scores` holds one entry per prediction and decision rule the lock names, keyed by its id (`P1`, `D1`): a verdict, the value and the evidence it came from. A prediction's verdict is `HIT`, `MISS` or `INDETERMINATE`; a rule's is `FIRED`, `NOT FIRED` or `INDETERMINATE`. `record` holds one entry per number to record, keyed by a short name, with the result's field names: `title`, `protocol`, `number`, `baseline`, `bound`, `evidence`, `rederive`. The review hands one entry to `record-a-result` as `from: experiments/<slug>/score.yaml#<name>`.
 
-`run.json` holds `protocol`, `lock` (the hash the run was checked against), `config` (the pinned configuration, copied from the protocol), `mission`, `spend`, `command`, `started`, `ended`, `exit`, `pid` and `spent`. Times are UTC, to the second. A run's command finds its folders in the environment: `LAB_RUN_DIR`, `LAB_OUT` and `LAB_WORK`. A run that spends writes `out/spend.json` with `{"spent": <number>}`, in the unit of its mission's cap, and `lab-kit run` copies it into `spent` when the command exits.
+`run.json` holds `protocol`, `lock` (the hash the run was checked against), `config` (the pinned configuration, copied from the protocol), `mission`, `spend`, `command`, `started`, `ended`, `exit`, `pid`, `spent`, `commit` (the git head the run started at; null outside git or before the first commit) and `lab-kit` (the version that started it). Times are UTC, to the second. A run's command finds its folders in the environment: `LAB_RUN_DIR`, `LAB_OUT` and `LAB_WORK`. A run that spends writes `out/spend.json` with `{"spent": <number>}`, in the unit of its mission's cap, and `lab-kit run` copies it into `spent` when the command exits. When the command exits, `lab-kit run` also writes `work.sha256` beside `MANIFEST.sha256`, in the same format, one line per file under `work/`, when that folder exists: the raw output stays out of git, and its hashes go in, so any copy of it can be verified.
+
+`lock.json` holds `protocol`, `path`, `sha256` and `locked`, and from lab-kit 0.3.0 `instrument`, `commit` and `lab-kit`. `instrument` is one sha256 over every file under `experiments/<slug>/bin/` (a `__pycache__` folder left out), sorted by its path from `bin/`, each fed as its path, a newline, then its bytes. `commit` is the git head at the lock (null outside git or before the first commit), and `lab-kit` the version that took it. A lock or a run record without these fields predates them and is read as it is: records are never edited.
 
 A mission file starts with YAML front matter: `title`, `status` (`draft`, `active` or `concluded`), `rests_on` (the ids it rests on), `approved` (who approved the mission, and when, with the date as `YYYY-MM-DD`) and `cap` (a number, in the unit its runs report spend; `0` when nothing spends), and optionally `budget` (the name of a standing budget it draws on). A mission is `draft` until it is approved; `approved` is required from `active` on. Its log is everything under its `## Log` heading; entries are only added at the bottom. `ops/STATE.md` has one line `Active mission: <path>` or `Active mission: none`, and never names a draft.
 
@@ -99,8 +103,8 @@ question --> protocol (draft) --> review of the draft --> lock --> run --> evide
 1. **Question.** The write skill adds or revises a question `Q-n`. It is ranked, and it says what would settle it.
 2. **Protocol.** The write skill drafts `protocols/{slug}.md`. `lab-kit experiment {slug}` creates `experiments/{slug}/`. The protocol names its question, the intuition, the one variable and its arms, the pinned configuration, the allowed moves, the measures, the decision rules `D1`... with the kill rule marked, and the predictions `P1`... with confidences.
 3. **Draft review.** A reviewer reads the draft before the lock. The commander records the verdict in the mission log.
-4. **Lock.** The write skill sets the protocol's status to `locked`. The protocol's card lists `locked` in `frozen_in`, so folio's `frozen` check holds it from here: nothing changes but its status field. `lab-kit lock {slug}` writes `lock.json` with the file's hash, taken with the status field set aside, so the one change folio allows (to `abandoned`) does not break it. `folio journal add --title .. --description .. --body .. --kind lock --about {slug}` records it. The commit that holds the protocol, `lock.json`, that journal entry and `.folio/` is the lock; folio's `frozen` check compares with the first commit that set `locked`. From here lab-kit also checks the protocol's bytes.
-5. **Run.** `lab-kit run {slug} -- <command>` refuses unless the lock is intact. It writes `run.json`, starts the lab's own command in the background, and logs it. A run under a mission names it with `--mission`, and the mission must be approved and `active`. A run that spends tokens or money also needs a mission that records a cap. Launch, checkpoints and terminations each go in a journal entry of kind `run` about the protocol.
+4. **Lock.** The write skill sets the protocol's status to `locked`. The protocol's card lists `locked` in `frozen_in`, so folio's `frozen` check holds it from here: nothing changes but its status field. `lab-kit lock {slug}` writes `lock.json` with the file's hash, taken with the status field set aside, so the one change folio allows (to `abandoned`) does not break it. `folio journal add --title .. --description .. --body .. --kind lock --about {slug}` records it. The commit that holds the protocol, `lock.json`, that journal entry and `.folio/` is the lock; folio's `frozen` check compares with the first commit that set `locked`. From here lab-kit also checks the protocol's bytes, and the bytes of the experiment's `bin/`, so the instrument is committed before the lock.
+5. **Run.** `lab-kit run {slug} -- <command>` refuses unless the lock is intact, the instrument included. It writes `run.json`, starts the lab's own command in the background, and logs it. A run under a mission names it with `--mission`, and the mission must be approved and `active`. A run that spends tokens or money also needs a mission that records a cap. Launch, checkpoints and terminations each go in a journal entry of kind `run` about the protocol.
 6. **Evidence.** When the command exits, `lab-kit run` writes `MANIFEST.sha256` and the exit code. `out/` is committed once, at the end, in one commit. A run whose tool failed is invalid, and is recorded as invalid.
 7. **Score.** The review skill reads the lock first. It folds `out/` with a selftested script. `lab-kit score {slug}` creates `score.yaml` with every prediction and rule id the lock names. The review fills each with a verdict, a value and the evidence it came from, and lists the numbers to record under `record`.
 8. **Reviewer pass.** An independent reviewer re-derives the scored numbers and returns a verdict. The commander records it, and `score.yaml` points to it.
@@ -121,7 +125,7 @@ A result that is not promoted is recorded too: a journal entry about the protoco
 | Id | What it requires |
 | --- | --- |
 | `lab-lock-recorded` | Every protocol with status `locked` has a `lock.json` naming it, and every `lock.json` names a protocol whose status is `locked` or `abandoned`. |
-| `lab-lock-intact` | A locked protocol's bytes, with its status field set aside, hash to the value in its `lock.json`. Nothing but the status changes after the lock. |
+| `lab-lock-intact` | A locked protocol's bytes, with its status field set aside, hash to the value in its `lock.json`. Nothing but the status changes after the lock. When the lock records `instrument`, the experiment's `bin/` hashes to it. A lock without `instrument` predates it and passes. |
 | `lab-run-after-lock` | Every run belongs to a locked experiment, records the lock's hash, and started after the lock date. |
 | `lab-roster-frozen` | Every run's configuration in `run.json` equals the `yaml` block under its locked protocol's `## Pinned configuration`. |
 | `lab-evidence-sealed` | Every finished run's `out/` matches its `MANIFEST.sha256`. A run with no end and no live process is reported as orphaned (warning). |
@@ -151,8 +155,8 @@ Only skills call it, the way an agent calls git. Every command that changes file
 | `lab-kit init [--library <dir>]` | Writes `lab.yaml`, `ops/`, `experiments/`, `.lab/`, the five skills and the four roles, and links `.claude/skills` to `.agents/skills` and `.claude/agents` to `.agents/agents`. With no `--library`, no `lab.yaml` and no `folio.yaml` at the root, it installs only the method, the skills and the roles, so the set-up-lab skill can be read before the library exists. With `--library`, the folder must hold a `folio.yaml`. In the library it only switches the lab pack on, if set-up has not. It refuses a library whose `root` is not the lab root. Run again in a lab, it restores the method, the skills and the roles to this version's, and sets `lab-kit:` in `lab.yaml` to it. |
 | `lab-kit check [--only <id>] [--json]` | The lab gate: `folio check`, then the checks above. `--only` runs one check, and may repeat; `folio` names folio's gate. Exit 0 only when there is no error. |
 | `lab-kit experiment <slug>` | Creates `experiments/<slug>/` with `bin/`, `runs/` and the gitignore for scratch. |
-| `lab-kit lock <slug>` | Writes `lock.json` for a protocol whose status is `locked` and whose gate is green, hashing the file with its status field set aside. Refuses otherwise. |
-| `lab-kit run <slug> [--mission <file>] [--spend] [--wait] -- <command>` | Checks the lock, writes `run.json`, starts the command in the background from the lab root, and writes `MANIFEST.sha256` for `out/` when it exits. With `--mission`, it refuses a mission whose status is not `active` or that records no approval. `--wait` waits for the end, for a short token-free stage. |
+| `lab-kit lock <slug>` | Writes `lock.json` for a protocol whose status is `locked` and whose gate is green, hashing the file with its status field set aside, and records the instrument's hash, the git commit and the lab-kit version. Refuses otherwise. |
+| `lab-kit run <slug> [--mission <file>] [--spend] [--wait] -- <command>` | Checks the lock, writes `run.json`, starts the command in the background from the lab root, records the git commit and the lab-kit version, and writes `MANIFEST.sha256` for `out/` and `work.sha256` for `work/` when it exits. It refuses when the protocol or `bin/` no longer hashes to the lock. With `--mission`, it refuses a mission whose status is not `active` or that records no approval. `--wait` waits for the end, for a short token-free stage. |
 | `lab-kit runs [--live]` | Lists runs and their state: running, finished, failed, orphaned. |
 | `lab-kit score <slug>` | Creates `score.yaml` from the locked protocol's prediction and rule ids, with empty verdicts. |
 | `lab-kit rederive <R-n>` | Runs one result's re-derive command and compares its output with the number. |
