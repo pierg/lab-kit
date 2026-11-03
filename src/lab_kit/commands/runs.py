@@ -54,6 +54,8 @@ def start(lab: Lab, slug: str, command: list[str], mission: str | None = None, s
         raise LabError(f"{proto.path} has status `{proto.status}`, not `locked`")
     if protocol_mod.hash_text(proto.text()) != lock.sha256:
         raise LabError(f"{proto.path} changed since its lock; no run starts against a broken lock")
+    if lock.instrument is not None and records.instrument_hash(lab.experiments / slug / "bin") != lock.instrument:
+        raise LabError(f"experiments/{slug}/bin/ changed since its lock; no run starts against a broken lock")
     config = protocol_mod.pinned_config(proto.text(), proto.path)
     mission_rel = _check_mission(lab, mission, spend)
     run_id = _run_id(lab, slug)
@@ -63,7 +65,7 @@ def start(lab: Lab, slug: str, command: list[str], mission: str | None = None, s
     records.write_json(run_dir / records.RUN, {
         "protocol": lock.protocol, "lock": lock.sha256, "config": config, "mission": mission_rel,
         "spend": spend, "command": command, "started": records.now(), "ended": None, "exit": None,
-        "pid": None, "spent": None,
+        "pid": None, "spent": None, **records.provenance(lab.root),
     })
     base = f"experiments/{slug}/runs/{run_id}"
     changed = [f"created {base}/{records.RUN}", f"created {base}/out/", f"started {' '.join(command)}",

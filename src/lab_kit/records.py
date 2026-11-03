@@ -6,23 +6,26 @@ import datetime as _dt
 import hashlib
 import json
 import os
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from . import __version__
 from .errors import LabError
 from .lab import Lab
 
 LOCK = "lock.json"
 RUN = "run.json"
 MANIFEST = "MANIFEST.sha256"
+WORK_MANIFEST = "work.sha256"  # beside MANIFEST.sha256: the run's raw output under work/, which git ignores
 SCORE = "score.yaml"
 SPEND = "spend.json"  # written by a spending run's own command into out/
-LOCK_KEYS = ("protocol", "path", "sha256", "locked")
+LOCK_KEYS = ("protocol", "path", "sha256", "locked")  # required; `instrument`, `commit`, `lab-kit` since 0.3.0
 RUN_KEYS = ("protocol", "lock", "config", "mission", "spend", "command", "started", "ended", "exit", "pid",
-            "spent")
+            "spent", "commit", "lab-kit")
 PREDICTION_VERDICTS = ("HIT", "MISS", "INDETERMINATE")
 RULE_VERDICTS = ("FIRED", "NOT FIRED", "INDETERMINATE")
 REVIEW_VERDICTS = ("pass", "fail")
@@ -41,6 +44,31 @@ def script_env() -> dict[str, str]:
     env = dict(os.environ)
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     return env
+
+
+def provenance(root: Path) -> dict[str, Any]:
+    """What a lock or a run record names about where it was taken: the git head and this lab-kit.
+
+    `commit` is null outside git or before the first commit, so the record says there was none.
+    """
+    result = subprocess.run(["git", "-C", str(root), "rev-parse", "--verify", "-q", "HEAD"],
+                            capture_output=True, text=True, check=False)
+    head = result.stdout.strip() if result.returncode == 0 else None
+    return {"commit": head or None, "lab-kit": __version__}
+
+
+def instrument_hash(folder: Path) -> str:
+    """One sha256 over the instrument: every file under `folder` (an experiment's `bin/`), sorted by its
+    path from `folder`, each fed as its path, a newline, then its bytes. A `__pycache__` folder is not
+    the instrument and is left out."""
+    digest = hashlib.sha256()
+    if folder.is_dir():
+        files = sorted((p.relative_to(folder).as_posix(), p) for p in folder.rglob("*")
+                       if p.is_file() and "__pycache__" not in p.relative_to(folder).parts)
+        for rel, path in files:
+            digest.update(rel.encode("utf-8") + b"\n")
+            digest.update(path.read_bytes())
+    return digest.hexdigest()
 
 
 def parse_moment(value: Any, where: str) -> _dt.datetime:
@@ -97,6 +125,12 @@ class LockRecord:
     @property
     def sha256(self) -> str:
         return str(self.data.get("sha256", ""))
+
+    @property
+    def instrument(self) -> str | None:
+        """The hash of `bin/` at the lock; None for a lock taken before lab-kit 0.3.0."""
+        value = self.data.get("instrument")
+        return value if isinstance(value, str) else None
 
     @property
     def locked(self) -> _dt.datetime:
@@ -236,6 +270,13 @@ def parse_hashes(text: str, where: str) -> dict[str, str]:
 
 def write_manifest(run: RunRecord) -> None:
     run.manifest.write_text(format_hashes(tree_hashes(run.out, run.out)), encoding="utf-8")
+
+
+def write_work_manifest(run: RunRecord) -> None:
+    """`work.sha256` beside the manifest, one line per file under `work/`, when that folder exists."""
+    work = run.folder / "work"
+    if work.is_dir():
+        (run.folder / WORK_MANIFEST).write_text(format_hashes(tree_hashes(work, work)), encoding="utf-8")
 
 
 # ---------------------------------------------------------------- scorecards

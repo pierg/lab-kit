@@ -3,7 +3,7 @@
 `lab-kit run` starts this module as a detached process with the run's folder,
 and writes its pid into `run.json`. This process waits for that, runs the command from the lab root with its output in
 `run.log`, and when the command exits writes `MANIFEST.sha256` for `out/`,
-the exit code and the end time into `run.json`.
+`work.sha256` for `work/` when it exists, and the exit code and the end time into `run.json`.
 """
 
 from __future__ import annotations
@@ -67,6 +67,7 @@ def supervise(run_dir: Path, lab_root: Path) -> int:
         log.write(f"lab-kit: ended {ended} with exit code {code}\n")
     run = records.RunRecord(data["protocol"], run_dir.name, run_dir, data)
     records.write_manifest(run)
+    records.write_work_manifest(run)
     data = records.read_json(run_json, str(run_json))
     data["ended"] = ended
     data["exit"] = code

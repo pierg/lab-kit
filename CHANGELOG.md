@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- The lock covers the instrument. `lab-kit lock` records, beside the protocol's hash, `instrument` (one sha256 over the files in the experiment's `bin/`, sorted by path, each fed as its path and its bytes, `__pycache__` left out), `commit` (the git head) and `lab-kit` (the version). `lab-lock-intact` fails when `bin/` no longer hashes to `instrument`, and `lab-kit run` refuses to start on such a lock, as it already did for a changed protocol.
+- Records name their commit. `lab-kit run` writes `commit` and `lab-kit` into `run.json` when it starts.
+- Raw output is sealed. When the command exits, `lab-kit run` writes `work.sha256` beside `MANIFEST.sha256`, one line per file under `work/`, when that folder exists. `work/` stays out of git; its hashes go in, so a copy kept elsewhere can be verified.
+- A lock or a run record without the new fields predates them and passes: records are never edited. The example lab's records are unchanged and are that test.
+- The experiment skill says to commit `bin/` before the lock and to commit `work.sha256` with the run.
+
 ## 0.2.0
 
 - Standing budgets. The operator can grant money once for many missions: `ops/budgets/<name>.yaml` lists grants, each with an amount and who granted it and when. A mission names the budget it draws on in `budget:`. `lab-mission-approved` checks that what the missions under a budget commit (an active mission's cap, or its spend when that is more; a concluded mission's spend) fits inside its grants; `lab-append-only` keeps grants append-only and the unit fixed. `lab-kit status` shows each budget's granted, committed and left amounts.
