@@ -115,8 +115,9 @@ def _publish_local(lab: Lab, run: records.RunRecord, store: Path) -> str:
             raise LabError(f"the copy in {incoming} does not match work.sha256 ({'; '.join(wrong[:3])}); "
                            "nothing was published")
         dest.parent.mkdir(parents=True, exist_ok=True)
-        _read_only(incoming)
+        # A directory's own write bit is needed to rename it (its `..` changes), so lock after the move.
         os.rename(incoming, dest)
+        _read_only(dest)
     except BaseException:
         if incoming.exists():
             _writable(incoming)
@@ -148,7 +149,7 @@ def _publish_remote(lab: Lab, run: records.RunRecord, store: Path, host: str) ->
     if copied.returncode:
         raise LabError(f"rsync to {host}:{incoming} failed: {copied.stderr.strip()[-200:]}")
     done = _ssh(host, f"{check.format(dir=q(incoming))} && mkdir -p {q(str(Path(dest).parent))} && "
-                      f"chmod -R a-w {q(incoming)} && mv -T {q(incoming)} {q(dest)}")
+                      f"mv -T {q(incoming)} {q(dest)} && chmod -R a-w {q(dest)}")
     if done.returncode:
         _ssh(host, f"chmod -R u+w {q(incoming)}; rm -rf {q(incoming)}")
         raise LabError(f"the copy on {host} does not match work.sha256; nothing was published")
