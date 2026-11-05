@@ -138,3 +138,17 @@ def evidence_sealed(lab: Lab, rep: Reporter) -> None:
                 elif recorded[name] != actual[name]:
                     rep.add(manifest_path, f"out/{name} changed after the run ended")
         rep.guard(run.path, one)
+
+
+def work_stored(lab: Lab, rep: Reporter) -> None:
+    """With a store in lab.yaml, every ended run with a work.sha256 records that it was published (warning)."""
+    if not lab.settings.store:
+        return
+    from ..store import STORE_RECORD
+    for run in records.runs(lab):
+        if not run.ended or not (run.folder / records.WORK_MANIFEST).is_file():
+            continue
+        if not (run.folder / STORE_RECORD).is_file():
+            rep.warn(run.path.rsplit("/", 1)[0] + "/" + records.WORK_MANIFEST,
+                     f"its raw output was never published to the store {lab.settings.store}; "
+                     "`lab-kit publish --pending` publishes it, then commit store.json")

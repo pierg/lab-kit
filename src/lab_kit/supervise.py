@@ -4,6 +4,8 @@
 and writes its pid into `run.json`. This process waits for that, runs the command from the lab root with its output in
 `run.log`, and when the command exits writes `MANIFEST.sha256` for `out/`,
 `work.sha256` for `work/` when it exists, and the exit code and the end time into `run.json`.
+When `lab.yaml` names a `store:`, it then publishes the run's raw output there (lab_kit.store); a
+publish that fails is noted in `run.log` and leaves the run here for `lab-kit publish --pending`.
 """
 
 from __future__ import annotations
@@ -74,7 +76,27 @@ def supervise(run_dir: Path, lab_root: Path) -> int:
     if data.get("spend"):
         data["spent"] = _spent(run_dir / "out")
     records.write_json(run_json, data)
+    _publish(run_dir, lab_root)
     return code
+
+
+def _publish(run_dir: Path, lab_root: Path) -> None:
+    """Publish the sealed run to the lab's store, if it names one. Never changes the run's exit code."""
+    import yaml
+
+    from . import lab as lab_mod
+    from . import store
+    try:
+        raw = yaml.safe_load((lab_root / lab_mod.LAB_YAML).read_text(encoding="utf-8")) or {}
+        if not isinstance(raw, dict) or not raw.get("store"):
+            return  # a lab without a store: nothing more happens after the seal
+        lab = lab_mod.load_at(lab_root)
+        run = next(r for r in records.runs(lab, run_dir.parent.parent.name) if r.run_id == run_dir.name)
+        store.publish(lab, run)
+    except Exception as exc:  # noqa: BLE001 - a failed publish never changes the run's outcome
+        if (run_dir / "run.log").exists():
+            with (run_dir / "run.log").open("a", encoding="utf-8") as log:
+                log.write(f"lab-kit: not published to the store: {exc}; `lab-kit publish --pending` retries\n")
 
 
 if __name__ == "__main__":

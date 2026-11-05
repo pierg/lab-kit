@@ -53,6 +53,7 @@ A lab is a repository. Its folio library sits at the root or in a folder such as
       MANIFEST.sha256        a hash of every file in out/, written when the run ends
       work/  run.log         raw output and log, gitignored
       work.sha256            a hash of every file in work/, written when the run ends; committed
+      store.json             where work/ and run.log were published, and when (when lab.yaml names a store); committed
     score.yaml               the review's scorecard against the lock, and the results to record
   ops/
     STATE.md                 what is true now and what is next; a pointer, never a record
@@ -69,13 +70,14 @@ A lab is a repository. Its folio library sits at the root or in a folder such as
 `lab.yaml`:
 
 ```yaml
-lab-kit: 0.3.0               # the version this lab is checked with
+lab-kit: 0.4.0               # the version this lab is checked with
 library: docs                # where folio.yaml is; "." for the root
 front: lab                   # the front door's id: a project document
 frozen:                      # surfaces never edited in place
   - substrate/
 tools: [tools/fold.py]       # lab-wide scripts; each must pass --selftest
 rederive_timeout: 120        # seconds per re-derive command
+store: /labs/monte-carlo-lab # optional: where finished runs' raw output is published (below)
 ```
 
 Paths in `lab.yaml`, `run.json`, `score.yaml`, and a result's `evidence` and `rederive` fields, are relative to the lab root. folio resolves a result's paths from the charter's `root`, so a lab whose library is in `docs/` sets `root: ..` in `folio.yaml`. Both tools then read the same path the same way.
@@ -83,6 +85,8 @@ Paths in `lab.yaml`, `run.json`, `score.yaml`, and a result's `evidence` and `re
 `score.yaml` names its `protocol` and the lock's hash (`lock`), and has three parts. `review` holds the independent reviewer's `verdict` (`pass` or `fail`) and `record`, the path of the file where that verdict is recorded, usually the mission file. `scores` holds one entry per prediction and decision rule the lock names, keyed by its id (`P1`, `D1`): a verdict, the value and the evidence it came from. A prediction's verdict is `HIT`, `MISS` or `INDETERMINATE`; a rule's is `FIRED`, `NOT FIRED` or `INDETERMINATE`. `record` holds one entry per number to record, keyed by a short name, with the result's field names: `title`, `protocol`, `number`, `baseline`, `bound`, `evidence`, `rederive`. The review hands one entry to `record-a-result` as `from: experiments/<slug>/score.yaml#<name>`.
 
 `run.json` holds `protocol`, `lock` (the hash the run was checked against), `config` (the pinned configuration, copied from the protocol), `mission`, `spend`, `command`, `started`, `ended`, `exit`, `pid`, `spent`, `commit` (the git head the run started at; null outside git or before the first commit) and `lab-kit` (the version that started it). Times are UTC, to the second. A run's command finds its folders in the environment: `LAB_RUN_DIR`, `LAB_OUT` and `LAB_WORK`. A run that spends writes `out/spend.json` with `{"spent": <number>}`, in the unit of its mission's cap, and `lab-kit run` copies it into `spent` when the command exits. When the command exits, `lab-kit run` also writes `work.sha256` beside `MANIFEST.sha256`, in the same format, one line per file under `work/`, when that folder exists: the raw output stays out of git, and its hashes go in, so any copy of it can be verified.
+
+**The store.** `store:` in `lab.yaml` is optional: an absolute path, such as `/labs/<lab>`, where every machine that runs the lab mounts one shared filesystem. When it is set, a run's raw output leaves the machine that ran it once the run ends: `lab-kit run` publishes `work/` and `run.log` to `<store>/<the run folder's path from the lab root>/`. Publishing copies into `<store>/.incoming/`, checks the copy against `work.sha256` (no file missing, none extra, none changed), renames it into place in one step, makes it read-only, writes `store.json` (`store`, `files`, `published`, `by`) beside `run.json`, and then deletes the local `work/` and `run.log`. A run already in the store is never overwritten: a copy there that verifies counts as published, one that does not is refused. A publish that fails leaves the run where it is, notes why in `run.log`, and never changes the run's exit code; `lab-kit publish --pending` tries again. The command a run starts is never told the store's path, and a lab's instrument never mounts it into the sandbox where the system under test runs: the store holds other runs' raw output, answers included. A machine that does not mount the store sets `LAB_STORE_HOST` to a host that does; lab-kit then copies with rsync over ssh and verifies there with `sha256sum`.
 
 `lock.json` holds `protocol`, `path`, `sha256` and `locked`, and from lab-kit 0.3.0 `instrument`, `commit` and `lab-kit`. `instrument` is one sha256 over every file under `experiments/<slug>/bin/` (a `__pycache__` folder left out), sorted by its path from `bin/`, each fed as its path, a newline, then its bytes. `commit` is the git head at the lock (null outside git or before the first commit), and `lab-kit` the version that took it. A lock or a run record without these fields predates them and is read as it is: records are never edited.
 
@@ -141,6 +145,7 @@ A result that is not promoted is recorded too: a journal entry about the protoco
 | `lab-method-current` | `.lab/method/`, the five skills and the four roles match the lab-kit version in `lab.yaml`. |
 | `lab-state-pointer` | `ops/STATE.md` names an active mission file or "none", stays under 300 words, and cites ids for any number (warning). |
 | `lab-scored-reported` | Every scored experiment has a report citing its results, or a journal entry about its protocol saying why not (warning). |
+| `lab-work-stored` | When `lab.yaml` names a `store:`, every ended run with a `work.sha256` has a `store.json`: its raw output was published (warning). |
 
 The gate checks that the record is consistent. It does not check that the record is honest. That is the reviewer's job.
 
@@ -158,6 +163,9 @@ Only skills call it, the way an agent calls git. Every command that changes file
 | `lab-kit lock <slug>` | Writes `lock.json` for a protocol whose status is `locked` and whose gate is green, hashing the file with its status field set aside, and records the instrument's hash, the git commit and the lab-kit version. Refuses otherwise. |
 | `lab-kit run <slug> [--mission <file>] [--spend] [--wait] -- <command>` | Checks the lock, writes `run.json`, starts the command in the background from the lab root, records the git commit and the lab-kit version, and writes `MANIFEST.sha256` for `out/` and `work.sha256` for `work/` when it exits. It refuses when the protocol or `bin/` no longer hashes to the lock. With `--mission`, it refuses a mission whose status is not `active` or that records no approval. `--wait` waits for the end, for a short token-free stage. |
 | `lab-kit runs [--live]` | Lists runs and their state: running, finished, failed, orphaned. |
+| `lab-kit publish <slug>/<run id>... \| --pending [--keep]` | Publishes ended runs' raw output to the store, as above. `--pending` takes every ended run whose `work/` is still here. `--keep` keeps the local copy. |
+| `lab-kit fetch <slug>/<run id>` | Copies a published run's `work/` and `run.log` back into its folder, writable, and verifies them against `work.sha256`. |
+| `lab-kit verify <slug>/<run id>` | Checks the store's copy of a run against its `work.sha256`. Changes nothing. |
 | `lab-kit score <slug>` | Creates `score.yaml` from the locked protocol's prediction and rule ids, with empty verdicts. |
 | `lab-kit rederive <R-n>` | Runs one result's re-derive command and compares its output with the number. |
 | `lab-kit freeze <path>` | Records a frozen surface's hash. Only the operator asks for this. |

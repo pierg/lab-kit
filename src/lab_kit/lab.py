@@ -14,7 +14,7 @@ from folio.library import Library
 from .errors import LabError
 
 LAB_YAML = "lab.yaml"
-_KEYS = ("lab-kit", "library", "front", "frozen", "tools", "rederive_timeout")
+_KEYS = ("lab-kit", "library", "front", "frozen", "tools", "rederive_timeout", "store")
 
 
 @dataclass
@@ -25,6 +25,7 @@ class Settings:
     frozen: list[str]
     tools: list[str]
     rederive_timeout: int
+    store: str | None = None
 
 
 @dataclass
@@ -115,7 +116,10 @@ def parse_settings(raw: Any, where: str) -> Settings:
     timeout = raw.get("rederive_timeout", 120)
     if not isinstance(timeout, int) or isinstance(timeout, bool) or timeout <= 0:
         raise LabError(f"{where}: `rederive_timeout` must be a positive whole number of seconds")
-    return Settings(version, library, front or None, lists["frozen"], lists["tools"], timeout)
+    store = raw.get("store")
+    if store is not None and (not isinstance(store, str) or not Path(store).is_absolute()):
+        raise LabError(f"{where}: `store` must be an absolute path, such as /labs/<lab>")
+    return Settings(version, library, front or None, lists["frozen"], lists["tools"], timeout, store or None)
 
 
 def load_at(root: Path) -> Lab:
