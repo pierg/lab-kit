@@ -82,16 +82,18 @@ def supervise(run_dir: Path, lab_root: Path) -> int:
 
 def _publish(run_dir: Path, lab_root: Path) -> None:
     """Publish the sealed run to the lab's store, if it names one. Never changes the run's exit code."""
+    import yaml
+
     from . import lab as lab_mod
     from . import store
-    from .errors import LabError
     try:
+        raw = yaml.safe_load((lab_root / lab_mod.LAB_YAML).read_text(encoding="utf-8")) or {}
+        if not isinstance(raw, dict) or not raw.get("store"):
+            return  # a lab without a store: nothing more happens after the seal
         lab = lab_mod.load_at(lab_root)
-        if not lab.settings.store:
-            return
         run = next(r for r in records.runs(lab, run_dir.parent.parent.name) if r.run_id == run_dir.name)
         store.publish(lab, run)
-    except (LabError, OSError, StopIteration) as exc:
+    except Exception as exc:  # noqa: BLE001 - a failed publish never changes the run's outcome
         if (run_dir / "run.log").exists():
             with (run_dir / "run.log").open("a", encoding="utf-8") as log:
                 log.write(f"lab-kit: not published to the store: {exc}; `lab-kit publish --pending` retries\n")

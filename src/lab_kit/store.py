@@ -105,7 +105,7 @@ def _publish_local(lab: Lab, run: records.RunRecord, store: Path) -> str:
         for name in RAW:
             src = run.folder / name
             if src.is_dir():
-                shutil.copytree(src, incoming / name, symlinks=True)
+                shutil.copytree(src, incoming / name, symlinks=False)  # a link's bytes, never the link
             elif src.is_file():
                 shutil.copy2(src, incoming / name)
         if not (incoming / "work").exists():
@@ -116,7 +116,15 @@ def _publish_local(lab: Lab, run: records.RunRecord, store: Path) -> str:
                            "nothing was published")
         dest.parent.mkdir(parents=True, exist_ok=True)
         # A directory's own write bit is needed to rename it (its `..` changes), so lock after the move.
-        os.rename(incoming, dest)
+        try:
+            os.rename(incoming, dest)
+        except OSError:
+            # Another publish of the same run got there first: accept its copy if it verifies.
+            if dest.is_dir() and not verify_local(run, dest):
+                _writable(incoming)
+                shutil.rmtree(incoming, ignore_errors=True)
+                return "already in the store, verified"
+            raise
         _read_only(dest)
     except BaseException:
         if incoming.exists():
@@ -126,34 +134,55 @@ def _publish_local(lab: Lab, run: records.RunRecord, store: Path) -> str:
     return "copied and verified"
 
 
-def _ssh(host: str, script: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(["ssh", "-o", "BatchMode=yes", host, script], capture_output=True, text=True)
+def _ssh(host: str, script: str, stdin: str | None = None) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(["ssh", "-o", "BatchMode=yes", host, script], input=stdin, capture_output=True, text=True)
+
+
+def _remote_check(folder: str, count: int) -> str:
+    """A shell line that verifies <folder>/work against the manifest on stdin: every file, none extra."""
+    q = shlex.quote
+    return (f"cd {q(folder)}/work && sha256sum --quiet --strict -c - >/dev/null && "
+            f"test \"$(find . -type f | wc -l)\" -eq {count} && test -z \"$(find . ! -type f ! -type d)\"")
 
 
 def _publish_remote(lab: Lab, run: records.RunRecord, store: Path, host: str) -> str:
     dest = (store / _rel(lab, run)).as_posix()
     incoming = (store / ".incoming" / _incoming_name(run)).as_posix()
     q = shlex.quote
-    manifest = q((run.folder / records.WORK_MANIFEST).read_text(encoding="utf-8"))
-    # Verify on the host: every listed file hashes right, and no file is unlisted.
-    check = (f"cd {{dir}}/work && printf %s {manifest} | sha256sum --quiet -c - >/dev/null && "
-             f"test \"$(find . -type f | wc -l)\" -eq {len(_expected(run))}")
+    manifest = (run.folder / records.WORK_MANIFEST).read_text(encoding="utf-8")
+    count = len(_expected(run))
     if _ssh(host, f"test -e {q(dest)}").returncode == 0:
-        if _ssh(host, check.format(dir=q(dest))).returncode == 0:
+        if _ssh(host, _remote_check(dest, count), manifest).returncode == 0:
             return f"already in the store on {host}, verified"
         raise LabError(f"{host}:{dest} exists and does not match work.sha256; a run in the store is never overwritten")
     if _ssh(host, f"rm -rf {q(incoming)} && mkdir -p {q(incoming)}/work").returncode:
         raise LabError(f"cannot reach the store on {host} (ssh {host})")
     sources = [str(run.folder / n) for n in RAW if (run.folder / n).exists()]
-    copied = subprocess.run(["rsync", "-a", *sources, f"{host}:{incoming}/"], capture_output=True, text=True)
+    copied = subprocess.run(["rsync", "-aL", *sources, f"{host}:{incoming}/"], capture_output=True, text=True)
     if copied.returncode:
         raise LabError(f"rsync to {host}:{incoming} failed: {copied.stderr.strip()[-200:]}")
-    done = _ssh(host, f"{check.format(dir=q(incoming))} && mkdir -p {q(str(Path(dest).parent))} && "
-                      f"mv -T {q(incoming)} {q(dest)} && chmod -R a-w {q(dest)}")
-    if done.returncode:
+    if _ssh(host, _remote_check(incoming, count), manifest).returncode:
         _ssh(host, f"chmod -R u+w {q(incoming)}; rm -rf {q(incoming)}")
         raise LabError(f"the copy on {host} does not match work.sha256; nothing was published")
+    done = _ssh(host, f"mkdir -p {q(str(Path(dest).parent))} && mv -T {q(incoming)} {q(dest)} && chmod -R a-w {q(dest)}")
+    if done.returncode:
+        _ssh(host, f"chmod -R u+w {q(incoming)}; rm -rf {q(incoming)}")
+        raise LabError(f"cannot move the copy into place on {host}: {done.stderr.strip()[-200:]}")
     return f"copied to {host} and verified"
+
+
+def mounted(store: Path) -> bool:
+    """The store is here: its folder exists, or one of its ancestors (not `/`) is a mount point.
+
+    An empty mount point left by a mount that failed is not taken for the store, so nothing is
+    ever published onto the local disk under it.
+    """
+    try:
+        if store.is_dir():
+            return True
+        return any(os.path.ismount(p) for p in store.parents if p != Path(p.anchor))
+    except OSError:
+        return False
 
 
 def publish(lab: Lab, run: records.RunRecord, keep: bool = False) -> list[str]:
@@ -166,7 +195,8 @@ def publish(lab: Lab, run: records.RunRecord, keep: bool = False) -> list[str]:
         raise LabError(f"{_rel(lab, run)}/work/ is not here to publish")
     if (run.folder / STORE_RECORD).exists() and not (run.folder / "work").exists():
         return [f"{_rel(lab, run)}: already published"]
-    if store.is_dir() and not host:
+    if not host and mounted(store):
+        store.mkdir(parents=True, exist_ok=True)
         how = _publish_local(lab, run, store)
         where = str(store / _rel(lab, run))
     elif host:
@@ -208,12 +238,12 @@ def fetch(lab: Lab, run: records.RunRecord) -> list[str]:
         _writable(tmp)
         shutil.rmtree(tmp)
     tmp.mkdir()
-    if store.is_dir() and not host:
+    if not host and mounted(store):
         if not src.is_dir():
             raise LabError(f"{src} does not exist: this run was never published")
         for name in RAW:
             if (src / name).is_dir():
-                shutil.copytree(src / name, tmp / name, symlinks=True)
+                shutil.copytree(src / name, tmp / name, symlinks=False)
             elif (src / name).is_file():
                 shutil.copy2(src / name, tmp / name)
     elif host:
@@ -243,12 +273,8 @@ def verify(lab: Lab, run: records.RunRecord) -> list[str]:
     host = os.environ.get(ENV_HOST, "").strip()
     dest = store / _rel(lab, run)
     if host:
-        expected = _expected(run)
-        q = shlex.quote
-        manifest = q((run.folder / records.WORK_MANIFEST).read_text(encoding="utf-8"))
-        script = (f"cd {q(dest.as_posix())}/work && printf %s {manifest} | sha256sum --quiet -c - >/dev/null && "
-                  f"test \"$(find . -type f | wc -l)\" -eq {len(expected)}")
-        if _ssh(host, script).returncode:
+        manifest = (run.folder / records.WORK_MANIFEST).read_text(encoding="utf-8")
+        if _ssh(host, _remote_check(dest.as_posix(), len(_expected(run))), manifest).returncode:
             raise LabError(f"{host}:{dest} is missing or does not match work.sha256")
         return [f"{_rel(lab, run)}: the store's copy on {host} matches work.sha256"]
     if not dest.is_dir():

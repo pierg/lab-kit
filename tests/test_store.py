@@ -82,3 +82,27 @@ def test_a_lab_without_a_store_is_unchanged(make_lab, lab_kit) -> None:
     assert (run.folder / "work" / "b.txt").is_file() and not (run.folder / "store.json").exists()
     code, out = lab_kit("publish", "--pending")
     assert code == 2 and "names no `store:`" in out
+
+
+LINKER = ("import os, pathlib; w = pathlib.Path(os.environ['LAB_WORK']); "
+          "real = pathlib.Path(os.environ['LAB_RUN_DIR']).parent.parent / 'outside.bin'; real.write_text('bytes'); "
+          "(w / 'model.bin').symlink_to(real); (w / 'res_{seed}.json').write_text('{}')")
+
+
+def test_a_linked_file_is_stored_as_its_bytes(make_lab, lab_kit, tmp_path) -> None:
+    store = tmp_path / "labs" / "mc"
+    store.mkdir(parents=True)
+    root = make_lab(_with_store(store))
+    assert lab_kit("run", "pi-error-scaling", "--wait", "--", "python3", "-c", LINKER)[0] == 0
+    run = records.runs(load(root), "pi-error-scaling")[-1]
+    copy = store / "experiments" / "pi-error-scaling" / "runs" / run.run_id / "work" / "model.bin"
+    assert not copy.is_symlink() and copy.read_text() == "bytes"
+    assert (copy.parent / "res_{seed}.json").is_file()
+
+
+def test_an_empty_folder_where_the_store_should_be_is_not_the_store(make_lab, lab_kit, tmp_path) -> None:
+    root = make_lab(_with_store(tmp_path / "labs" / "mc"))
+    (tmp_path / "labs").mkdir()  # a mount point whose mount failed: not a mount, no lab folder
+    assert lab_kit("run", "pi-error-scaling", "--wait", "--", "python3", "-c", WRITER)[0] == 0
+    run = records.runs(load(root), "pi-error-scaling")[-1]
+    assert (run.folder / "work" / "b.txt").is_file() and not (tmp_path / "labs" / "mc").exists()

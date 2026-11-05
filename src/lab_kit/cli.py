@@ -79,7 +79,7 @@ def cmd_publish(args: argparse.Namespace) -> int:
     for run in targets:
         try:
             _print(store_mod.publish(lab, run, keep=args.keep))
-        except LabError as exc:
+        except (LabError, OSError) as exc:
             print(f"lab-kit: {lab.rel(run.folder)}: not published: {exc}", file=sys.stderr)
             failed += 1
     return 1 if failed else 0
