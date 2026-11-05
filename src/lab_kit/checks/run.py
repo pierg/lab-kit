@@ -30,6 +30,7 @@ CHECKS: tuple[LabCheck, ...] = (
     LabCheck("lab-method-current", "error", files.method_current),
     LabCheck("lab-state-pointer", "warning", files.state_pointer),
     LabCheck("lab-scored-reported", "warning", results.scored_reported),
+    LabCheck("lab-work-stored", "warning", locks.work_stored),
 )
 BY_NAME = {c.name: c for c in CHECKS}
 

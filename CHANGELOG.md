@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+- The run store. `store:` in `lab.yaml` names one shared filesystem, such as `/labs/<lab>`, where every finished run's raw output goes. When a run ends, `lab-kit run` publishes `work/` and `run.log` to the store at the run folder's own path: a copy into `.incoming/`, checked against `work.sha256` (nothing missing, extra or changed), renamed into place, made read-only. It then writes `store.json` beside `run.json` and deletes the local copy. A run in the store is never overwritten. A failed publish is noted in `run.log`, keeps the local copy and never changes the run's exit code.
+- `lab-kit publish <slug>/<run id>... | --pending [--keep]`, `lab-kit fetch <slug>/<run id>` and `lab-kit verify <slug>/<run id>`. A machine that does not mount the store sets `LAB_STORE_HOST` to one that does (rsync over ssh, `sha256sum` there).
+- `lab-work-stored` (warning): with a store set, every ended run with a `work.sha256` has a `store.json`.
+- The experiment skill says to commit `store.json` with the run, and never to mount the store where the system under test runs.
+- A lab without `store:` works as before.
+
 ## 0.3.0
 
 - The lock covers the instrument. `lab-kit lock` records, beside the protocol's hash, `instrument` (one sha256 over the files in the experiment's `bin/`, sorted by path, each fed as its path and its bytes, `__pycache__` left out), `commit` (the git head) and `lab-kit` (the version). `lab-lock-intact` fails when `bin/` no longer hashes to `instrument`, and `lab-kit run` refuses to start on such a lock, as it already did for a changed protocol.

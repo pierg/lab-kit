@@ -10,6 +10,7 @@ from pathlib import Path
 from . import __version__, frozen
 from . import lab as lab_mod
 from . import rederive as rederive_mod
+from . import store as store_mod
 from .checks import run as checks_run
 from .commands import experiments, runs, setup, status
 from .errors import LabError
@@ -62,6 +63,37 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 def cmd_runs(args: argparse.Namespace) -> int:
     _print(runs.listing(_lab(), live=args.live))
+    return 0
+
+
+def cmd_publish(args: argparse.Namespace) -> int:
+    lab = _lab()
+    if args.pending == bool(args.runs):
+        raise LabError("name runs as <slug>/<run id>, or pass --pending for every ended run still here")
+    store_mod.root(lab)  # a lab with no store says so once
+    targets = store_mod.pending(lab) if args.pending else [store_mod.find_run(lab, r) for r in args.runs]
+    if not targets:
+        print("Nothing to publish.")
+        return 0
+    failed = 0
+    for run in targets:
+        try:
+            _print(store_mod.publish(lab, run, keep=args.keep))
+        except LabError as exc:
+            print(f"lab-kit: {lab.rel(run.folder)}: not published: {exc}", file=sys.stderr)
+            failed += 1
+    return 1 if failed else 0
+
+
+def cmd_fetch(args: argparse.Namespace) -> int:
+    lab = _lab()
+    _print(store_mod.fetch(lab, store_mod.find_run(lab, args.run)))
+    return 0
+
+
+def cmd_verify(args: argparse.Namespace) -> int:
+    lab = _lab()
+    _print(store_mod.verify(lab, store_mod.find_run(lab, args.run)))
     return 0
 
 
@@ -130,6 +162,21 @@ def parser() -> argparse.ArgumentParser:
     s = sub.add_parser("runs", help="List runs and their state: running, finished, failed, orphaned.")
     s.add_argument("--live", action="store_true", help="only running and orphaned runs")
     s.set_defaults(func=cmd_runs)
+
+    s = sub.add_parser("publish", help="Copy ended runs' raw output to the store named in lab.yaml, verify it "
+                       "against work.sha256, and delete the local copy.")
+    s.add_argument("runs", nargs="*", metavar="SLUG/RUN_ID")
+    s.add_argument("--pending", action="store_true", help="every ended run whose work/ is still here")
+    s.add_argument("--keep", action="store_true", help="keep the local work/ and run.log")
+    s.set_defaults(func=cmd_publish)
+
+    s = sub.add_parser("fetch", help="Copy a published run's raw output back into its folder, verified.")
+    s.add_argument("run", metavar="SLUG/RUN_ID")
+    s.set_defaults(func=cmd_fetch)
+
+    s = sub.add_parser("verify", help="Check the store's copy of a run against its work.sha256.")
+    s.add_argument("run", metavar="SLUG/RUN_ID")
+    s.set_defaults(func=cmd_verify)
 
     s = sub.add_parser("score", help="Create score.yaml from the lock's prediction and rule ids.")
     s.add_argument("slug")
