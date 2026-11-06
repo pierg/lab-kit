@@ -44,7 +44,7 @@ A lab is a repository. Its folio library sits at the root or in a folder such as
       journal/{yyyy}/        the library's one journal: one permanent file per entry, {date}-{slug}.md
       ...                    maps, concepts, the front door, papers
   experiments/{slug}/        one per protocol, same slug
-    bin/                     the lab's own scripts for this experiment, each with --selftest
+    bin/                     what is particular to this experiment, if anything; may be empty
     lock.json                the lock record: protocol id, its sha256 with the status field set aside, the lock time (UTC),
                              the instrument (a hash of bin/), the git commit and the lab-kit version
     runs/{run-id}/
@@ -70,12 +70,11 @@ A lab is a repository. Its folio library sits at the root or in a folder such as
 `lab.yaml`:
 
 ```yaml
-lab-kit: 0.4.0               # the version this lab is checked with
+lab-kit: 0.5.0               # the version this lab is checked with
 library: docs                # where folio.yaml is; "." for the root
 front: lab                   # the front door's id: a project document
 frozen:                      # surfaces never edited in place
   - substrate/
-tools: [tools/fold.py]       # lab-wide scripts; each must pass --selftest
 rederive_timeout: 120        # seconds per re-derive command
 store: /labs/monte-carlo-lab # optional: where finished runs' raw output is published (below)
 ```
@@ -110,7 +109,7 @@ question --> protocol (draft) --> review of the draft --> lock --> run --> evide
 4. **Lock.** The write skill sets the protocol's status to `locked`. The protocol's card lists `locked` in `frozen_in`, so folio's `frozen` check holds it from here: nothing changes but its status field. `lab-kit lock {slug}` writes `lock.json` with the file's hash, taken with the status field set aside, so the one change folio allows (to `abandoned`) does not break it. `folio journal add --title .. --description .. --body .. --kind lock --about {slug}` records it. The commit that holds the protocol, `lock.json`, that journal entry and `.folio/` is the lock; folio's `frozen` check compares with the first commit that set `locked`. From here lab-kit also checks the protocol's bytes, and the bytes of the experiment's `bin/`, so the instrument is committed before the lock.
 5. **Run.** `lab-kit run {slug} -- <command>` refuses unless the lock is intact, the instrument included. It writes `run.json`, starts the lab's own command in the background, and logs it. A run under a mission names it with `--mission`, and the mission must be approved and `active`. A run that spends tokens or money also needs a mission that records a cap. Launch, checkpoints and terminations each go in a journal entry of kind `run` about the protocol.
 6. **Evidence.** When the command exits, `lab-kit run` writes `MANIFEST.sha256` and the exit code. `out/` is committed once, at the end, in one commit. A run whose tool failed is invalid, and is recorded as invalid.
-7. **Score.** The review skill reads the lock first. It folds `out/` with a selftested script. `lab-kit score {slug}` creates `score.yaml` with every prediction and rule id the lock names. The review fills each with a verdict, a value and the evidence it came from, and lists the numbers to record under `record`.
+7. **Score.** The review skill reads the lock first. It folds `out/` with a tested fold. `lab-kit score {slug}` creates `score.yaml` with every prediction and rule id the lock names. The review fills each with a verdict, a value and the evidence it came from, and lists the numbers to record under `record`.
 8. **Reviewer pass.** An independent reviewer re-derives the scored numbers and returns a verdict. The commander records it, and `score.yaml` points to it.
 9. **Result.** For each number worth citing, folio's run skill follows `record-a-result` with `from: experiments/{slug}/score.yaml#<name>`, and writes `R-n`. Its number, baseline, bound, evidence path, re-derive command and protocol come from that entry; its date is the day it is recorded. A result is permanent and writes no status. folio derives it: `live` until a newer result supersedes it or a retraction names it. A null or a fired kill rule is a result too.
 10. **Claim.** If the lab wants to say something, the write skill adds or revises a claim `C-n` citing its results.
@@ -138,7 +137,6 @@ A result that is not promoted is recorded too: a journal entry about the protoco
 | `lab-score-exact` | A `score.yaml` names the lock's hash. Its `scores` list exactly the locked protocol's prediction ids (`P1`...) and decision-rule ids (`D1`...), no more and no fewer. Each has an allowed verdict and an existing evidence path. |
 | `lab-ids-resolve` | Every id cited in a lab file (state, missions, lock records, runs, scores) resolves to a document in the library. |
 | `lab-frozen-intact` | Every surface listed under `frozen:` matches its hash in `.lab/frozen.sha256`. |
-| `lab-selftest` | Every script in `experiments/*/bin/` and under `tools:` passes `--selftest`. |
 | `lab-mission-approved` | Every mission file has status `draft`, `active` or `concluded`. An `active` or `concluded` mission records `approved`, naming who and a date. No run names a draft mission, and `ops/STATE.md` names no draft as the active mission. Every standing budget has grants, each with a positive `amount` and an `approved` naming who and a date. A mission's `budget` names a budget that exists; past draft, such a mission records a numeric `cap`; and what the missions under a budget commit fits inside its amount. |
 | `lab-spend-recorded` | A run marked as spending names a mission that records the operator's approval and a cap, and its recorded spend is within the cap. |
 | `lab-append-only` | Lab files only: committed mission log entries, standing budget grants and units, lock records and run records are unchanged in later commits; a mission file or a budget is never deleted. A run record committed while its run was going may later fill in `ended`, `exit` and `spent`, each once: nothing else in it changes, and a closing field once set never changes again. Journal entries and results are folio's `permanent` check. |
@@ -147,9 +145,9 @@ A result that is not promoted is recorded too: a journal entry about the protoco
 | `lab-scored-reported` | Every scored experiment has a report citing its results, or a journal entry about its protocol saying why not (warning). |
 | `lab-work-stored` | When `lab.yaml` names a `store:`, every ended run with a `work.sha256` has a `store.json`: its raw output was published (warning). |
 
-The gate checks that the record is consistent. It does not check that the record is honest. That is the reviewer's job.
+The gate checks that the record is consistent. It does not check that the record is honest. That is the reviewer's job. Nor does it test the lab's code: the lab's own gate runs the lab's test suite beside `lab-kit check`, and an experiment's command calls that tested code.
 
-lab-kit runs every selftest, re-derive command and run from the lab root with `PYTHONDONTWRITEBYTECODE=1`, so no bytecode lands in a frozen surface. A run counts as ended for `lab-evidence-sealed` whatever its exit code; for `lab-result-grounded` it must have exited 0.
+lab-kit runs every re-derive command and run from the lab root with `PYTHONDONTWRITEBYTECODE=1`, so no bytecode lands in a frozen surface. A run counts as ended for `lab-evidence-sealed` whatever its exit code; for `lab-result-grounded` it must have exited 0.
 
 ## 6. The `lab-kit` command
 

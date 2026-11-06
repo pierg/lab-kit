@@ -14,7 +14,7 @@ from folio.library import Library
 from .errors import LabError
 
 LAB_YAML = "lab.yaml"
-_KEYS = ("lab-kit", "library", "front", "frozen", "tools", "rederive_timeout", "store")
+_KEYS = ("lab-kit", "library", "front", "frozen", "rederive_timeout", "store")
 
 
 @dataclass
@@ -23,7 +23,6 @@ class Settings:
     library: str
     front: str | None
     frozen: list[str]
-    tools: list[str]
     rederive_timeout: int
     store: str | None = None
 
@@ -92,6 +91,9 @@ def find_root(start: Path) -> Path:
 def parse_settings(raw: Any, where: str) -> Settings:
     if not isinstance(raw, dict):
         raise LabError(f"{where}: must be a mapping")
+    if "tools" in raw:
+        raise LabError(f"{where}: `tools` was removed in lab-kit 0.5.0, which no longer runs scripts' "
+                       "--selftest; delete the key and test those scripts in the lab's own test suite")
     unknown = sorted(set(raw) - set(_KEYS))
     if unknown:
         raise LabError(f"{where}: unknown key(s) {', '.join(unknown)}; the keys are {', '.join(_KEYS)}")
@@ -105,7 +107,7 @@ def parse_settings(raw: Any, where: str) -> Settings:
     if front is not None and not isinstance(front, str):
         raise LabError(f"{where}: `front` must be a document id")
     lists = {}
-    for key in ("frozen", "tools"):
+    for key in ("frozen",):
         value = raw.get(key) or []
         if not isinstance(value, list) or not all(isinstance(v, str) and v for v in value):
             raise LabError(f"{where}: `{key}` must be a list of paths from the lab root")
@@ -119,7 +121,7 @@ def parse_settings(raw: Any, where: str) -> Settings:
     store = raw.get("store")
     if store is not None and (not isinstance(store, str) or not Path(store).is_absolute()):
         raise LabError(f"{where}: `store` must be an absolute path, such as /labs/<lab>")
-    return Settings(version, library, front or None, lists["frozen"], lists["tools"], timeout, store or None)
+    return Settings(version, library, front or None, lists["frozen"], timeout, store or None)
 
 
 def load_at(root: Path) -> Lab:

@@ -55,7 +55,7 @@ No defensive fallbacks. No silent degradation. An arm whose tool fails is invali
 
 An apparatus failure is a result to report, not a thing to patch around. Judged, not checked.
 
-Every script ships a `--selftest`, and the gate runs it. Checked by `lab-selftest`.
+Every piece of code a run executes is tested by the lab's own test suite, and the lab's gate runs it. lab-kit runs no lab code in its checks: it checks the record, the lab tests its code. Judged, not checked.
 
 Every fold is tested against a planted case with a known answer. A fold that looks fine can still be blind to a renamed field. Judged, not checked.
 

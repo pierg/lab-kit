@@ -1,18 +1,15 @@
-"""Checks on the lab's own files: ids, frozen surfaces, selftests, spend, history, method and state."""
+"""Checks on the lab's own files: ids, frozen surfaces, spend, history, method and state."""
 
 from __future__ import annotations
 
 import json
 import re
-import subprocess
-import sys
 from pathlib import Path
 from typing import Any
 
 from folio.checks.rules import measurements
 
 from .. import __version__, budgets, data, frozen, gitlog, ops, records
-from ..records import script_env
 from ..errors import LabError
 from ..lab import Lab
 from .base import Reporter
@@ -110,49 +107,6 @@ def frozen_intact(lab: Lab, rep: Reporter) -> None:
                 rep.add(path, f"was added to frozen surface `{surface}` after it was frozen")
             elif mine[path] != actual[path]:
                 rep.add(path, f"changed: frozen surface `{surface}` is never edited in place")
-
-
-def _command(path: Path) -> list[str] | None:
-    if path.suffix == ".py":
-        return [sys.executable, str(path)]
-    if path.suffix == ".sh":
-        return ["bash", str(path)]
-    if path.stat().st_mode & 0o111:
-        return [str(path)]
-    return None
-
-
-def scripts(lab: Lab) -> list[Path]:
-    found: list[Path] = []
-    for slug in lab.experiment_slugs():
-        folder = lab.experiments / slug / "bin"
-        if folder.is_dir():
-            found.extend(p for p in sorted(folder.iterdir())
-                         if p.is_file() and not p.name.startswith(".") and p.suffix not in (".pyc", ".md"))
-    found.extend(lab.root / t for t in lab.settings.tools)
-    return found
-
-
-def selftest(lab: Lab, rep: Reporter) -> None:
-    """Every script in experiments/*/bin/ and under `tools:` passes --selftest."""
-    for path in scripts(lab):
-        where = lab.rel(path) if path.exists() else path.relative_to(lab.root).as_posix()
-        if not path.is_file():
-            rep.add("lab.yaml", f"tool `{where}` does not exist")
-            continue
-        command = _command(path)
-        if command is None:
-            rep.add(where, "is neither a .py or .sh script nor executable, so it cannot run --selftest")
-            continue
-        try:
-            done = subprocess.run([*command, "--selftest"], cwd=lab.root, capture_output=True, text=True,
-                                  timeout=lab.settings.rederive_timeout, check=False, env=script_env())
-        except subprocess.TimeoutExpired:
-            rep.add(where, f"--selftest ran past {lab.settings.rederive_timeout}s")
-            continue
-        if done.returncode != 0:
-            tail = (done.stderr.strip() or done.stdout.strip()).splitlines()[-1:] or [""]
-            rep.add(where, f"--selftest exited {done.returncode}: {tail[0]}".rstrip(": "))
 
 
 def mission_approved(lab: Lab, rep: Reporter) -> None:

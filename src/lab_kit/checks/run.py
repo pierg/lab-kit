@@ -23,7 +23,6 @@ CHECKS: tuple[LabCheck, ...] = (
     LabCheck("lab-score-exact", "error", results.score_exact),
     LabCheck("lab-ids-resolve", "error", files.ids_resolve),
     LabCheck("lab-frozen-intact", "error", files.frozen_intact),
-    LabCheck("lab-selftest", "error", files.selftest),
     LabCheck("lab-mission-approved", "error", files.mission_approved),
     LabCheck("lab-spend-recorded", "error", files.spend_recorded),
     LabCheck("lab-append-only", "error", files.append_only),

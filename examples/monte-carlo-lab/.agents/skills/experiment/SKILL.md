@@ -30,7 +30,7 @@ You take one question from a draft protocol to a finished run with its evidence 
 7. Fail loud. An arm whose tool fails is invalid, never downgraded. Undecidable is not a pass. Judged, not checked.
 8. Name every move the agent under test may make, under the protocol's allowed moves. A move the list does not name is one it may never use. The section is checked by the protocol genre's required parts; its completeness is judged.
 9. No live spend without the operator's word, recorded in a mission with a cap. Checked by `lab-spend-recorded`.
-10. Every script in `bin/` has a `--selftest`. Checked by `lab-selftest`.
+10. The code a run executes is tested by the lab's own test suite. Prefer a command that calls the lab's own tested code (its package or its tools) over a script written for one experiment; keep in `bin/` only what is particular to this experiment, and test it there too. Judged, not checked.
 11. Evidence is committed once, at the end of the run. Scratch and logs stay out of git. Checked by `lab-evidence-sealed`; the rest is judged.
 12. Every document goes through the write skill. You never write one by hand. Checked by `folio check`.
 
@@ -45,9 +45,9 @@ You take one question from a draft protocol to a finished run with its evidence 
    - the decision rules `D1`..., with the kill rule marked `(kill)`;
    - the predictions `P1`..., each with a confidence;
    - what it cannot show.
-2. **Make its folder.** Run `lab-kit experiment <slug>`. Put the lab's scripts in `experiments/<slug>/bin/`, each with a `--selftest`. Run `lab-kit check --only lab-selftest`.
+2. **Make its folder.** Run `lab-kit experiment <slug>`. The run's command calls the lab's own tested code; anything particular to this experiment goes in `experiments/<slug>/bin/`, with its tests in the lab's suite. An experiment that needs nothing of its own leaves `bin/` empty. Run the lab's tests.
 3. **Review the draft.** Send a reviewer with fresh context. Fold its points into the draft through the write skill. A protocol is cheap to fix before the lock and impossible to fix after.
-4. **Lock.** Commit `bin/` first: the lock hashes it, and `lab-lock-intact` fails if it changes after. Through the write skill, set the protocol's status to `locked`. Run `lab-kit lock <slug>`. Record it: `folio journal add --title .. --description .. --body .. --kind lock --about <slug>,<Q-n>`. Run `folio index`, then `lab-kit check`. Commit exactly the protocol, `lock.json`, the `lock` journal entry and `.folio/` together; that commit is the lock. From here folio's `frozen` check and `lab-lock-intact` hold it.
+4. **Lock.** Commit `bin/` and the code the command calls first: the lock hashes `bin/` and records the commit, and `lab-lock-intact` fails if `bin/` changes after. The lab's code outside `bin/` may change later; the lock's commit says which version the run used, so a protocol that needs it fixed pins it by commit. Through the write skill, set the protocol's status to `locked`. Run `lab-kit lock <slug>`. Record it: `folio journal add --title .. --description .. --body .. --kind lock --about <slug>,<Q-n>`. Run `folio index`, then `lab-kit check`. Commit exactly the protocol, `lock.json`, the `lock` journal entry and `.folio/` together; that commit is the lock. From here folio's `frozen` check and `lab-lock-intact` hold it.
 5. **De-risk.** Run the token-free stages first, with `lab-kit run`. Fix the apparatus only before the lock. After it, an apparatus fault ends the run as invalid.
 6. **Launch.** Run `lab-kit run <slug> -- <command>`. Add `--spend --mission <file>` for a run that spends. Watch it at once: arm one watcher on its log that fires on the end marker or an error signature. A silent launch failure can waste a whole night.
 7. **Supervise.** Write a journal entry of kind `run` about the protocol for each launch, checkpoint, surprise and termination, with `folio journal add`. Keep each entry to what changed. Record a deviation the moment you see it. Commit each entry with `.folio/` after `folio index`; never stage the run's working files.

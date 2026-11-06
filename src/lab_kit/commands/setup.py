@@ -26,7 +26,6 @@ lab-kit: {version}               # the version this lab is checked with
 library: {library}                # where folio.yaml is; "." for the root
 front:                       # the front door's id: a project document
 frozen: []                   # surfaces never edited in place; record each with `lab-kit freeze`
-tools: []                    # lab-wide scripts; each must pass --selftest
 rederive_timeout: 120        # seconds per re-derive command
 """
 

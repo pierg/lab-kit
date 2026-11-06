@@ -138,11 +138,19 @@ def test_frozen_intact(make_lab, lab_kit) -> None:
     assert code == 1 and named(found, "lab-frozen-intact")
 
 
-def test_selftest(make_lab, lab_kit) -> None:
+def test_lab_code_is_not_run(make_lab, lab_kit) -> None:
+    # The lab tests its own code; lab-kit checks only the record, so a script that fails when run passes.
     root = make_lab()
-    (root / EXP / "bin" / "broken.py").write_text("raise SystemExit('no selftest here')\n", encoding="utf-8")
-    code, found = problems(lab_kit)
-    assert code == 1 and named(found, "lab-selftest")
+    (root / EXP / "bin" / "broken.py").write_text("raise SystemExit('never run by the gate')\n", encoding="utf-8")
+    assert problems(lab_kit) == (0, [])
+
+
+def test_tools_key_is_refused(make_lab, lab_kit) -> None:
+    root = make_lab()
+    with (root / "lab.yaml").open("a", encoding="utf-8") as handle:
+        handle.write("tools: [tools/fold.py]\n")
+    code, out = lab_kit("check")
+    assert code != 0 and "`tools` was removed in lab-kit 0.5.0" in out
 
 
 def test_spend_recorded(make_lab, lab_kit) -> None:
@@ -292,7 +300,7 @@ def test_scored_reported(make_lab, lab_kit) -> None:
 @pytest.mark.parametrize("name", [
     "lab-lock-recorded", "lab-lock-intact", "lab-run-after-lock", "lab-roster-frozen", "lab-evidence-sealed",
     "lab-rederive", "lab-result-grounded", "lab-score-exact", "lab-ids-resolve", "lab-frozen-intact",
-    "lab-selftest", "lab-spend-recorded", "lab-append-only", "lab-method-current", "lab-state-pointer",
+    "lab-spend-recorded", "lab-append-only", "lab-method-current", "lab-state-pointer",
     "lab-scored-reported",
 ])
 def test_every_check_is_registered(name) -> None:
