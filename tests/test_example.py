@@ -18,7 +18,7 @@ def test_check_json_and_only(make_lab, lab_kit) -> None:
     make_lab()
     code, out = lab_kit("check", "--json")
     assert code == 0 and json.loads(out) == {"problems": [], "errors": 0, "warnings": 0}
-    code, out = lab_kit("check", "--only", "lab-selftest", "--only", "folio")
+    code, out = lab_kit("check", "--only", "lab-frozen-intact", "--only", "folio")
     assert code == 0, out
     code, out = lab_kit("check", "--only", "lab-nothing")
     assert code == 2 and "no check named lab-nothing" in out

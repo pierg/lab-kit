@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0
+
+- lab-kit no longer runs a lab's code to check it. The `lab-selftest` check is gone, and with it the `tools:` key in `lab.yaml`: a lab that still has the key gets an error saying to delete it. lab-kit checks the record; the lab tests its code in its own test suite, which its gate runs beside `lab-kit check`.
+- The method (DISCIPLINE §7) and the experiment and review skills say so: an experiment's command calls the lab's own tested code, `bin/` holds only what is particular to one experiment and may be empty, and a fold is tested on a planted case in the lab's suite. The lock still hashes `bin/` and records the commit, which says which version of the lab's code a run used.
+- Locks and run records are unchanged.
+
 ## 0.4.0
 
 - The run store. `store:` in `lab.yaml` names one shared filesystem, such as `/labs/<lab>`, where every finished run's raw output goes. When a run ends, `lab-kit run` publishes `work/` and `run.log` to the store at the run folder's own path: a copy into `.incoming/`, checked against `work.sha256` (nothing missing, extra or changed), renamed into place, made read-only. It then writes `store.json` beside `run.json` and deletes the local copy. A run in the store is never overwritten. A failed publish is noted in `run.log`, keeps the local copy and never changes the run's exit code.

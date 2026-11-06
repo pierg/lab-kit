@@ -27,7 +27,7 @@ You turn a finished experiment's evidence into a scorecard against its lock, the
 3. Score exactly what the lock names: every prediction and every rule, no more and no fewer. Checked by `lab-score-exact`.
 4. A badly chosen rule is still the rule. Record the flaw as a lesson; never rescore. Judged, not checked.
 5. A miss is a result. Nulls, fired kill rules and invalid arms are recorded at the same length as wins. Checked in part by `lab-scored-reported`; the rest is judged.
-6. Every fold script has a `--selftest` on a planted case with a known answer. Checked by `lab-selftest`.
+6. Every fold is tested against a planted case with a known answer, in the lab's own test suite. Judged, not checked.
 7. You score; the reviewer gates. Nothing is recorded as a result before a reviewer pass. Checked by `lab-result-grounded`.
 8. Every document goes through folio: results and reports through workflows that folio's run skill follows, the rest through the write skill. Checked by `folio check`.
 9. A report is frozen once `live`, and a result is permanent. A new result earns a new report, never a rewrite of an old one. folio shows a banner on the old report when a result it cites is superseded or retracted. Checked by folio's `frozen` and `permanent` checks.
@@ -36,7 +36,7 @@ You turn a finished experiment's evidence into a scorecard against its lock, the
 
 ## Steps
 
-1. **Fold.** Run the experiment's fold script over each finished run's `out/`. If none exists, write one in `bin/` with a `--selftest` on a planted case, and land it as an instrument change. Never fold by eye.
+1. **Fold.** Run the experiment's fold script over each finished run's `out/`. If none exists, write one, with a test on a planted case in the lab's suite, and land it as an instrument change. Never fold by eye.
 2. **Score.** Run `lab-kit score <slug>`. Under `scores`, for every prediction `P1`..., fill HIT, MISS or INDETERMINATE, with the value and the evidence file it came from. For every decision rule `D1`..., say whether it fired, the kill rule included. Run `lab-kit check --only lab-score-exact`.
 3. **Gate.** Ask the commander for a reviewer pass, or send one yourself if you are the commander. The reviewer re-derives the scored numbers. Record its verdict where the mission keeps verdicts, and point `score.yaml` to it: `review.verdict` and `review.record`.
 4. **Choose what to record.** For each scored number, ask: is this a citable fact? A null counts. Add each one to `score.yaml` under `record`, keyed by a short name. Give it the result's fields: `title`, `protocol`, `number`, `baseline`, `bound`, `evidence` and `rederive`. The `number` is exactly what the re-derive command prints, and the evidence lies inside the run. Name every number you leave out.

@@ -65,10 +65,6 @@ Anything about files with no line ending.
 COUNTER = """\
 import os, sys
 from pathlib import Path
-if sys.argv[1:] == ["--selftest"]:
-    assert len("a\\nb\\n".splitlines()) == 2
-    print("selftest passed")
-    raise SystemExit(0)
 if sys.argv[1:2] == ["--fold"]:
     print(sum(1 for _ in Path(sys.argv[2]).read_text().splitlines()))
     raise SystemExit(0)
@@ -154,7 +150,6 @@ def test_init_to_recorded_result(tmp_path: Path, monkeypatch, lab_kit, folio) ->
 
     assert lab_kit("experiment", "line-count")[0] == 0
     (root / "experiments/line-count/bin/count.py").write_text(COUNTER, encoding="utf-8")
-    assert lab_kit("check", "--only", "lab-selftest")[0] == 0
 
     # No run and no lock record before the lock.
     code, out = lab_kit("run", "line-count", "--", "python3", "x.py")
