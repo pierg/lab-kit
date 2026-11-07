@@ -34,7 +34,7 @@
     "path": "content/journal/2026/2026-10-04-concluded-the-pi-error-scaling-mission.md",
     "status": "live",
     "tags": [],
-    "text": "The mission landed its three milestones. The conclusion is in ops/missions/2026-10-04-pi-error-scaling.md.",
+    "text": "The mission landed its three milestones. The conclusion is in missions/26-10-04-m_pi-error-scaling.md.",
     "title": "Concluded the pi error scaling mission",
     "url": "/content/journal/2026/2026-10-04-concluded-the-pi-error-scaling-mission.md"
   },
@@ -58,7 +58,7 @@
     "path": "content/journal/2026/2026-10-04-locked-the-pi-error-scaling-protocol.md",
     "status": "live",
     "tags": [],
-    "text": "Locked after a draft review found no defect. The lock record is experiments/pi-error-scaling/lock.json.",
+    "text": "Locked after a draft review found no defect. The lock record is experiments/26-10-04-e_pi-error-scaling/lock.json.",
     "title": "Locked the pi error scaling protocol",
     "url": "/content/journal/2026/2026-10-04-locked-the-pi-error-scaling-protocol.md"
   },
@@ -70,7 +70,7 @@
     "path": "content/journal/2026/2026-10-04-opened-the-pi-error-scaling-mission.md",
     "status": "live",
     "tags": [],
-    "text": "The operator asked whether the error of the Monte Carlo estimate of pi falls as one over the square root of the sample size. The mission file is ops/missions/2026-10-04-pi-error-scaling.md.",
+    "text": "The operator asked whether the error of the Monte Carlo estimate of pi falls as one over the square root of the sample size. The mission file is missions/26-10-04-m_pi-error-scaling.md.",
     "title": "Opened the pi error scaling mission",
     "url": "/content/journal/2026/2026-10-04-opened-the-pi-error-scaling-mission.md"
   },
@@ -94,7 +94,7 @@
     "path": "content/journal/2026/2026-10-04-ran-the-pi-error-scaling-protocol.md",
     "status": "live",
     "tags": [],
-    "text": "Run 20261004-231629 wrote experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv, 500 rows, and exited 0 in under a second. No deviation.",
+    "text": "Run 26-10-04-2316-r_zlk7 wrote runs/26-10-04-e_pi-error-scaling/26-10-04-2316-r_zlk7/out/estimates.tsv, 500 rows, and exited 0 in under a second. No deviation.",
     "title": "Ran the pi error scaling protocol",
     "url": "/content/journal/2026/2026-10-04-ran-the-pi-error-scaling-protocol.md"
   },
@@ -106,7 +106,7 @@
     "path": "content/journal/2026/2026-10-04-recorded-r-1.md",
     "status": "live",
     "tags": [],
-    "text": "Recorded R-1 from the pi-error-scaling score, after a reviewer pass. The evidence is experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv. It says the error falls close to the 1/sqrt(n) rate.",
+    "text": "Recorded R-1 from the pi-error-scaling score, after a reviewer pass. The evidence is runs/26-10-04-e_pi-error-scaling/26-10-04-2316-r_zlk7/out/estimates.tsv. It says the error falls close to the 1/sqrt(n) rate.",
     "title": "Recorded R-1",
     "url": "/content/journal/2026/2026-10-04-recorded-r-1.md"
   },

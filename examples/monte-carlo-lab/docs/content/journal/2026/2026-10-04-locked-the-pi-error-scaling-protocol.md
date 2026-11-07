@@ -7,4 +7,4 @@ kind: lock
 about: [pi-error-scaling, Q-1]
 ---
 
-Locked after a draft review found no defect. The lock record is experiments/pi-error-scaling/lock.json.
+Locked after a draft review found no defect. The lock record is experiments/26-10-04-e_pi-error-scaling/lock.json.

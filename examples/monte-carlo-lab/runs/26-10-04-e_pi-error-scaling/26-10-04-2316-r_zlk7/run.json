@@ -1,0 +1,43 @@
+{
+  "experiment": "26-10-04-e_pi-error-scaling",
+  "id": "26-10-04-2316-r_zlk7",
+  "protocol": "pi-error-scaling",
+  "lock": "e1c5d07e7197f3bdcaa68881d18bff4399f0f2383b3a09215b55b090688c1afc",
+  "config": {
+    "language": "python 3, standard library only",
+    "substrate": "substrate/estimator.py",
+    "generator": "random.Random, one per estimate",
+    "sizes": [
+      64,
+      256,
+      1024,
+      4096,
+      16384
+    ],
+    "repeats": 100,
+    "seed": "size * 1000 + repeat",
+    "truth": "math.pi",
+    "budget": "none (token-free)"
+  },
+  "mission": "missions/26-10-04-m_pi-error-scaling.md",
+  "spend": false,
+  "command": [
+    "python3",
+    "experiments/pi-error-scaling/bin/sample.py"
+  ],
+  "started": "2026-10-04T23:16:29+00:00",
+  "ended": "2026-10-04T23:16:29+00:00",
+  "exit": 0,
+  "pid": 9402,
+  "spent": null,
+  "host": null,
+  "migrated": {
+    "from": "experiments/pi-error-scaling/runs/20261004-231629",
+    "on": "2026-11-07T02:11:44+00:00",
+    "by": "lab-kit 0.6.0"
+  },
+  "files": {
+    "out/estimates.tsv": "b2a11d7c58c0a68f6b580161f7195c56a64ea2ecc5e1eab9240d4a3dca6261e5"
+  },
+  "seal": "55b83339a89506c95856791636780352b64e4a3c7cc1ea49e94d3aa99a129dd5"
+}

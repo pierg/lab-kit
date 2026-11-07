@@ -9,10 +9,10 @@ import pytest
 
 from conftest import commit
 
-EXP = "experiments/pi-error-scaling"
-RUN = f"{EXP}/runs/20261004-231629"
+EXP = "experiments/26-10-04-e_pi-error-scaling"
+RUN = "runs/26-10-04-e_pi-error-scaling/26-10-04-2316-r_zlk7"
 PROTOCOL = "docs/content/protocols/pi-error-scaling.md"
-MISSION = "ops/missions/2026-10-04-pi-error-scaling.md"
+MISSION = "missions/26-10-04-m_pi-error-scaling.md"
 
 
 def edit(path: Path, old: str, new: str) -> None:
@@ -87,7 +87,7 @@ def test_evidence_sealed(make_lab, lab_kit) -> None:
 
 def test_orphaned_run_is_a_warning(make_lab, lab_kit) -> None:
     def orphan(root: Path) -> None:
-        folder = root / EXP / "runs" / "20261004-010000"
+        folder = root / "runs" / "26-10-04-e_pi-error-scaling" / "26-10-04-0100-r_orph"
         (folder / "out").mkdir(parents=True)
         data = json.loads((root / RUN / "run.json").read_text(encoding="utf-8"))
         data.update(started="2026-10-04T01:00:00+00:00", ended=None, exit=None, pid=None)
@@ -183,7 +183,7 @@ def test_mission_status_is_known(make_lab, lab_kit) -> None:
 
 
 def test_nothing_runs_under_a_draft_mission(make_lab, lab_kit) -> None:
-    draft = "ops/missions/2026-10-05-next.md"
+    draft = "missions/26-10-05-m_next.md"
 
     def plan(root: Path) -> None:
         (root / draft).write_text("---\ntitle: Next\nstatus: draft\nrests_on: [Q-1]\ncap: 0\n---\n\n"
@@ -213,49 +213,10 @@ def test_append_only_reads_history(make_lab, lab_kit) -> None:
     assert code == 1 and "after its first commit" in named(found, "lab-append-only")[0]["message"]
 
 
-def open_run(root: Path) -> None:
-    """The example run as it was while still going: its closing fields not yet filled in."""
-    edit_json(root / RUN / "run.json", ended=None, exit=None, spent=None)
-
-
-def test_append_only_allows_a_run_closed_after_commit(make_lab, lab_kit) -> None:
-    root = make_lab(open_run)
-    edit_json(root / RUN / "run.json", ended="2026-10-04T23:16:29+00:00")
-    commit(root, "the run ended")
-    edit_json(root / RUN / "run.json", exit=0, spent=0.5)
-    assert problems(lab_kit, "lab-append-only") == (0, [])
-    commit(root, "its exit and spend")
-    assert problems(lab_kit, "lab-append-only") == (0, [])
-
-
-@pytest.mark.parametrize("change, message", [
-    ({"exit": 1}, "its `exit` was changed after it was set"),
-    ({"ended": None}, "its `ended` was changed after it was set"),
-    ({"pid": 1}, "was changed outside ended, exit, spent"),
-    ({"note": "x"}, "was changed outside ended, exit, spent"),
-])
-def test_append_only_refuses_a_closed_run_changed_again(make_lab, lab_kit, change, message) -> None:
-    root = make_lab(open_run)
-    edit_json(root / RUN / "run.json", ended="2026-10-04T23:16:29+00:00", exit=0)
-    commit(root, "the run ended")
-    edit_json(root / RUN / "run.json", **change)
-    code, found = problems(lab_kit, "lab-append-only")
-    assert code == 1 and message in named(found, "lab-append-only")[0]["message"]
-
-
-def test_append_only_refuses_closing_fields_rewritten(make_lab, lab_kit) -> None:
-    # The example run was committed already ended: its closing fields are set and never change.
-    root = make_lab()
-    edit_json(root / RUN / "run.json", ended="2026-10-05T00:00:00+00:00")
-    code, found = problems(lab_kit, "lab-append-only")
-    assert code == 1 and "its `ended` was changed" in named(found, "lab-append-only")[0]["message"]
-
-
-def test_append_only_refuses_a_deleted_run(make_lab, lab_kit) -> None:
-    root = make_lab(open_run)
-    (root / RUN / "run.json").unlink()
-    code, found = problems(lab_kit, "lab-append-only")
-    assert code == 1 and "was deleted" in named(found, "lab-append-only")[0]["message"]
+def test_a_run_record_changed_after_its_seal(make_lab, lab_kit) -> None:
+    make_lab(lambda r: edit_json(r / RUN / "run.json", exit=1))
+    code, found = problems(lab_kit, "lab-evidence-sealed")
+    assert code == 1 and "changed after the run was sealed" in named(found, "lab-evidence-sealed")[0]["message"]
 
 
 def test_append_only_allows_a_new_log_entry(make_lab, lab_kit) -> None:
@@ -275,7 +236,7 @@ def test_method_current(make_lab, lab_kit) -> None:
 
 
 def test_state_pointer(make_lab, lab_kit) -> None:
-    make_lab(lambda r: edit(r / "ops/STATE.md", "Active mission: none", "Active mission: ops/missions/gone.md"))
+    make_lab(lambda r: edit(r / "ops/STATE.md", "Active mission: none", "Active mission: missions/gone.md"))
     code, found = problems(lab_kit, "lab-state-pointer")
     assert code == 0 and named(found, "lab-state-pointer", "warning")
 

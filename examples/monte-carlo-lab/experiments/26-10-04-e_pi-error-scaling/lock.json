@@ -1,0 +1,11 @@
+{
+  "protocol": "pi-error-scaling",
+  "path": "docs/content/protocols/pi-error-scaling.md",
+  "sha256": "e1c5d07e7197f3bdcaa68881d18bff4399f0f2383b3a09215b55b090688c1afc",
+  "locked": "2026-10-04T23:16:15+00:00",
+  "migrated": {
+    "on": "2026-11-07T02:11:45+00:00",
+    "by": "lab-kit 0.6.0",
+    "why": "paths and ids renamed to the 0.6.0 layout"
+  }
+}

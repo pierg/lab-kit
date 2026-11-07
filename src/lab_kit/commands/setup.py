@@ -1,4 +1,4 @@
-"""`lab-kit init`: lab.yaml, ops/, experiments/, .lab/, the skills and the agent roles, and the lab pack on.
+"""`lab-kit init`: lab.yaml, missions/, ops/, experiments/, runs/, .lab/, the skills and the agent roles, and the lab pack on.
 
 Before a folio library exists, `lab-kit init` installs only the method, the skills and the roles,
 so the set-up-lab skill is there to read: it creates the library and runs `lab-kit init --library` again.
@@ -18,7 +18,7 @@ from folio.errors import FolioError
 from .. import __version__, data
 from ..errors import LabError
 from ..frozen import FROZEN
-from ..lab import LAB_YAML
+from ..lab import FETCHED, LAB_YAML, RUNNING
 from ..ops import MISSIONS, STATE
 
 _LAB_YAML = """\
@@ -67,6 +67,23 @@ def install(root: Path) -> list[str]:
     return changed
 
 
+IGNORED = (f"/{RUNNING}/", f"/{FETCHED}/", "/.lab/migrating/")  # runs on this machine: never committed
+
+
+def ignore_runs(root: Path) -> list[str]:
+    """Add the local run folders to the lab's .gitignore."""
+    path = root / ".gitignore"
+    text = path.read_text(encoding="utf-8") if path.is_file() else ""
+    have = {line.strip() for line in text.splitlines()}
+    missing = [line for line in IGNORED if line not in have]
+    if not missing:
+        return []
+    block = ("" if not text or text.endswith("\n") else "\n") + \
+        "# lab-kit: a run's folder while it runs here, and runs fetched from the store\n" + "\n".join(missing) + "\n"
+    path.write_text(text + block, encoding="utf-8")
+    return [f"added {', '.join(missing)} to .gitignore"]
+
+
 def _write_new(root: Path, rel: str, text: str) -> list[str]:
     path = root / rel
     if path.exists():
@@ -111,6 +128,14 @@ def init(root: Path, library: str | None) -> list[str]:
     changed.extend(_write_new(root, f"{MISSIONS}/.gitkeep", ""))
     changed.extend(_write_new(root, "experiments/.gitkeep", ""))
     changed.extend(_write_new(root, FROZEN, ""))
+    changed.extend(ignore_runs(root))
+    from .. import lab as lab_mod
+    from .. import store as store_mod
+    lab = lab_mod.load_at(root)
+    if lab.settings.store:
+        changed.extend(store_mod.ensure_link(lab))
+    elif not (root / lab_mod.RUNS).exists():
+        changed.extend(_write_new(root, f"{lab_mod.RUNS}/.gitkeep", ""))
     changed.extend(install(root))
     if "lab" not in lib.charter.pack_names:
         lines = pack_on(lib, "lab").splitlines()

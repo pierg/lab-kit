@@ -8,7 +8,7 @@ from .. import protocol as protocol_mod
 from .. import records
 from .. import rederive as rederive_mod
 from ..errors import LabError
-from ..lab import Lab
+from ..lab import Lab, protocol_slug
 from .base import Reporter
 
 SCORE_KEYS = ("protocol", "lock", "review", "scores", "record")
@@ -20,9 +20,19 @@ def _doc_path(lab: Lab, doc) -> str:
     return lab.doc_path(doc.meta_file.path) if doc.meta_file else doc.key
 
 
+def needs_runs(lab: Lab, doc) -> bool:
+    """Whether a result reads runs/ and runs/ does not resolve here, so it cannot be checked here."""
+    if lab.runs_here():
+        return False
+    said = f"{doc.meta.get('evidence', '')} {doc.meta.get('rederive', '')}"
+    return "runs/" in said
+
+
 def rederive(lab: Lab, rep: Reporter) -> None:
     """Every live result's re-derive command prints its number exactly."""
     for doc in rederive_mod.live_results(lab):
+        if needs_runs(lab, doc):
+            continue  # lab-evidence-sealed says runs/ is not here
         outcome = rederive_mod.run(lab, doc)
         if not outcome.ok:
             rep.add(_doc_path(lab, doc), f"{doc.id} does not re-derive: {outcome.detail}")
@@ -55,16 +65,22 @@ def review_passed(lab: Lab, score: dict) -> str | None:
 
 
 def _inside_finished_run(lab: Lab, slug: str, evidence: str) -> str | None:
-    """None when the evidence lies in the out/ folder of a finished run of this experiment, or why not."""
+    """None when the evidence lies in a finished run of this experiment, or why not."""
     parts = PurePosixPath(evidence).parts
-    if len(parts) < 6 or parts[:2] != ("experiments", slug) or parts[2] != "runs" or parts[4] != "out":
-        return f"its evidence `{evidence}` is not inside experiments/{slug}/runs/<run>/out/"
+    if len(parts) < 4 or parts[0] != "runs" or parts[1] != slug:
+        return f"its evidence `{evidence}` is not inside runs/{slug}/<run>/"
+    if not records.RUN_ID.match(parts[2]) and not lab.runs_here():
+        return f"its evidence names run `{parts[2]}`, which is not a run id (<YY-MM-DD-HHMM>-r_<4 characters>)"
+    if not lab.runs_here():
+        return None  # lab-evidence-sealed says runs/ is not here
     for run in records.runs(lab, slug):
-        if run.run_id == parts[3]:
+        if run.run_id == parts[2]:
             if run.state != "finished":
                 return f"its evidence is in run {run.run_id}, which is {run.state}, not finished"
+            if not (lab.root / evidence).exists():
+                return f"its evidence {evidence} does not exist in that run"
             return None
-    return f"its evidence names run {parts[3]}, which has no {records.RUN}"
+    return f"its evidence names run {parts[2]}, which has no {records.RUN}"
 
 
 def result_grounded(lab: Lab, rep: Reporter) -> None:
@@ -78,7 +94,7 @@ def result_grounded(lab: Lab, rep: Reporter) -> None:
             if proto is None or proto.status not in ("locked", "abandoned"):
                 rep.add(where, f"{doc.id} names protocol `{slug}`, which is not a locked protocol")
                 return
-            slug = proto.slug
+            slug = lab.experiment_for(proto.slug) or proto.slug
             if records.read_lock(lab, slug) is None:
                 rep.add(where, f"{doc.id} names protocol `{slug}`, which has no {records.LOCK}")
             why = _inside_finished_run(lab, slug, PurePosixPath(str(doc.meta.get("evidence", ""))).as_posix())
@@ -137,7 +153,7 @@ def score_exact(lab: Lab, rep: Reporter) -> None:
                 evidence = str(entry.get("evidence") or "")
                 if not evidence:
                     rep.add(path, f"{ident} names no evidence")
-                elif not (lab.root / evidence).exists():
+                elif not (lab.root / evidence).exists() and (lab.runs_here() or not evidence.startswith("runs/")):
                     rep.add(path, f"{ident} names evidence {evidence}, which does not exist")
         rep.guard(path, one)
 
@@ -148,8 +164,8 @@ def scored_reported(lab: Lab, rep: Reporter) -> None:
     for slug in lab.experiment_slugs():
         if not records.score_path(lab, slug).is_file():
             continue
-        proto = protocol_mod.find(lab, slug)
-        name = proto.slug if proto else slug
+        proto = protocol_mod.find(lab, protocol_slug(slug))
+        name = proto.slug if proto else protocol_slug(slug)
         results = [d for d in lib.documents if d.is_a("result")
                    and str(d.meta.get("protocol", "")).casefold() == name.casefold()]
         reported = any(

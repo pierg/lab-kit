@@ -1,0 +1,4 @@
+# kind	old	new
+mission	ops/missions/2026-10-04-pi-error-scaling.md	missions/26-10-04-m_pi-error-scaling.md
+experiment	pi-error-scaling	26-10-04-e_pi-error-scaling
+run	pi-error-scaling/20261004-231629	26-10-04-e_pi-error-scaling/26-10-04-2316-r_zlk7

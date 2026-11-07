@@ -1,4 +1,4 @@
-"""The operator's files: `ops/STATE.md`, the missions under `ops/missions/` and the standing budgets under
+"""The operator's files: `ops/STATE.md`, the missions under `missions/` and the standing budgets under
 `ops/budgets/`."""
 
 from __future__ import annotations
@@ -17,7 +17,9 @@ from .errors import LabError
 from .lab import Lab
 
 STATE = "ops/STATE.md"
-MISSIONS = "ops/missions"
+MISSIONS = "missions"          # <YY-MM-DD>-m_<slug>.md (before 0.6.0: ops/missions/<YYYY-MM-DD>-<slug>.md)
+OLD_MISSIONS = "ops/missions"
+MISSION_ID = re.compile(r"^\d{2}-\d{2}-\d{2}-m_[a-z0-9]+(?:-[a-z0-9]+)*$")
 BUDGETS = "ops/budgets"
 LOG_HEADING = re.compile(r"^## Log[ \t]*$", re.M)
 ACTIVE = re.compile(r"^\s*Active mission:\s*(.+?)\s*$", re.M | re.I)
@@ -153,6 +155,14 @@ def grants_of(text: str | None) -> tuple[list[Any], Any] | None:
 def mission_files(lab: Lab) -> list[Path]:
     folder = lab.root / MISSIONS
     return sorted(folder.glob("*.md")) if folder.is_dir() else []
+
+
+def mission_path(lab: Lab, ref: str) -> Path | None:
+    """A mission file by its path from the lab root or its id, or None when there is none."""
+    for candidate in (lab.root / ref, lab.root / MISSIONS / ref, lab.root / MISSIONS / f"{ref}.md"):
+        if candidate.is_file():
+            return candidate.resolve()
+    return None
 
 
 def read_mission(lab: Lab, path: Path) -> Mission:

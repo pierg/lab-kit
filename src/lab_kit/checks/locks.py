@@ -5,7 +5,7 @@ from __future__ import annotations
 from .. import protocol as protocol_mod
 from .. import records
 from ..errors import LabError
-from ..lab import Lab
+from ..lab import Lab, protocol_slug
 from .base import Reporter
 
 LOCKED_STATES = ("locked", "abandoned")
@@ -22,7 +22,7 @@ def lock_recorded(lab: Lab, rep: Reporter) -> None:
         def one(doc=doc, where=where) -> None:
             lock = records.read_lock(lab, doc.id)
             if lock is None:
-                rep.add(where, f"is locked but experiments/{doc.id}/{records.LOCK} does not exist; "
+                rep.add(where, f"is locked but no experiments/<YY-MM-DD>-e_{doc.id}/{records.LOCK} exists; "
                                f"run `lab-kit lock {doc.id}`")
             elif lock.protocol.casefold() != doc.id.casefold():
                 rep.add(lock.path, f"names protocol `{lock.protocol}`, not `{doc.id}`, the experiment it sits in")
@@ -72,10 +72,17 @@ def run_after_lock(lab: Lab, rep: Reporter) -> None:
     """Every run belongs to a locked experiment, records the lock's hash, and started after the lock."""
     for where in records.runs_without_record(lab):
         rep.add(where, f"is a run folder with no {records.RUN}")
-    for slug in lab.experiment_slugs():
-        def per_experiment(slug=slug) -> None:
+    by_experiment: dict[str, list[records.RunRecord]] = {}
+    for run in records.runs(lab):
+        by_experiment.setdefault(run.slug, []).append(run)
+    for slug, found in sorted(by_experiment.items()):
+        def per_experiment(slug=slug, found=found) -> None:
+            if not (lab.experiments / slug).is_dir():
+                for run in found:
+                    rep.add(run.path, f"belongs to experiments/{slug}/, which does not exist")
+                return
             lock = records.read_lock(lab, slug)
-            for run in records.runs(lab, slug):
+            for run in found:
                 data = run.data
                 if lock is None:
                     rep.add(run.path, f"belongs to experiment `{slug}`, which has no {records.LOCK}: "
@@ -94,27 +101,35 @@ def run_after_lock(lab: Lab, rep: Reporter) -> None:
                 if started < lock.locked:
                     rep.add(run.path, f"started at {data.get('started')}, before the lock at "
                                       f"{lock.data.get('locked')}")
-        rep.guard(f"experiments/{slug}", per_experiment)
+        rep.guard(f"runs/{slug}", per_experiment)
 
 
 def roster_frozen(lab: Lab, rep: Reporter) -> None:
     """Every run's configuration equals its locked protocol's pinned configuration."""
-    for slug in lab.experiment_slugs():
-        def per_experiment(slug=slug) -> None:
-            lock = records.read_lock(lab, slug)
-            proto = protocol_mod.find(lab, lock.protocol if lock else slug)
-            if proto is None:
+    pinned_by: dict[str, object] = {}
+    for run in records.runs(lab):
+        def one(run=run) -> None:
+            if run.slug not in pinned_by:
+                lock = records.read_lock(lab, run.slug)
+                proto = protocol_mod.find(lab, lock.protocol if lock else protocol_slug(run.slug))
+                pinned_by[run.slug] = (proto, protocol_mod.pinned_config(proto.text(), proto.path)) if proto else None
+            found = pinned_by[run.slug]
+            if found is None:
                 return
-            pinned = protocol_mod.pinned_config(proto.text(), proto.path)
-            for run in records.runs(lab, slug):
-                if run.data.get("config") != pinned:
-                    rep.add(run.path, f"its `config` differs from the yaml block under `## Pinned configuration` "
-                                      f"in {proto.path}: a run uses exactly the pinned configuration")
-        rep.guard(f"experiments/{slug}", per_experiment)
+            proto, pinned = found
+            if run.data.get("config") != pinned:
+                rep.add(run.path, f"its `config` differs from the yaml block under `## Pinned configuration` "
+                                  f"in {proto.path}: a run uses exactly the pinned configuration")
+        rep.guard(run.path, one)
 
 
 def evidence_sealed(lab: Lab, rep: Reporter) -> None:
-    """Every finished run's out/ matches its manifest; a run with no end and no live process is orphaned."""
+    """Every ended run's folder matches the seal in its run.json; a run with no end and no live process is
+    orphaned. Where runs/ does not resolve (the store is not mounted), the checks that read runs are skipped."""
+    if not lab.runs_here():
+        where = f"the store {lab.settings.store} is not mounted" if lab.settings.store else "there is no runs/ folder"
+        rep.warn("runs", f"does not resolve here ({where}), so the checks that read runs, their evidence, "
+                         "re-derive commands and spend were skipped; run the gate where runs/ resolves")
     for run in records.runs(lab):
         def one(run=run) -> None:
             state = run.state
@@ -124,31 +139,18 @@ def evidence_sealed(lab: Lab, rep: Reporter) -> None:
                 return
             if state == "running":
                 return
-            manifest_path = run.path.rsplit("/", 1)[0] + "/" + records.MANIFEST
-            if not run.manifest.is_file():
-                rep.add(manifest_path, "is missing for a run that ended")
-                return
-            recorded = records.parse_hashes(run.manifest.read_text(encoding="utf-8"), manifest_path)
-            actual = records.tree_hashes(run.out, run.out)
-            for name in sorted(set(recorded) | set(actual)):
-                if name not in actual:
-                    rep.add(manifest_path, f"lists out/{name}, which is gone")
-                elif name not in recorded:
-                    rep.add(manifest_path, f"does not list out/{name}, added after the run ended")
-                elif recorded[name] != actual[name]:
-                    rep.add(manifest_path, f"out/{name} changed after the run ended")
+            wrong = records.seal_problems(run.folder, run.data)
+            if wrong:
+                rep.add(run.path, "its folder does not match its seal: " + "; ".join(wrong[:5])
+                        + (f" (and {len(wrong) - 5} more)" if len(wrong) > 5 else ""))
         rep.guard(run.path, one)
 
 
-def work_stored(lab: Lab, rep: Reporter) -> None:
-    """With a store in lab.yaml, every ended run with a work.sha256 records that it was published (warning)."""
+def run_stored(lab: Lab, rep: Reporter) -> None:
+    """With a store in lab.yaml, no ended run is left on local disk (warning)."""
     if not lab.settings.store:
         return
-    from ..store import STORE_RECORD
-    for run in records.runs(lab):
-        if not run.ended or not (run.folder / records.WORK_MANIFEST).is_file():
-            continue
-        if not (run.folder / STORE_RECORD).is_file():
-            rep.warn(run.path.rsplit("/", 1)[0] + "/" + records.WORK_MANIFEST,
-                     f"its raw output was never published to the store {lab.settings.store}; "
-                     "`lab-kit publish --pending` publishes it, then commit store.json")
+    from ..store import pending
+    for run in pending(lab):
+        rep.warn(run.path, f"ended but is still on this machine, not in the store {lab.settings.store}; "
+                           "`lab-kit publish --pending` moves it")

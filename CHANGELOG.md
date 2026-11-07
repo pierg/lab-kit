@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0
+
+- One folder per run, outside git. A run is `runs/<experiment>/<YY-MM-DD-HHMM>-r_<4 characters>/` and holds everything it produced. lab-kit writes only `run.json` and `run.log` there; the rest is the experiment's own. `LAB_RUN` names the folder. `LAB_OUT`, `LAB_WORK` and `LAB_RUN_DIR` still work for one release.
+- The seal. When the command exits, `run.json` records every file's sha256 in `files`, and one hash over the whole record in `seal`. `MANIFEST.sha256`, `work.sha256` and `store.json` are gone. `lab-evidence-sealed` checks a run's folder and its record against the seal.
+- The store holds the runs. With `store:`, `runs/` is a committed link to `<store>/runs`. A run is written on local disk in `.lab/running/`, then moves into the store when it ends: copied, verified against its seal, renamed into place, made read-only, and only then deleted locally. `lab-kit publish --pending` retries a failed move, `lab-kit fetch` copies a run into `.lab/fetched/` on a machine without the store, and `lab-kit verify` checks a run against its seal. Where `runs/` does not resolve, as in CI, the gate skips the checks that read runs and says so once. `lab-work-stored` becomes `lab-run-stored`.
+- Dated ids. Missions are `missions/<YY-MM-DD>-m_<slug>.md` (they were in `ops/missions/`), and experiments are `experiments/<YY-MM-DD>-e_<slug>/`. A protocol keeps its slug.
+- `lab-kit migrate [--apply]` moves a lab from the 0.5.0 layout. It takes each experiment's date from its lock and each run's from its start. Each run's `out/`, `work/` and `run.log` go into one sealed folder in `runs/`. Every old path and id in git-tracked text is rewritten, and the lock hashes are taken again where a protocol's text changed with it. The rewritten documents are listed in the library's `baseline.sha256`, folio 0.3.6's `baseline`, so their permanence holds from the rewrite on, and every old name is kept in `.lab/migration.tsv`. Run it again after old runs land from machines on an older lab-kit.
+- Run records are no longer append-only lab files in git: the seal holds them.
+
 ## 0.5.0
 
 - lab-kit no longer runs a lab's code to check it. The `lab-selftest` check is gone, and with it the `tools:` key in `lab.yaml`: a lab that still has the key gets an error saying to delete it. lab-kit checks the record; the lab tests its code in its own test suite, which its gate runs beside `lab-kit check`.

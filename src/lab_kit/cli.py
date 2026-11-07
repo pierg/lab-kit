@@ -7,12 +7,12 @@ import json
 import sys
 from pathlib import Path
 
-from . import __version__, frozen
+from . import __version__, frozen, records
 from . import lab as lab_mod
 from . import rederive as rederive_mod
 from . import store as store_mod
 from .checks import run as checks_run
-from .commands import experiments, runs, setup, status
+from .commands import experiments, migrate, runs, setup, status
 from .errors import LabError
 
 
@@ -69,9 +69,9 @@ def cmd_runs(args: argparse.Namespace) -> int:
 def cmd_publish(args: argparse.Namespace) -> int:
     lab = _lab()
     if args.pending == bool(args.runs):
-        raise LabError("name runs as <slug>/<run id>, or pass --pending for every ended run still here")
+        raise LabError("name runs as <experiment>/<run id>, or pass --pending for every ended run still here")
     store_mod.root(lab)  # a lab with no store says so once
-    targets = store_mod.pending(lab) if args.pending else [store_mod.find_run(lab, r) for r in args.runs]
+    targets = store_mod.pending(lab) if args.pending else [records.find_run(lab, r) for r in args.runs]
     if not targets:
         print("Nothing to publish.")
         return 0
@@ -80,20 +80,25 @@ def cmd_publish(args: argparse.Namespace) -> int:
         try:
             _print(store_mod.publish(lab, run, keep=args.keep))
         except (LabError, OSError) as exc:
-            print(f"lab-kit: {lab.rel(run.folder)}: not published: {exc}", file=sys.stderr)
+            print(f"lab-kit: {run.base}: not moved to the store: {exc}", file=sys.stderr)
             failed += 1
     return 1 if failed else 0
 
 
 def cmd_fetch(args: argparse.Namespace) -> int:
     lab = _lab()
-    _print(store_mod.fetch(lab, store_mod.find_run(lab, args.run)))
+    _print(store_mod.fetch(lab, args.run))
     return 0
 
 
 def cmd_verify(args: argparse.Namespace) -> int:
     lab = _lab()
-    _print(store_mod.verify(lab, store_mod.find_run(lab, args.run)))
+    _print(store_mod.verify(lab, args.run))
+    return 0
+
+
+def cmd_migrate(args: argparse.Namespace) -> int:
+    _print(migrate.migrate(_lab(), apply=args.apply, orphaned=args.orphaned))
     return 0
 
 
@@ -132,7 +137,7 @@ def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="lab-kit", description="A research lab's method and machinery on folio.")
     sub = p.add_subparsers(dest="command_name")
 
-    s = sub.add_parser("init", help="Write lab.yaml, ops/, experiments/, .lab/, the skills and the roles. "
+    s = sub.add_parser("init", help="Write lab.yaml, missions/, ops/, experiments/, runs/, .lab/, the skills and the roles. "
                        "Before a library exists, only the method, the skills and the roles.")
     s.add_argument("--library", help="the folder holding folio.yaml, from the lab root (default: the lab root)")
     s.set_defaults(func=cmd_init)
@@ -143,7 +148,7 @@ def parser() -> argparse.ArgumentParser:
     s.add_argument("--json", action="store_true")
     s.set_defaults(func=cmd_check)
 
-    s = sub.add_parser("experiment", help="Create experiments/<slug>/ with bin/, runs/ and a gitignore.")
+    s = sub.add_parser("experiment", help="Create experiments/<YY-MM-DD>-e_<slug>/ with bin/.")
     s.add_argument("slug")
     s.set_defaults(func=cmd_experiment)
 
@@ -163,20 +168,27 @@ def parser() -> argparse.ArgumentParser:
     s.add_argument("--live", action="store_true", help="only running and orphaned runs")
     s.set_defaults(func=cmd_runs)
 
-    s = sub.add_parser("publish", help="Copy ended runs' raw output to the store named in lab.yaml, verify it "
-                       "against work.sha256, and delete the local copy.")
-    s.add_argument("runs", nargs="*", metavar="SLUG/RUN_ID")
-    s.add_argument("--pending", action="store_true", help="every ended run whose work/ is still here")
-    s.add_argument("--keep", action="store_true", help="keep the local work/ and run.log")
+    s = sub.add_parser("publish", help="Move ended runs from this machine into the store named in lab.yaml, "
+                       "verified against their seal.")
+    s.add_argument("runs", nargs="*", metavar="EXPERIMENT/RUN_ID")
+    s.add_argument("--pending", action="store_true", help="every ended run still on this machine")
+    s.add_argument("--keep", action="store_true", help="keep the local copy")
     s.set_defaults(func=cmd_publish)
 
-    s = sub.add_parser("fetch", help="Copy a published run's raw output back into its folder, verified.")
-    s.add_argument("run", metavar="SLUG/RUN_ID")
+    s = sub.add_parser("fetch", help="Copy a run from the store into .lab/fetched/, verified, on a machine "
+                       "that does not mount it.")
+    s.add_argument("run", metavar="EXPERIMENT/RUN_ID")
     s.set_defaults(func=cmd_fetch)
 
-    s = sub.add_parser("verify", help="Check the store's copy of a run against its work.sha256.")
-    s.add_argument("run", metavar="SLUG/RUN_ID")
+    s = sub.add_parser("verify", help="Check a run's folder against the seal in its run.json.")
+    s.add_argument("run", metavar="EXPERIMENT/RUN_ID")
     s.set_defaults(func=cmd_verify)
+    s = sub.add_parser("migrate", help="Move a lab from the layout before 0.6.0 to this one: dated ids, "
+                       "missions/, one folder per run in runs/, every citation rewritten. Dry run by default.")
+    s.add_argument("--apply", action="store_true", help="make the changes (default: print the plan)")
+    s.add_argument("--orphaned", action="append", metavar="PATH", help="an old run folder committed without an "
+                   "end that is known to be dead: it moves as it is (repeatable)")
+    s.set_defaults(func=cmd_migrate)
 
     s = sub.add_parser("score", help="Create score.yaml from the lock's prediction and rule ids.")
     s.add_argument("slug")

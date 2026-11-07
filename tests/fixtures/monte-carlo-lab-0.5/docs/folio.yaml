@@ -1,0 +1,8 @@
+folio: 0.1.0
+name: Monte Carlo lab
+purpose: A small lab that tests how fast a Monte Carlo estimate converges.
+packs: [lab]
+home:
+  maps: [research]
+reader: Anyone checking the lab's result; they know what a random sample and a log-log plot are.
+root: ..

@@ -36,7 +36,7 @@ You turn a finished experiment's evidence into a scorecard against its lock, the
 
 ## Steps
 
-1. **Fold.** Run the experiment's fold script over each finished run's `out/`. If none exists, write one, with a test on a planted case in the lab's suite, and land it as an instrument change. Never fold by eye.
+1. **Fold.** Run the experiment's fold script over each finished run's folder under `runs/<experiment>/`. If none exists, write one, with a test on a planted case in the lab's suite, and land it as an instrument change. Never fold by eye.
 2. **Score.** Run `lab-kit score <slug>`. Under `scores`, for every prediction `P1`..., fill HIT, MISS or INDETERMINATE, with the value and the evidence file it came from. For every decision rule `D1`..., say whether it fired, the kill rule included. Run `lab-kit check --only lab-score-exact`.
 3. **Gate.** Ask the commander for a reviewer pass, or send one yourself if you are the commander. The reviewer re-derives the scored numbers. Record its verdict where the mission keeps verdicts, and point `score.yaml` to it: `review.verdict` and `review.record`.
 4. **Choose what to record.** For each scored number, ask: is this a citable fact? A null counts. Add each one to `score.yaml` under `record`, keyed by a short name. Give it the result's fields: `title`, `protocol`, `number`, `baseline`, `bound`, `evidence` and `rederive`. The `number` is exactly what the re-derive command prints, and the evidence lies inside the run. Name every number you leave out.

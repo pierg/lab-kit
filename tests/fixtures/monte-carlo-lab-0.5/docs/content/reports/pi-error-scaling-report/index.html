@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The error of the pi estimate fell as 1/sqrt(n), but tight per-size predictions missed</title>
+<meta name="genre" content="report">
+<meta name="title" content="The error of the pi estimate fell as 1/sqrt(n), but tight per-size predictions missed">
+<meta name="description" content="The RMS error of a Monte Carlo estimate of pi, at five sample sizes from 64 to 16,384 points.">
+<meta name="status" content="live">
+<meta name="tags" content="monte-carlo, convergence">
+<link rel="stylesheet" href="/shell/folio.css">
+<script src="/shell/folio.js" defer></script>
+</head>
+<body>
+<main>
+<article>
+
+<h2 id="question">The question, in words</h2>
+<p>Drop random points in a square, count how many land inside a quarter circle, and you get an estimate of pi. With more points the estimate gets better. Does its error shrink as one over the square root of the number of points, so that four times the points buys half the error? That is <a href="/content/questions/Q-1.md">the lab's first question</a>.</p>
+
+<h2 id="expected">What we expected, and why</h2>
+<p>Each point is an independent yes or no, so the estimate is a scaled average of coin flips, and its spread should follow the square-root law. On a log-log plot the error should fall on a line of slope -0.5, the value the <a href="/content/protocols/pi-error-scaling.md">protocol</a> tests. The protocol fixed, before the run, the rules for keeping or dropping that idea, a kill rule for an error that does not shrink at all, and four predictions: the slope close to its theoretical value, the error at each size close to the theoretical value, a small error at the largest size, and a mean estimate close to pi there.</p>
+
+<h2 id="did">What we did</h2>
+<p>We ran the frozen estimator at five sample sizes, each four times the last, with one hundred seeds per size, and measured the root mean square error against pi at each size. The one thing varied was the number of points. There was one run, and nothing was voided or re-run.</p>
+
+<h2 id="happened">What happened</h2>
+<p>The RMS error fell with a fitted log-log slope of -0.493 (<a href="/content/results/R-2.md">R-2</a>), against -0.5 in theory.</p>
+<p>The first decision rule fired, so the hypothesis is kept. The other two did not fire, the kill rule included. Two predictions hit: the slope, and the small error at the largest size. Two missed. The error scaled by the square root of the sample size left the 10% band around its theoretical value that the <a href="/content/protocols/pi-error-scaling.md">protocol</a> set, at one size. And at the largest size the mean estimate was further from pi than we had predicted.</p>
+<p>An earlier result, <a href="/content/results/R-1.md">R-1</a>, since superseded, fitted the slope to the mean absolute error where the protocol names the RMS error.</p>
+
+<h2 id="learned">What we learned</h2>
+<p>The square-root law holds for this estimator across the range we ran, and the slope is a robust way to see it: it pools all five sizes. The two misses come from asking too much of one size at a time. With one hundred seeds, an RMS error is itself only known to within several percent, and a mean estimate to within about a thousandth, so the band and the distance from pi we predicted were tighter than the run could promise.</p>
+
+<h2 id="not">What this does not show</h2>
+<ul>
+<li>Anything about another estimator, another random generator, or estimates in more than two dimensions.</li>
+<li>Any sample size outside 64 to 16,384 points.</li>
+<li>Whether the estimator is biased: no result measures the bias, and one mean estimate missing its prediction is not evidence of one.</li>
+<li>Running time, which was not measured.</li>
+</ul>
+
+</article>
+</main>
+</body>
+</html>

@@ -12,7 +12,7 @@ evidence -> protocol -> journal -> result -> claim -+-> report  (frozen once liv
 
 | Level | Home | Owns | Changes |
 | --- | --- | --- | --- |
-| Evidence | `experiments/{slug}/runs/{run-id}/out/` (lab file) | the raw measurement | never; hashed in its manifest (`lab-evidence-sealed`) |
+| Evidence | `runs/{experiment}/{run-id}/` (outside git, in the lab's store) | the raw measurement | never; sealed by the hash of every file in its `run.json` (`lab-evidence-sealed`) |
 | Protocol | `content/protocols/{slug}.md` (document) | the plan: one variable, measures, rules, kill rule, predictions | frozen at lock: status `locked` (folio's `frozen`, `lab-lock-intact`) |
 | Score | `experiments/{slug}/score.yaml` (lab file) | each prediction and rule, scored against the lock | written once, at the review (`lab-score-exact`) |
 | Journal | `content/journal/{yyyy}/{date}-{slug}.md`, one file per entry (document) | what happened, what it means, what went wrong | never edited; a new entry each time (folio's `permanent`) |
@@ -23,7 +23,7 @@ evidence -> protocol -> journal -> result -> claim -+-> report  (frozen once liv
 | Page | the library's maps, concepts and front door (documents) | the living explanation | updated when a result changes |
 | Paper | the library's papers (documents) | the venue article | frozen at submission (folio's `frozen`) |
 | State | `ops/STATE.md` (lab file) | what is true now and what is next | a pointer, rewritten freely (`lab-state-pointer`) |
-| Missions | `ops/missions/` (lab files) | one operator objective, its approved plan and its log | approved before it runs (`lab-mission-approved`); the log is append-only (`lab-append-only`) |
+| Missions | `missions/` (lab files) | one operator objective, its approved plan and its log | approved before it runs (`lab-mission-approved`); the log is append-only (`lab-append-only`) |
 | Standing budgets | `ops/budgets/` (lab files) | money the operator granted once for many missions | the missions under it fit inside it (`lab-mission-approved`); grants are only added (`lab-append-only`) |
 
 ## Promotion

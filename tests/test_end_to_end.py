@@ -149,7 +149,8 @@ def test_init_to_recorded_result(tmp_path: Path, monkeypatch, lab_kit, folio) ->
     assert folio(docs, "config", "set", "home.maps", "work")[0] == 0
 
     assert lab_kit("experiment", "line-count")[0] == 0
-    (root / "experiments/line-count/bin/count.py").write_text(COUNTER, encoding="utf-8")
+    exp = next((root / "experiments").glob("*-e_line-count")).name
+    (root / f"experiments/{exp}/bin/count.py").write_text(COUNTER, encoding="utf-8")
 
     # No run and no lock record before the lock.
     code, out = lab_kit("run", "line-count", "--", "python3", "x.py")
@@ -159,7 +160,7 @@ def test_init_to_recorded_result(tmp_path: Path, monkeypatch, lab_kit, folio) ->
 
     protocol.write_text(PROTOCOL.replace("status: draft", "status: locked"), encoding="utf-8")
     code, out = lab_kit("lock", "line-count")
-    assert code == 0 and "created experiments/line-count/lock.json" in out
+    assert code == 0 and f"created experiments/{exp}/lock.json" in out
     assert lab_kit("lock", "line-count")[0] == 2  # a protocol is locked once
     assert folio(docs, "journal", "add", "--title", "Locked line-count", "--description", "Two arms.",
                  "--body", "Locked.", "--kind", "lock", "--about", "line-count,Q-1")[0] == 0
@@ -170,30 +171,30 @@ def test_init_to_recorded_result(tmp_path: Path, monkeypatch, lab_kit, folio) ->
 
     code, out = lab_kit("run", "line-count", "--spend", "--", "python3", "x.py")
     assert code == 2 and "names its mission" in out
-    code, out = lab_kit("run", "line-count", "--wait", "--", "python3", "experiments/line-count/bin/count.py")
+    code, out = lab_kit("run", "line-count", "--wait", "--", "python3", f"experiments/{exp}/bin/count.py")
     assert code == 0, out
-    run_dir = next((root / "experiments/line-count/runs").glob("2*"))
+    run_dir = next((root / "runs" / exp).glob("*-r_*"))
     record = json.loads((run_dir / "run.json").read_text())
     assert record["exit"] == 0 and record["config"] == {"lines": [10, 20], "budget": "none"}
-    assert (run_dir / "MANIFEST.sha256").read_text().endswith("  lines.txt\n")
+    assert "out/lines.txt" in record["files"] and record["experiment"] == exp
     assert "finished" in lab_kit("runs")[1]
     commit(root, "run")
 
     code, out = lab_kit("score", "line-count")
     assert code == 0 and "P1, D1, D2" in out
-    score = root / "experiments/line-count/score.yaml"
-    evidence = f"experiments/line-count/runs/{run_dir.name}/out/lines.txt"
-    (root / "ops/missions").mkdir(exist_ok=True)
-    (root / "ops/missions/2026-10-04-count.md").write_text(
+    score = root / f"experiments/{exp}/score.yaml"
+    evidence = f"runs/{exp}/{run_dir.name}/out/lines.txt"
+    (root / "missions").mkdir(exist_ok=True)
+    (root / "missions/26-10-04-m_count.md").write_text(
         "---\ntitle: Count\nstatus: active\nrests_on: [Q-1]\napproved: \"The operator, 2026-10-04\"\n---\n\n## Log\n\n- 2026-10-04 Reviewer pass: pass.\n", encoding="utf-8")
     text = score.read_text()
-    text = text.replace('verdict: ""\n  record: ""', 'verdict: pass\n  record: ops/missions/2026-10-04-count.md#log')
+    text = text.replace('verdict: ""\n  record: ""', 'verdict: pass\n  record: missions/26-10-04-m_count.md#log')
     text = text.replace('verdict: ""', "verdict: HIT", 1).replace('verdict: ""', "verdict: FIRED", 1)
     text = text.replace('verdict: ""', "verdict: NOT FIRED", 1).replace('evidence: ""', f"evidence: {evidence}")
     score.write_text(text)
     assert lab_kit("check", "--only", "lab-score-exact")[0] == 0
 
-    rederive = f"python3 experiments/line-count/bin/count.py --fold {evidence}"
+    rederive = f"python3 experiments/{exp}/bin/count.py --fold {evidence}"
     code, out = folio(docs, "new", "result", "--title", "The counter read 20 lines of 20",
                       "--description", "Lines counted in the larger arm.", "--tags", "counting", "--protocol", "line-count",
                       "--number", "20", "--baseline", "the 20 lines written", "--bound", "One small file.",

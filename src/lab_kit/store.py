@@ -1,19 +1,22 @@
-"""The run store: where a finished run's raw output lives once it leaves the machine that ran it.
+"""The run store: where every run's folder lives once its run ends.
 
-`lab.yaml` names it with `store:`, an absolute path such as `/labs/<lab>`. A run's raw output
-(`work/` and `run.log`, which git ignores) is published to `<store>/<the run's folder from the lab
-root>/`, so the record in git and its raw data share one path. Publishing copies into
-`<store>/.incoming/`, checks every file against the committed `work.sha256` (no file missing, none
-extra, none changed), renames the copy into place in one step, makes it read-only, writes
-`store.json` beside `run.json`, and only then deletes the local copy. A run id already in the store
-is never overwritten: a copy that verifies is accepted as published, one that does not is refused.
+`lab.yaml` names it with `store:`, an absolute path such as `/labs/<lab>`. The lab's `runs/` is a link
+to `<store>/runs`, so every machine that mounts the store reads every run at the same path. A run is
+written on local disk, under `.lab/running/<experiment>/<run id>/`, and sealed when its command
+exits (run.json records every file's hash). It then moves into the store: a copy into
+`<store>/.incoming/`, checked file by file against run.json, renamed into
+`<store>/runs/<experiment>/<run id>/` in one step and made read-only; only then is the local copy
+deleted. A run already in the store is never overwritten: a copy there that verifies counts as
+moved, one that does not is refused.
 
-Where the store path is not mounted, set `LAB_STORE_HOST` to a host that mounts it: lab-kit then
-copies with rsync over ssh and verifies on that host with `sha256sum`. The path is the same either way.
+Where the store is not mounted, set `LAB_STORE_HOST` to a host that mounts it: lab-kit then copies with
+rsync over ssh and verifies on that host with `sha256sum`. `lab-kit fetch` copies a run back from it
+into `.lab/fetched/`, verified, for a machine without the mount.
 """
 
 from __future__ import annotations
 
+import json
 import os
 import shlex
 import shutil
@@ -24,11 +27,9 @@ from pathlib import Path
 
 from . import records
 from .errors import LabError
-from .lab import Lab
+from .lab import FETCHED, RUNNING, RUNS, Lab
 
-STORE_RECORD = "store.json"   # beside run.json: where the raw output went, and when; committed
 ENV_HOST = "LAB_STORE_HOST"   # a host that mounts the store, for a machine that does not
-RAW = ("work", "run.log")     # what is published: the gitignored half of a run
 
 
 def root(lab: Lab) -> Path:
@@ -37,99 +38,96 @@ def root(lab: Lab) -> Path:
     return Path(lab.settings.store)
 
 
-def find_run(lab: Lab, ref: str) -> records.RunRecord:
-    """A run named `<slug>/<run id>`."""
-    slug, sep, run_id = ref.strip("/").partition("/")
-    if not sep or "/" in run_id:
-        raise LabError(f"name a run as <slug>/<run id>, not `{ref}`")
-    for run in records.runs(lab, slug):
-        if run.run_id == run_id:
-            return run
-    raise LabError(f"experiments/{slug}/runs/{run_id}/ has no run.json")
+def runs_root(lab: Lab) -> Path:
+    return root(lab) / RUNS
 
 
-def _rel(lab: Lab, run: records.RunRecord) -> str:
-    return lab.rel(run.folder)
-
-
-def _expected(run: records.RunRecord) -> dict[str, str]:
-    path = run.folder / records.WORK_MANIFEST
-    if not path.is_file():
-        raise LabError(f"{run.path.rsplit('/', 1)[0]}/{records.WORK_MANIFEST} does not exist; "
-                       "only a sealed run is published")
-    return records.parse_hashes(path.read_text(encoding="utf-8"), records.WORK_MANIFEST)
-
-
-def _problems(expected: dict[str, str], found: dict[str, str]) -> list[str]:
-    out = [f"missing {p}" for p in sorted(set(expected) - set(found))]
-    out += [f"extra {p}" for p in sorted(set(found) - set(expected))]
-    out += [f"changed {p}" for p in sorted(set(expected) & set(found)) if expected[p] != found[p]]
-    return out
-
-
-def verify_local(run: records.RunRecord, dest: Path) -> list[str]:
-    """What is wrong with the copy of `work/` under `dest`, against work.sha256: nothing when empty."""
-    return _problems(_expected(run), records.tree_hashes(dest / "work", dest / "work"))
+def ensure_link(lab: Lab) -> list[str]:
+    """Make `runs/` a link to `<store>/runs` when the lab names a store and `runs/` is not there yet."""
+    if not lab.settings.store:
+        return []
+    link = lab.runs_dir
+    target = runs_root(lab)
+    if link.is_symlink():
+        if Path(os.readlink(link)) == target:
+            return []
+        raise LabError(f"runs/ links to {os.readlink(link)}, not {target}; fix the link by hand")
+    if link.exists():
+        raise LabError(f"runs/ is a folder here, but lab.yaml names the store {lab.settings.store}: "
+                       "move its runs into the store (`lab-kit migrate`), then remove it")
+    link.symlink_to(target, target_is_directory=True)
+    return [f"linked runs/ to {target}"]
 
 
 def _read_only(folder: Path) -> None:
     for path in sorted(folder.rglob("*"), reverse=True):
+        if path.is_symlink():
+            continue
         mode = path.stat().st_mode
         path.chmod(mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
     folder.chmod(folder.stat().st_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
 
 
-def _writable(folder: Path) -> None:
+def writable(folder: Path) -> None:
     for path in [folder, *folder.rglob("*")]:
-        path.chmod(path.stat().st_mode | stat.S_IWUSR)
+        if not path.is_symlink():
+            path.chmod(path.stat().st_mode | stat.S_IWUSR)
 
 
-def _incoming_name(run: records.RunRecord) -> str:
-    return f"{run.slug}--{run.run_id}--{socket.gethostname()}--{os.getpid()}"
+def remove(folder: Path) -> None:
+    if folder.exists():
+        writable(folder)
+        shutil.rmtree(folder)
 
 
-def _publish_local(lab: Lab, run: records.RunRecord, store: Path) -> str:
-    dest = store / _rel(lab, run)
+def _incoming_name(slug: str, run_id: str) -> str:
+    return f"{slug}--{run_id}--{socket.gethostname()}--{os.getpid()}"
+
+
+def _verify(folder: Path, data: dict) -> list[str]:
+    """What is wrong with a copy of a run in `folder` against the sealed run.json `data`."""
+    copy = folder / records.RUN
+    if not copy.is_file():
+        return ["missing run.json"]
+    try:
+        theirs = json.loads(copy.read_text(encoding="utf-8"))
+    except ValueError:
+        return ["run.json is not valid JSON"]
+    if theirs.get("seal") != data.get("seal"):
+        return ["its run.json records another seal"]
+    return records.seal_problems(folder, data)
+
+
+def place(store_runs: Path, slug: str, run_id: str, source: Path, data: dict) -> str:
+    """Copy a sealed run's folder into `<store_runs>/<slug>/<run_id>/`, verified, read-only. The source stays."""
+    dest = store_runs / slug / run_id
     if dest.exists():
-        wrong = verify_local(run, dest)
+        wrong = _verify(dest, data)
         if wrong:
-            raise LabError(f"{dest} exists and does not match work.sha256 ({'; '.join(wrong[:3])}); "
+            raise LabError(f"{dest} exists and does not match the run's seal ({'; '.join(wrong[:3])}); "
                            "a run in the store is never overwritten")
         return "already in the store, verified"
-    incoming = store / ".incoming" / _incoming_name(run)
-    if incoming.exists():
-        _writable(incoming)
-        shutil.rmtree(incoming)
-    incoming.mkdir(parents=True)
+    incoming = store_runs.parent / ".incoming" / _incoming_name(slug, run_id)
+    remove(incoming)
+    incoming.parent.mkdir(parents=True, exist_ok=True)
     try:
-        for name in RAW:
-            src = run.folder / name
-            if src.is_dir():
-                shutil.copytree(src, incoming / name, symlinks=False)  # a link's bytes, never the link
-            elif src.is_file():
-                shutil.copy2(src, incoming / name)
-        if not (incoming / "work").exists():
-            (incoming / "work").mkdir()
-        wrong = verify_local(run, incoming)
+        shutil.copytree(source, incoming, symlinks=False)  # a link's bytes, never the link
+        writable(incoming)
+        wrong = _verify(incoming, data)
         if wrong:
-            raise LabError(f"the copy in {incoming} does not match work.sha256 ({'; '.join(wrong[:3])}); "
-                           "nothing was published")
+            raise LabError(f"the copy in {incoming} does not match the run's seal ({'; '.join(wrong[:3])}); "
+                           "nothing was moved")
         dest.parent.mkdir(parents=True, exist_ok=True)
-        # A directory's own write bit is needed to rename it (its `..` changes), so lock after the move.
         try:
-            os.rename(incoming, dest)
+            os.rename(incoming, dest)  # a directory's own write bit is needed to rename it, so lock after
         except OSError:
-            # Another publish of the same run got there first: accept its copy if it verifies.
-            if dest.is_dir() and not verify_local(run, dest):
-                _writable(incoming)
-                shutil.rmtree(incoming, ignore_errors=True)
+            if dest.is_dir() and not _verify(dest, data):
+                remove(incoming)
                 return "already in the store, verified"
             raise
         _read_only(dest)
     except BaseException:
-        if incoming.exists():
-            _writable(incoming)
-            shutil.rmtree(incoming, ignore_errors=True)
+        remove(incoming)
         raise
     return "copied and verified"
 
@@ -138,36 +136,38 @@ def _ssh(host: str, script: str, stdin: str | None = None) -> subprocess.Complet
     return subprocess.run(["ssh", "-o", "BatchMode=yes", host, script], input=stdin, capture_output=True, text=True)
 
 
-def _remote_check(folder: str, count: int) -> str:
-    """A shell line that verifies <folder>/work against the manifest on stdin: every file, none extra."""
+def _remote_check(folder: str, files: dict[str, str]) -> tuple[str, str]:
+    """A shell line that verifies a run's folder against its file list (on stdin): every file, none extra."""
     q = shlex.quote
-    return (f"cd {q(folder)}/work && sha256sum --quiet --strict -c - >/dev/null && "
+    count = len(files) + 1  # and run.json
+    line = (f"cd {q(folder)} && sha256sum --quiet --strict -c - >/dev/null && test -f {records.RUN} && "
             f"test \"$(find . -type f | wc -l)\" -eq {count} && test -z \"$(find . ! -type f ! -type d)\"")
+    return line, records.format_hashes(files)
 
 
-def _publish_remote(lab: Lab, run: records.RunRecord, store: Path, host: str) -> str:
-    dest = (store / _rel(lab, run)).as_posix()
-    incoming = (store / ".incoming" / _incoming_name(run)).as_posix()
+def _place_remote(lab: Lab, run: records.RunRecord, host: str) -> str:
+    dest = (runs_root(lab) / run.slug / run.run_id).as_posix()
+    incoming = (root(lab) / ".incoming" / _incoming_name(run.slug, run.run_id)).as_posix()
     q = shlex.quote
-    manifest = (run.folder / records.WORK_MANIFEST).read_text(encoding="utf-8")
-    count = len(_expected(run))
+    check, manifest = _remote_check(dest, run.data["files"])
     if _ssh(host, f"test -e {q(dest)}").returncode == 0:
-        if _ssh(host, _remote_check(dest, count), manifest).returncode == 0:
+        if _ssh(host, check, manifest).returncode == 0:
             return f"already in the store on {host}, verified"
-        raise LabError(f"{host}:{dest} exists and does not match work.sha256; a run in the store is never overwritten")
-    if _ssh(host, f"rm -rf {q(incoming)} && mkdir -p {q(incoming)}/work").returncode:
+        raise LabError(f"{host}:{dest} exists and does not match the run's seal; a run in the store is never overwritten")
+    if _ssh(host, f"rm -rf {q(incoming)} && mkdir -p {q(incoming)}").returncode:
         raise LabError(f"cannot reach the store on {host} (ssh {host})")
-    sources = [str(run.folder / n) for n in RAW if (run.folder / n).exists()]
-    copied = subprocess.run(["rsync", "-aL", *sources, f"{host}:{incoming}/"], capture_output=True, text=True)
+    copied = subprocess.run(["rsync", "-aL", f"{run.folder}/", f"{host}:{incoming}/"], capture_output=True, text=True)
     if copied.returncode:
         raise LabError(f"rsync to {host}:{incoming} failed: {copied.stderr.strip()[-200:]}")
-    if _ssh(host, _remote_check(incoming, count), manifest).returncode:
+    check, manifest = _remote_check(incoming, run.data["files"])
+    if _ssh(host, check, manifest).returncode:
         _ssh(host, f"chmod -R u+w {q(incoming)}; rm -rf {q(incoming)}")
-        raise LabError(f"the copy on {host} does not match work.sha256; nothing was published")
-    done = _ssh(host, f"mkdir -p {q(str(Path(dest).parent))} && mv -T {q(incoming)} {q(dest)} && chmod -R a-w {q(dest)}")
+        raise LabError(f"the copy on {host} does not match the run's seal; nothing was moved")
+    done = _ssh(host, f"mkdir -p {q(str(Path(dest).parent))} && mv -T {q(incoming)} {q(dest)}")
     if done.returncode:
         _ssh(host, f"chmod -R u+w {q(incoming)}; rm -rf {q(incoming)}")
         raise LabError(f"cannot move the copy into place on {host}: {done.stderr.strip()[-200:]}")
+    _ssh(host, f"chmod -R a-w {q(dest)}")  # in place and verified; read-only is best effort from here
     return f"copied to {host} and verified"
 
 
@@ -175,7 +175,7 @@ def mounted(store: Path) -> bool:
     """The store is here: its folder exists, or one of its ancestors (not `/`) is a mount point.
 
     An empty mount point left by a mount that failed is not taken for the store, so nothing is
-    ever published onto the local disk under it.
+    ever written onto the local disk under it.
     """
     try:
         if store.is_dir():
@@ -186,100 +186,88 @@ def mounted(store: Path) -> bool:
 
 
 def publish(lab: Lab, run: records.RunRecord, keep: bool = False) -> list[str]:
-    """Publish one finished run's raw output; then, unless `keep`, delete the local copy."""
+    """Move one ended, sealed run from `.lab/running/` into the store; unless `keep`, delete the local copy."""
     if not run.ended:
-        raise LabError(f"{_rel(lab, run)} has not ended; only a sealed run is published")
+        raise LabError(f"{run.base} has not ended; only a sealed run moves to the store")
+    if not run.base.startswith(RUNNING + "/"):
+        return [f"{run.base}: already in the store"]
+    wrong = records.seal_problems(run.folder, run.data)
+    if wrong:
+        raise LabError(f"{run.base} does not match its own seal ({'; '.join(wrong[:3])}); nothing was moved")
     store = root(lab)
     host = os.environ.get(ENV_HOST, "").strip()
-    if not (run.folder / "work").exists() and not (run.folder / STORE_RECORD).exists():
-        raise LabError(f"{_rel(lab, run)}/work/ is not here to publish")
-    if (run.folder / STORE_RECORD).exists() and not (run.folder / "work").exists():
-        return [f"{_rel(lab, run)}: already published"]
     if not host and mounted(store):
-        store.mkdir(parents=True, exist_ok=True)
-        how = _publish_local(lab, run, store)
-        where = str(store / _rel(lab, run))
+        how = place(runs_root(lab), run.slug, run.run_id, run.folder, run.data)
+        where = str(runs_root(lab) / run.slug / run.run_id)
     elif host:
-        how = _publish_remote(lab, run, store, host)
-        where = f"{host}:{store / _rel(lab, run)}"
+        how = _place_remote(lab, run, host)
+        where = f"{host}:{runs_root(lab) / run.slug / run.run_id}"
     else:
         raise LabError(f"the store {store} is not mounted here; set {ENV_HOST} to a host that mounts it")
-    records.write_json(run.folder / STORE_RECORD, {
-        "store": str(store / _rel(lab, run)), "files": len(_expected(run)),
-        "published": records.now(), "by": socket.gethostname(),
-    })
-    out = [f"{_rel(lab, run)}: {how} at {where}", f"wrote {_rel(lab, run)}/{STORE_RECORD}"]
+    out = [f"{run.base}: {how} at {where}"]
     if not keep:
-        for name in RAW:
-            path = run.folder / name
-            if path.is_dir():
-                shutil.rmtree(path)
-            elif path.is_file():
-                path.unlink()
-        out.append(f"deleted the local {_rel(lab, run)}/work/ and run.log")
+        remove(run.folder)
+        parent = run.folder.parent
+        if parent.is_dir() and not any(parent.iterdir()):
+            parent.rmdir()
+        out.append(f"deleted the local {run.base}/")
     return out
 
 
 def pending(lab: Lab) -> list[records.RunRecord]:
-    """Ended runs whose raw output is still only here."""
-    return [r for r in records.runs(lab) if r.ended and (r.folder / "work").exists()
-            and (r.folder / records.WORK_MANIFEST).exists()]
+    """Ended runs still on local disk, under `.lab/running/`."""
+    return [r for r in records.runs(lab) if r.ended and r.base.startswith(RUNNING + "/")]
 
 
-def fetch(lab: Lab, run: records.RunRecord) -> list[str]:
-    """Copy a published run's raw output back into its run folder, writable, and verify it."""
-    store = root(lab)
-    src = store / _rel(lab, run)
+def fetch(lab: Lab, ref: str) -> list[str]:
+    """Copy a run from the store into `.lab/fetched/`, verified, on a machine that does not mount the store."""
+    slug, sep, run_id = ref.strip("/").removeprefix("runs/").partition("/")
+    if not sep:
+        raise LabError(f"name the run as <experiment>/<run id>, not `{ref}`")
+    if lab.runs_here() and (lab.runs_dir / slug / run_id / records.RUN).is_file():
+        return [f"runs/{slug}/{run_id} is here already: the store is mounted"]
     host = os.environ.get(ENV_HOST, "").strip()
-    if (run.folder / "work").exists() and not verify_local(run, run.folder):
-        return [f"{_rel(lab, run)}/work/ is here and verifies"]
-    tmp = run.folder / ".fetch"
-    if tmp.exists():
-        _writable(tmp)
-        shutil.rmtree(tmp)
-    tmp.mkdir()
-    if not host and mounted(store):
-        if not src.is_dir():
-            raise LabError(f"{src} does not exist: this run was never published")
-        for name in RAW:
-            if (src / name).is_dir():
-                shutil.copytree(src / name, tmp / name, symlinks=False)
-            elif (src / name).is_file():
-                shutil.copy2(src / name, tmp / name)
-    elif host:
-        got = subprocess.run(["rsync", "-a", f"{host}:{src.as_posix()}/", f"{tmp}/"], capture_output=True, text=True)
+    if not host:
+        raise LabError(f"runs/ does not resolve here; set {ENV_HOST} to a host that mounts the store")
+    src = (runs_root(lab) / slug / run_id).as_posix()
+    dest = lab.root / FETCHED / slug / run_id
+    tmp = dest.with_name(dest.name + ".part")
+    remove(tmp)
+    tmp.parent.mkdir(parents=True, exist_ok=True)
+    got = subprocess.run(["rsync", "-a", f"{host}:{src}/", f"{tmp}/"], capture_output=True, text=True)
+    if got.returncode:
+        remove(tmp)
+        raise LabError(f"rsync from {host}:{src} failed: {got.stderr.strip()[-200:]}")
+    writable(tmp)
+    data = records.read_json(tmp / records.RUN, f"{src}/{records.RUN}")
+    wrong = records.seal_problems(tmp, data)
+    if wrong:
+        remove(tmp)
+        raise LabError(f"the copy from the store does not match its seal ({'; '.join(wrong[:3])})")
+    remove(dest)
+    os.rename(tmp, dest)
+    return [f"fetched runs/{slug}/{run_id} into {FETCHED}/{slug}/{run_id}, verified against its seal"]
+
+
+def verify(lab: Lab, ref: str) -> list[str]:
+    """Check a run against its seal: here when runs/ resolves, else on LAB_STORE_HOST. Raises when it fails."""
+    host = os.environ.get(ENV_HOST, "").strip()
+    try:
+        run = records.find_run(lab, ref)
+    except LabError:
+        if not host or not lab.settings.store:
+            raise
+        slug, _, run_id = ref.strip("/").removeprefix("runs/").partition("/")
+        folder = (runs_root(lab) / slug / run_id).as_posix()
+        got = _ssh(host, f"cat {shlex.quote(folder)}/{records.RUN}")
         if got.returncode:
-            raise LabError(f"rsync from {host}:{src} failed: {got.stderr.strip()[-200:]}")
-    else:
-        raise LabError(f"the store {store} is not mounted here; set {ENV_HOST} to a host that mounts it")
-    _writable(tmp)
-    wrong = verify_local(run, tmp)
+            raise LabError(f"{host}:{folder}/{records.RUN} does not exist")
+        data = json.loads(got.stdout)
+        check, manifest = _remote_check(folder, data.get("files") or {})
+        if data.get("seal") != records.seal_of(data) or _ssh(host, check, manifest).returncode:
+            raise LabError(f"{host}:{folder} does not match its seal")
+        return [f"runs/{slug}/{run_id}: the store's copy on {host} matches its seal"]
+    wrong = records.seal_problems(run.folder, run.data)
     if wrong:
-        shutil.rmtree(tmp)
-        raise LabError(f"the copy from the store does not match work.sha256 ({'; '.join(wrong[:3])})")
-    for name in RAW:
-        target = run.folder / name
-        if target.is_dir():
-            shutil.rmtree(target)
-        if (tmp / name).exists():
-            os.rename(tmp / name, target)
-    shutil.rmtree(tmp)
-    return [f"{_rel(lab, run)}: fetched from the store and verified against work.sha256"]
-
-
-def verify(lab: Lab, run: records.RunRecord) -> list[str]:
-    """Check the store's copy of a run against work.sha256. Raises when it does not match."""
-    store = root(lab)
-    host = os.environ.get(ENV_HOST, "").strip()
-    dest = store / _rel(lab, run)
-    if host:
-        manifest = (run.folder / records.WORK_MANIFEST).read_text(encoding="utf-8")
-        if _ssh(host, _remote_check(dest.as_posix(), len(_expected(run))), manifest).returncode:
-            raise LabError(f"{host}:{dest} is missing or does not match work.sha256")
-        return [f"{_rel(lab, run)}: the store's copy on {host} matches work.sha256"]
-    if not dest.is_dir():
-        raise LabError(f"{dest} does not exist: this run was never published")
-    wrong = verify_local(run, dest)
-    if wrong:
-        raise LabError(f"{dest} does not match work.sha256: {'; '.join(wrong[:5])}")
-    return [f"{_rel(lab, run)}: the store's copy matches work.sha256"]
+        raise LabError(f"{run.base} does not match its seal: {'; '.join(wrong[:5])}")
+    return [f"{run.base}: matches its seal ({len(run.data['files'])} files)"]
