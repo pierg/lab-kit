@@ -10,7 +10,7 @@ from conftest import commit, git
 from lab_kit import __version__, records
 from lab_kit.lab import load
 
-EXP = "experiments/pi-error-scaling"
+EXP = "experiments/26-10-04-e_pi-error-scaling"
 SLUG = "pi-error-scaling"
 WORKER = ("import os, pathlib; w = pathlib.Path(os.environ['LAB_WORK']); (w / 'logs').mkdir(); "
           "(w / 'logs' / 'a.log').write_text('one'); (w / 'trace.jsonl').write_text('{}')")
@@ -73,16 +73,15 @@ def test_a_lock_without_the_new_fields_still_passes(make_lab, lab_kit) -> None:
     assert code == 0, out
 
 
-def test_run_records_its_commit_and_seals_work(make_lab, lab_kit) -> None:
+def test_run_records_its_commit_and_seals_its_folder(make_lab, lab_kit) -> None:
     root = make_lab()
     head = git(root, "rev-parse", "HEAD").strip()
     code, out = lab_kit("run", SLUG, "--wait", "--", "python3", "-c", WORKER)
     assert code == 0, out
     newest = records.runs(load(root), SLUG)[-1]
     assert newest.data["commit"] == head and newest.data["lab-kit"] == __version__
-    sealed = (newest.folder / records.WORK_MANIFEST).read_text(encoding="utf-8")
-    assert sealed == records.format_hashes(records.tree_hashes(newest.folder / "work", newest.folder / "work"))
-    assert sealed.splitlines()[0].endswith("  logs/a.log") and sealed.splitlines()[1].endswith("  trace.jsonl")
+    assert newest.data["files"] == records.run_files(newest.folder)
+    assert {"work/logs/a.log", "work/trace.jsonl", "run.log"} <= set(newest.data["files"])
     assert lab_kit("check", "--only", "lab-evidence-sealed", "--only", "lab-append-only")[0] == 0
 
 

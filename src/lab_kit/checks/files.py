@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import json
 import re
 from pathlib import Path
-from typing import Any
 
 from folio.checks.rules import measurements
 
@@ -189,7 +187,7 @@ def spend_recorded(lab: Lab, rep: Reporter) -> None:
         if run.ended:
             if not isinstance(spent, (int, float)) or isinstance(spent, bool):
                 rep.add(run.path, "spent but recorded no spend: its command writes "
-                                  f"out/{records.SPEND} with `spent`")
+                                  f"{records.SPEND} in its folder with `spent`")
                 continue
         if isinstance(spent, (int, float)) and not isinstance(spent, bool):
             spent_by_mission[mission_path] = spent_by_mission.get(mission_path, 0.0) + float(spent)
@@ -199,56 +197,34 @@ def spend_recorded(lab: Lab, rep: Reporter) -> None:
 
 
 def _lab_files(lab: Lab) -> list[str]:
-    """The append-only lab files: missions, budgets, lock records and run records, now or ever committed."""
+    """The append-only lab files: missions, budgets and lock records, now or ever committed."""
     current = [lab.rel(p) for p in ops.mission_files(lab)] + [lab.rel(p) for p in ops.budget_files(lab)]
     for slug in lab.experiment_slugs():
         if records.lock_path(lab, slug).is_file():
             current.append(f"experiments/{slug}/{records.LOCK}")
-    current.extend(run.path for run in records.runs(lab))
-    pattern = re.compile(r"^(ops/missions/[^/]+\.md|ops/budgets/[^/]+\.ya?ml|experiments/[^/]+/lock\.json|"
-                         r"experiments/[^/]+/runs/[^/]+/run\.json)$")
-    ever = [p for folder in ("ops/missions", "ops/budgets", "experiments") for p in gitlog.tracked(lab.root, folder)
-            if pattern.match(p)]
-    return sorted(set(current) | set(ever))
+    pattern = re.compile(r"^(missions/[^/]+\.md|ops/budgets/[^/]+\.ya?ml|experiments/[^/]+/lock\.json)$")
+    ever = [p for folder in (ops.MISSIONS, ops.BUDGETS, "experiments")
+            for p in gitlog.tracked(lab.root, folder) if pattern.match(p)]
+    return sorted((set(current) | set(ever)) - _moved(lab))
 
 
-CLOSING = ("ended", "exit", "spent")  # the run record's fields lab-kit fills in when the run ends
-
-
-def _record(text: str | None) -> dict[str, Any] | None:
-    try:
-        data = json.loads(text or "")
-    except ValueError:
-        return None
-    return data if isinstance(data, dict) else None
-
-
-def _closing_fields(first: str | None) -> dict[str, Any] | None:
-    """The closing fields already set in a run record's first committed version, or None if it is not one."""
-    data = _record(first)
-    if data is None:
-        return None
-    return {k: data[k] for k in CLOSING if data.get(k) is not None}
-
-
-def _closing(first: str | None, text: str, closed: dict[str, Any]) -> str | None:
-    """None if `text` differs from the first version only by closing fields set once from null; else what
-    changed. `closed` holds the closing fields set so far and grows as they are filled in."""
-    before, after = _record(first), _record(text)
-    if before is None or after is None:
-        return "was changed"
-    if {k: v for k, v in after.items() if k not in CLOSING} != {k: v for k, v in before.items() if k not in CLOSING}:
-        return "was changed outside " + ", ".join(CLOSING)
-    for k in CLOSING:
-        if k in closed and after.get(k) != closed[k]:
-            return f"its `{k}` was changed after it was set"
-    closed.update({k: after[k] for k in CLOSING if after.get(k) is not None})
-    return None
+def _moved(lab: Lab) -> set[str]:
+    """Lab files `lab-kit migrate` moved to their 0.6.0 names: their old paths are gone on the record."""
+    from ..commands.migrate import TABLE
+    path = lab.root / TABLE
+    out: set[str] = set()
+    for line in path.read_text(encoding="utf-8").splitlines() if path.is_file() else []:
+        kind, _, rest = line.partition("\t")
+        old = rest.partition("\t")[0]
+        if kind == "mission":
+            out.add(old)
+        elif kind == "experiment":
+            out.add(f"experiments/{old}/{records.LOCK}")
+    return out
 
 
 def append_only(lab: Lab, rep: Reporter) -> None:
-    """Committed mission log entries, budget grants, lock records and run records are unchanged in later
-    commits, except that a run record committed while its run was going may fill in its closing fields once."""
+    """Committed mission log entries, budget grants and lock records are unchanged in later commits."""
     if not gitlog.in_git(lab.root):
         rep.warn("lab.yaml", "the lab is not in a git repository, so lab-append-only could not be checked")
         return
@@ -258,7 +234,7 @@ def append_only(lab: Lab, rep: Reporter) -> None:
         if not committed:
             continue
         first_sha, first = committed[0]
-        if path.startswith("ops/missions/"):
+        if path.startswith(ops.MISSIONS + "/"):
             previous = ops.log_of(first or "")
             for sha, text in history[1:]:
                 label = "the working tree" if sha == gitlog.WORKING else f"commit {sha[:7]}"
@@ -287,21 +263,13 @@ def append_only(lab: Lab, rep: Reporter) -> None:
                     break
                 granted = now[0]
             continue
-        closed = _closing_fields(first) if path.endswith("/" + records.RUN) else None
         for sha, text in history[1:]:
             label = "the working tree" if sha == gitlog.WORKING else f"commit {sha[:7]}"
-            if closed is not None and text is not None:
-                problem = _closing(first, text, closed)
-                if problem is None:
-                    continue
-                rep.add(path, f"{problem} in {label} after its first commit {first_sha[:7]}; a run record "
-                              f"changes only by filling in {', '.join(CLOSING)} once, when its run ends")
-                break
             if text == first:
                 continue
             what = "deleted" if text is None else "changed"
             rep.add(path, f"was {what} in {label} after its first commit {first_sha[:7]}; "
-                          "lock and run records never change once committed")
+                          "a lock record never changes once committed")
             break
 
 

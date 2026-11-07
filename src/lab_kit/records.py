@@ -6,6 +6,8 @@ import datetime as _dt
 import hashlib
 import json
 import os
+import re
+import secrets
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,14 +20,13 @@ from .errors import LabError
 from .lab import Lab
 
 LOCK = "lock.json"
-RUN = "run.json"
-MANIFEST = "MANIFEST.sha256"
-WORK_MANIFEST = "work.sha256"  # beside MANIFEST.sha256: the run's raw output under work/, which git ignores
+RUN = "run.json"                # written by lab-kit in every run's folder; the only fixed name with run.log
+LOG = "run.log"                 # the command's output, written by lab-kit
 SCORE = "score.yaml"
-SPEND = "spend.json"  # written by a spending run's own command into out/
+SPEND = "spend.json"  # written by a spending run's own command into its folder (or its out/, before 0.6.0)
 LOCK_KEYS = ("protocol", "path", "sha256", "locked")  # required; `instrument`, `commit`, `lab-kit` since 0.3.0
-RUN_KEYS = ("protocol", "lock", "config", "mission", "spend", "command", "started", "ended", "exit", "pid",
-            "spent", "commit", "lab-kit")
+RUN_KEYS = ("experiment", "id", "protocol", "lock", "config", "mission", "spend", "command", "host", "started",
+            "ended", "exit", "pid", "spent", "commit", "lab-kit", "files", "seal")
 PREDICTION_VERDICTS = ("HIT", "MISS", "INDETERMINATE")
 RULE_VERDICTS = ("FIRED", "NOT FIRED", "INDETERMINATE")
 REVIEW_VERDICTS = ("pass", "fail")
@@ -138,7 +139,14 @@ class LockRecord:
 
 
 def lock_path(lab: Lab, slug: str) -> Path:
-    return lab.experiments / slug / LOCK
+    """An experiment's lock.json, by its id or its protocol's slug."""
+    return lab.experiments / (_experiment(lab, slug)) / LOCK
+
+
+def _experiment(lab: Lab, ref: str) -> str:
+    if (lab.experiments / ref).is_dir():
+        return ref
+    return lab.experiment_for(ref) or ref
 
 
 def read_lock(lab: Lab, slug: str) -> LockRecord | None:
@@ -150,7 +158,7 @@ def read_lock(lab: Lab, slug: str) -> LockRecord | None:
     missing = [k for k in LOCK_KEYS if k not in data]
     if missing:
         raise LabError(f"{where}: missing {', '.join(missing)}")
-    return LockRecord(slug, where, data)
+    return LockRecord(path.parent.name, where, data)
 
 
 # ---------------------------------------------------------------- runs
@@ -158,22 +166,20 @@ def read_lock(lab: Lab, slug: str) -> LockRecord | None:
 
 @dataclass
 class RunRecord:
-    slug: str
+    slug: str  # the experiment's id: the folder it sits under
     run_id: str
     folder: Path
     data: dict[str, Any]
+    where: str = ""  # the folder from the lab root, as lab-kit names it
 
     @property
     def path(self) -> str:
-        return f"experiments/{self.slug}/runs/{self.run_id}/{RUN}"
+        base = self.where or f"runs/{self.slug}/{self.run_id}"
+        return f"{base}/{RUN}"
 
     @property
-    def out(self) -> Path:
-        return self.folder / "out"
-
-    @property
-    def manifest(self) -> Path:
-        return self.folder / MANIFEST
+    def base(self) -> str:
+        return self.path.rsplit("/", 1)[0]
 
     @property
     def ended(self) -> bool:
@@ -207,32 +213,75 @@ def _alive(pid: Any) -> bool:
     return True
 
 
+RUN_ID = re.compile(r"^\d{2}-\d{2}-\d{2}-\d{4}-r_[a-z0-9]{4}$")
+_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789"
+
+
+def new_run_id(moment: _dt.datetime, salt: str | None = None) -> str:
+    """`<YY-MM-DD-HHMM>-r_<4 characters>`: the start in UTC, and four random letters or digits, or four
+    taken from `salt` (a migration names an old run by its old path, so the id is the same every time)."""
+    if salt is None:
+        tail = "".join(secrets.choice(_ALPHABET) for _ in range(4))
+    else:
+        digest = int(hashlib.sha256(salt.encode("utf-8")).hexdigest(), 16)
+        tail = ""
+        for _ in range(4):
+            digest, k = divmod(digest, len(_ALPHABET))
+            tail += _ALPHABET[k]
+    return moment.astimezone(_dt.timezone.utc).strftime("%y-%m-%d-%H%M") + "-r_" + tail
+
+
 def runs(lab: Lab, slug: str | None = None) -> list[RunRecord]:
-    """Every run with a run.json, oldest first within each experiment."""
-    out: list[RunRecord] = []
-    for name in [slug] if slug else lab.experiment_slugs():
-        folder = lab.experiments / name / "runs"
-        if not folder.is_dir():
-            continue
-        for run_dir in sorted(p for p in folder.iterdir() if p.is_dir()):
-            path = run_dir / RUN
-            if not path.is_file():
+    """Every run with a run.json, oldest first within each experiment, from every place runs are read."""
+    seen: dict[tuple[str, str], RunRecord] = {}
+    if slug and not (lab.experiments / slug).is_dir():
+        slug = lab.experiment_for(slug) or slug  # a protocol's slug names its experiment
+    for root in lab.run_roots():
+        experiments = [root / slug] if slug else (sorted(p for p in root.iterdir() if p.is_dir()
+                                                       and not p.name.startswith(".")) if root.is_dir() else [])
+        for exp in experiments:
+            if not exp.is_dir():
                 continue
-            out.append(RunRecord(name, run_dir.name, run_dir, read_json(path, lab.rel(path))))
-    return out
+            for run_dir in sorted(p for p in exp.iterdir() if p.is_dir() and not p.name.startswith(".")):
+                path = run_dir / RUN
+                if not path.is_file() or (exp.name, run_dir.name) in seen:
+                    continue
+                where = _where(lab, root, exp.name, run_dir.name)
+                seen[(exp.name, run_dir.name)] = RunRecord(exp.name, run_dir.name, run_dir,
+                                                           read_json(path, f"{where}/{RUN}"), where)
+    return sorted(seen.values(), key=lambda r: (r.slug, r.run_id))
+
+
+def _where(lab: Lab, root: Path, slug: str, run_id: str) -> str:
+    if root == lab.runs_dir:
+        return f"runs/{slug}/{run_id}"
+    return f"{root.relative_to(lab.root).as_posix()}/{slug}/{run_id}"
+
+
+def find_run(lab: Lab, ref: str) -> RunRecord:
+    """A run named `<experiment>/<run id>`, or by its run id alone."""
+    ref = ref.strip("/")
+    if ref.startswith("runs/"):
+        ref = ref[len("runs/"):]
+    slug, sep, run_id = ref.partition("/")
+    for run in runs(lab, slug if sep else None):
+        if (run.run_id == run_id) if sep else (run.run_id == slug):
+            return run
+    raise LabError(f"no run `{ref}` here: name it as <experiment>/<run id>" +
+                   ("" if lab.runs_here() else "; runs/ does not resolve on this machine (`lab-kit fetch` copies one)"))
 
 
 def runs_without_record(lab: Lab) -> list[str]:
     """Run folders holding no run.json, from the lab root."""
     out = []
-    for name in lab.experiment_slugs():
-        folder = lab.experiments / name / "runs"
-        if folder.is_dir():
-            out.extend(lab.rel(p) for p in sorted(folder.iterdir()) if p.is_dir() and not (p / RUN).is_file())
+    for root in lab.run_roots():
+        for exp in sorted(p for p in root.iterdir() if p.is_dir() and not p.name.startswith(".")):
+            out.extend(f"{_where(lab, root, exp.name, p.name)}" for p in sorted(exp.iterdir())
+                       if p.is_dir() and not p.name.startswith(".") and not (p / RUN).is_file())
     return out
 
 
-# ---------------------------------------------------------------- manifests
+# ---------------------------------------------------------------- the seal
 
 
 def sha256_file(path: Path) -> str:
@@ -268,19 +317,41 @@ def parse_hashes(text: str, where: str) -> dict[str, str]:
     return out
 
 
-def write_manifest(run: RunRecord) -> None:
-    run.manifest.write_text(format_hashes(tree_hashes(run.out, run.out)), encoding="utf-8")
+def run_files(folder: Path) -> dict[str, str]:
+    """Every file in a run's folder but run.json, by its path from the folder, with its sha256."""
+    return {p: d for p, d in tree_hashes(folder, folder).items() if p != RUN}
 
 
-def write_work_manifest(run: RunRecord) -> None:
-    """`work.sha256` beside the manifest, one line per file under `work/`, when that folder exists."""
-    work = run.folder / "work"
-    if work.is_dir():
-        (run.folder / WORK_MANIFEST).write_text(format_hashes(tree_hashes(work, work)), encoding="utf-8")
+def seal_of(data: dict[str, Any]) -> str:
+    """One sha256 over the run record, its `files` included and its `seal` left out: what `seal` records."""
+    body = {k: v for k, v in data.items() if k != "seal"}
+    return hashlib.sha256(json.dumps(body, sort_keys=True, ensure_ascii=False,
+                                     separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def seal(folder: Path, data: dict[str, Any]) -> dict[str, Any]:
+    """Record in `data` every file of the run with its hash, then one hash over the whole record."""
+    data["files"] = run_files(folder)
+    data["seal"] = seal_of(data)
+    return data
+
+
+def seal_problems(folder: Path, data: dict[str, Any]) -> list[str]:
+    """What differs between a run's folder and the files its run.json records: nothing when it holds."""
+    recorded = data.get("files")
+    if not isinstance(recorded, dict):
+        return ["run.json records no `files`: the run was never sealed"]
+    if data.get("seal") != seal_of(data):
+        return ["run.json changed after the run was sealed"]
+    actual = run_files(folder)
+    out = [f"missing {p}" for p in sorted(set(recorded) - set(actual))]
+    out += [f"extra {p}" for p in sorted(set(actual) - set(recorded))]
+    out += [f"changed {p}" for p in sorted(set(recorded) & set(actual)) if recorded[p] != actual[p]]
+    return out
 
 
 # ---------------------------------------------------------------- scorecards
 
 
 def score_path(lab: Lab, slug: str) -> Path:
-    return lab.experiments / slug / SCORE
+    return lab.experiments / _experiment(lab, slug) / SCORE

@@ -7,4 +7,4 @@ kind: run
 about: [pi-error-scaling]
 ---
 
-Run 20261004-231629 wrote experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv, 500 rows, and exited 0 in under a second. No deviation.
+Run 26-10-04-2316-r_zlk7 wrote runs/26-10-04-e_pi-error-scaling/26-10-04-2316-r_zlk7/out/estimates.tsv, 500 rows, and exited 0 in under a second. No deviation.

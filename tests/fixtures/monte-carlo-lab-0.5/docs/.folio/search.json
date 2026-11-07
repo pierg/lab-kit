@@ -1,0 +1,248 @@
+[
+  {
+    "description": "Only for this estimator and generator, from 64 to 16,384 points.",
+    "genre": "claim",
+    "id": "C-1",
+    "part": null,
+    "path": "content/claims/C-1.md",
+    "status": "live",
+    "tags": [
+      "monte-carlo",
+      "convergence"
+    ],
+    "text": "Claim From 64 to 16,384 points, the RMS error of the lab's Monte Carlo estimate of pi falls as one over the square root of the number of points (). Licensed by : the fitted log-log slope of the RMS error, from one locked run. Bounds that travel with it One estimator, Python's standard generator, and five sample sizes from 64 to 16,384 points, each four times the last. One run of 100 seeds per size. Must not be said That every Monte Carlo estimate converges at this rate. Only this estimator was run. That the error at a given size is known to within 10%. The scaled error left that band in one arm of the protocol . That the estimate is unbiased. The mean estimate at the largest size was not within the predicted distance of pi, and no result measures the bias.",
+    "title": "The pi estimator's error falls at the 1/sqrt(n) rate",
+    "url": "/content/claims/C-1.md"
+  },
+  {
+    "description": "A small lab that tests how fast a Monte Carlo estimate converges.",
+    "genre": "map",
+    "id": "home",
+    "part": null,
+    "path": "content/index.html",
+    "status": "live",
+    "tags": [],
+    "text": "",
+    "title": "Monte Carlo lab",
+    "url": "/content/"
+  },
+  {
+    "description": "One experiment run, scored, recorded and reported; no spend.",
+    "genre": "journal",
+    "id": "2026-10-04-concluded-the-pi-error-scaling-mission",
+    "part": null,
+    "path": "content/journal/2026/2026-10-04-concluded-the-pi-error-scaling-mission.md",
+    "status": "live",
+    "tags": [],
+    "text": "The mission landed its three milestones. The conclusion is in ops/missions/2026-10-04-pi-error-scaling.md.",
+    "title": "Concluded the pi error scaling mission",
+    "url": "/content/journal/2026/2026-10-04-concluded-the-pi-error-scaling-mission.md"
+  },
+  {
+    "description": "Does the error of a Monte Carlo estimate of pi shrink as 1/sqrt(n)?",
+    "genre": "journal",
+    "id": "2026-10-04-lab-set-up",
+    "part": null,
+    "path": "content/journal/2026/2026-10-04-lab-set-up.md",
+    "status": "live",
+    "tags": [],
+    "text": "The library is in docs/, with its root at the repository root. The frozen surface is substrate/, the estimator under test.",
+    "title": "Lab set up",
+    "url": "/content/journal/2026/2026-10-04-lab-set-up.md"
+  },
+  {
+    "description": "Five sample sizes, 100 seeds each, three decision rules and four predictions.",
+    "genre": "journal",
+    "id": "2026-10-04-locked-the-pi-error-scaling-protocol",
+    "part": null,
+    "path": "content/journal/2026/2026-10-04-locked-the-pi-error-scaling-protocol.md",
+    "status": "live",
+    "tags": [],
+    "text": "Locked after a draft review found no defect. The lock record is experiments/pi-error-scaling/lock.json.",
+    "title": "Locked the pi error scaling protocol",
+    "url": "/content/journal/2026/2026-10-04-locked-the-pi-error-scaling-protocol.md"
+  },
+  {
+    "description": "One experiment on Q-1, token-free, with no spend.",
+    "genre": "journal",
+    "id": "2026-10-04-opened-the-pi-error-scaling-mission",
+    "part": null,
+    "path": "content/journal/2026/2026-10-04-opened-the-pi-error-scaling-mission.md",
+    "status": "live",
+    "tags": [],
+    "text": "The operator asked whether the error of the Monte Carlo estimate of pi falls as one over the square root of the sample size. The mission file is ops/missions/2026-10-04-pi-error-scaling.md.",
+    "title": "Opened the pi error scaling mission",
+    "url": "/content/journal/2026/2026-10-04-opened-the-pi-error-scaling-mission.md"
+  },
+  {
+    "description": "The protocol's measure is the RMS error; R-1 fitted the slope to the mean absolute error by mistake.",
+    "genre": "journal",
+    "id": "2026-10-04-r-1-fitted-the-mean-absolute-error",
+    "part": null,
+    "path": "content/journal/2026/2026-10-04-r-1-fitted-the-mean-absolute-error.md",
+    "status": "live",
+    "tags": [],
+    "text": "The fold was run with --error mae when the protocol names the RMS error. R-2 records the RMS slope from the same evidence and supersedes R-1. Both commands still re-derive their own numbers.",
+    "title": "R-1 fitted the mean absolute error, not the RMS error",
+    "url": "/content/journal/2026/2026-10-04-r-1-fitted-the-mean-absolute-error.md"
+  },
+  {
+    "description": "One token-free run over all five sample sizes; it finished cleanly.",
+    "genre": "journal",
+    "id": "2026-10-04-ran-the-pi-error-scaling-protocol",
+    "part": null,
+    "path": "content/journal/2026/2026-10-04-ran-the-pi-error-scaling-protocol.md",
+    "status": "live",
+    "tags": [],
+    "text": "Run 20261004-231629 wrote experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv, 500 rows, and exited 0 in under a second. No deviation.",
+    "title": "Ran the pi error scaling protocol",
+    "url": "/content/journal/2026/2026-10-04-ran-the-pi-error-scaling-protocol.md"
+  },
+  {
+    "description": "The fitted log-log slope of the estimate's error against the number of points.",
+    "genre": "journal",
+    "id": "2026-10-04-recorded-r-1",
+    "part": null,
+    "path": "content/journal/2026/2026-10-04-recorded-r-1.md",
+    "status": "live",
+    "tags": [],
+    "text": "Recorded R-1 from the pi-error-scaling score, after a reviewer pass. The evidence is experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv. It says the error falls close to the 1/sqrt(n) rate.",
+    "title": "Recorded R-1",
+    "url": "/content/journal/2026/2026-10-04-recorded-r-1.md"
+  },
+  {
+    "description": "The RMS slope, which supersedes R-1.",
+    "genre": "journal",
+    "id": "2026-10-04-recorded-r-2",
+    "part": null,
+    "path": "content/journal/2026/2026-10-04-recorded-r-2.md",
+    "status": "live",
+    "tags": [],
+    "text": "Recorded R-2 from the pi-error-scaling score. It supersedes R-1. The evidence is the same run's estimates.",
+    "title": "Recorded R-2",
+    "url": "/content/journal/2026/2026-10-04-recorded-r-2.md"
+  },
+  {
+    "description": "The report on how the error of the pi estimate scales with the sample size.",
+    "genre": "journal",
+    "id": "2026-10-04-reported-the-pi-error-scaling-experiment",
+    "part": null,
+    "path": "content/journal/2026/2026-10-04-reported-the-pi-error-scaling-experiment.md",
+    "status": "live",
+    "tags": [],
+    "text": "The report concludes that the error falls at the 1/sqrt(n) rate across the sizes run, and that two tight per-size predictions missed.",
+    "title": "Reported the pi error scaling experiment",
+    "url": "/content/journal/2026/2026-10-04-reported-the-pi-error-scaling-experiment.md"
+  },
+  {
+    "description": "D1 fired and the hypothesis is kept; P2 and P4 missed, because 100 seeds cannot pin one size's error that closely.",
+    "genre": "journal",
+    "id": "2026-10-04-the-square-root-law-holds-per-size-predictions",
+    "part": null,
+    "path": "content/journal/2026/2026-10-04-the-square-root-law-holds-per-size-predictions.md",
+    "status": "live",
+    "tags": [],
+    "text": "Scored against the lock: P1 and P3 hit, P2 and P4 missed; D1 fired, D2 and D3 did not. Every scored number is in R-2 or the score file. Q-1 is answered for this estimator, and a next protocol should use more seeds per size.",
+    "title": "The square-root law holds; per-size predictions were too tight",
+    "url": "/content/journal/2026/2026-10-04-the-square-root-law-holds-per-size-predictions.md"
+  },
+  {
+    "description": "The lab's question, its experiment, what it found and what it may say.",
+    "genre": "map",
+    "id": "research",
+    "part": null,
+    "path": "content/maps/research.html",
+    "status": "live",
+    "tags": [],
+    "text": "Start here Monte Carlo lab Where the lab stands now. Does the error of a Monte Carlo estimate of pi shrink as 1/sqrt(n)? What we found The error of the pi estimate fell as 1/sqrt(n), but tight per-size predictions missed The pi estimator's error falls at the 1/sqrt(n) rate What may be said, and what must not.",
+    "title": "Research",
+    "url": "/content/maps/research.html"
+  },
+  {
+    "description": "Does the error of a Monte Carlo estimate of pi shrink as 1/sqrt(n)?",
+    "genre": "project",
+    "id": "lab",
+    "part": null,
+    "path": "content/projects/lab/index.html",
+    "status": "live",
+    "tags": [],
+    "text": "The question is answered: the error of the pi estimate falls at the square-root rate across the sizes run, as the report tells. Two per-size predictions missed. No mission is active. Next Draft a protocol with more seeds per size, to test the error at each size against theory. Where the code lives This repository: the estimator in , each experiment in .",
+    "title": "Monte Carlo lab",
+    "url": "/content/projects/lab/"
+  },
+  {
+    "description": "Varies the number of points drawn, and measures the root mean square error over 100 seeds.",
+    "genre": "protocol",
+    "id": "pi-error-scaling",
+    "part": null,
+    "path": "content/protocols/pi-error-scaling.md",
+    "status": "locked",
+    "tags": [
+      "monte-carlo",
+      "convergence"
+    ],
+    "text": "Hypothesis The root mean square error of the estimate falls as n to the power -0.5, where n is the number of points drawn. Intuition Each point is an independent yes or no: inside the quarter circle with probability pi/4. The estimate is four times the share of yeses, so its standard deviation is sqrt(pi(4 - pi)/n), about 1.64 divided by sqrt(n). On a log-log plot the error should fall on a line of slope -0.5. If the hypothesis fails, it will be because the generator's points are not independent enough, or because the estimator is biased, so that the error stops falling. The one variable The number of points drawn per estimate. Arms: 64, 256, 1,024, 4,096 and 16,384 points, each four times the last. Held fixed The estimator in , a frozen surface. Python's standard generator, seeded per estimate. 100 estimates per arm, each with its own seed: the arm's size times 1,000, plus the repeat's index from 0 to 99. The true value is . Pinned configuration Allowed moves Nothing under test makes moves: the estimator is fixed code. Measures The error of one estimate: the estimate minus . The RMS error of an arm: the square root of the mean squared error over its 100 estimates. The slope: the least-squares slope of ln(RMS error) against ln(n) over the five arms, printed to three decimals. The scaled error of an arm: its RMS error times sqrt(n), against the theoretical sqrt(pi(4 - pi)), about 1.642. The mean estimate of an arm: the mean of its 100 estimates. Decision rules D1: keep the hypothesis if the slope lies between -0.6 and -0.4. D2: drop it if the slope is below -0.7 or above -0.3. A slope between the D1 and D2 bands is inconclusive. D3 (kill): if the RMS error at 16,384 points is not below the RMS error at 64 points, stop this line: the sampler or the estimator is broken, and no slope means anything. Predictions P1: the slope lies between -0.55 and -0.45. Confidence: 85%. P2: the scaled error lies within 10% of 1.642 in every arm. Confidence: 50%. P3: the RMS error at 16,384 points is below 0.015. Confidence: 90%. P4: the mean estimate at 16,384 points lies within 0.002 of pi. Confidence: 80%. What it cannot show Anything about another estimator, another generator, sample sizes outside 64 to 16,384, or estimates in more than two dimensions. Running time was not measured.",
+    "title": "How the error of the pi estimate scales with the sample size",
+    "url": "/content/protocols/pi-error-scaling.md"
+  },
+  {
+    "description": "The answer says how many samples a given accuracy costs.",
+    "genre": "question",
+    "id": "Q-1",
+    "part": null,
+    "path": "content/questions/Q-1.md",
+    "status": "answered",
+    "tags": [
+      "monte-carlo",
+      "convergence"
+    ],
+    "text": "Why it matters Each point drawn either lands inside the quarter circle or not, so the estimate is a scaled average of independent coin flips. Theory says its error then shrinks as one over the square root of the sample size: four times the samples for half the error. If the estimator follows that law, its cost for any accuracy can be read off one line. What would settle it The root mean square error of the estimate, over many seeds, at sample sizes spread over several powers of two, fitted on a log-log scale. A fitted slope near -0.5 answers yes; a slope clearly steeper or shallower answers no. What would make us drop it An error that does not shrink at all as the sample grows: then the sampler or the estimator is broken, and no slope means anything. Answer Yes, for this estimator from 64 to 16,384 points: its RMS error fell with a fitted log-log slope of -0.493 (), and says how far that goes. Whether the error at a single size matches theory to within 10% was predicted in the protocol and missed at one size; it needs more seeds per size.",
+    "title": "Does the error of a Monte Carlo estimate of pi shrink as 1/sqrt(n)?",
+    "url": "/content/questions/Q-1.md"
+  },
+  {
+    "description": "The RMS error of a Monte Carlo estimate of pi, at five sample sizes from 64 to 16,384 points.",
+    "genre": "report",
+    "id": "pi-error-scaling-report",
+    "part": null,
+    "path": "content/reports/pi-error-scaling-report/index.html",
+    "status": "live",
+    "tags": [
+      "monte-carlo",
+      "convergence"
+    ],
+    "text": "The question, in words Drop random points in a square, count how many land inside a quarter circle, and you get an estimate of pi. With more points the estimate gets better. Does its error shrink as one over the square root of the number of points, so that four times the points buys half the error? That is the lab's first question . What we expected, and why Each point is an independent yes or no, so the estimate is a scaled average of coin flips, and its spread should follow the square-root law. On a log-log plot the error should fall on a line of slope -0.5, the value the protocol tests. The protocol fixed, before the run, the rules for keeping or dropping that idea, a kill rule for an error that does not shrink at all, and four predictions: the slope close to its theoretical value, the error at each size close to the theoretical value, a small error at the largest size, and a mean estimate close to pi there. What we did We ran the frozen estimator at five sample sizes, each four times the last, with one hundred seeds per size, and measured the root mean square error against pi at each size. The one thing varied was the number of points. There was one run, and nothing was voided or re-run. What happened The RMS error fell with a fitted log-log slope of -0.493 (R-2 ), against -0.5 in theory. The first decision rule fired, so the hypothesis is kept. The other two did not fire, the kill rule included. Two predictions hit: the slope, and the small error at the largest size. Two missed. The error scaled by the square root of the sample size left the 10% band around its theoretical value that the protocol set, at one size. And at the largest size the mean estimate was further from pi than we had predicted. An earlier result, R-1 , since superseded, fitted the slope to the mean absolute error where the protocol names the RMS error. What we learned The square-root law holds for this estimator across the range we ran, and the slope is a robust way to see it: it pools all five sizes. The two misses come from asking too much of one size at a time. With one hundred seeds, an RMS error is itself only known to within several percent, and a mean estimate to within about a thousandth, so the band and the distance from pi we predicted were tighter than the run could promise. What this does not show Anything about another estimator, another random generator, or estimates in more than two dimensions. Any sample size outside 64 to 16,384 points. Whether the estimator is biased: no result measures the bias, and one mean estimate missing its prediction is not evidence of one. Running time, which was not measured.",
+    "title": "The error of the pi estimate fell as 1/sqrt(n), but tight per-size predictions missed",
+    "url": "/content/reports/pi-error-scaling-report/"
+  },
+  {
+    "description": "The slope of the estimate's error against the number of points, over five sizes.",
+    "genre": "result",
+    "id": "R-1",
+    "part": null,
+    "path": "content/results/R-1.md",
+    "status": "superseded",
+    "tags": [
+      "monte-carlo",
+      "convergence"
+    ],
+    "text": "Why it matters The slope is close to -0.5, so the error falls about as fast as theory says: four times the points for half the error.",
+    "title": "The error of the pi estimate fell with a fitted log-log slope of -0.483",
+    "url": "/content/results/R-1.md"
+  },
+  {
+    "description": "The slope of the estimate's RMS error over 100 seeds against the number of points, over five sizes.",
+    "genre": "result",
+    "id": "R-2",
+    "part": null,
+    "path": "content/results/R-2.md",
+    "status": "live",
+    "tags": [
+      "monte-carlo",
+      "convergence"
+    ],
+    "text": "Why it matters The protocol's measure is the RMS error, and this is its slope. It corrects , which fitted the mean absolute error.",
+    "title": "The RMS error of the pi estimate fell with a fitted log-log slope of -0.493",
+    "url": "/content/results/R-2.md"
+  }
+]

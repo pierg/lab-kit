@@ -7,4 +7,4 @@ kind: decision
 about: [Q-1, lab]
 ---
 
-The mission landed its three milestones. The conclusion is in ops/missions/2026-10-04-pi-error-scaling.md.
+The mission landed its three milestones. The conclusion is in missions/26-10-04-m_pi-error-scaling.md.

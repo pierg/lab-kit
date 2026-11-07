@@ -38,7 +38,7 @@ You plan the mission with the operator, and you stop at their approval. The run-
    - the spend: token-free, or which runs may spend and the cap, as a number in one unit, and the standing budget it draws on, if any (`lab-kit status` shows each budget and the missions under it);
    - what must never be touched: frozen surfaces, locked protocols, recorded results, beyond what `lab.yaml` already freezes;
    - the stops: where the run must come back to the operator, beyond the method's own.
-3. **Draft.** Write `ops/missions/{date}-{slug}.md` with front matter `title`, `status: draft`, `rests_on` (the ids it serves), `cap` (a number; `0` for a token-free mission), and `budget` (the standing budget's name) when it draws on one. Its body holds these sections, in order:
+3. **Draft.** Write `missions/{YY-MM-DD}-m_{slug}.md` with front matter `title`, `status: draft`, `rests_on` (the ids it serves), `cap` (a number; `0` for a token-free mission), and `budget` (the standing budget's name) when it draws on one. Its body holds these sections, in order:
    - `## Objective`: the operator's words;
    - `## Rests on`: the ids, and why;
    - `## Done when`: the milestones, each with its observable;

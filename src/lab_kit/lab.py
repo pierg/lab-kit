@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -14,6 +15,10 @@ from folio.library import Library
 from .errors import LabError
 
 LAB_YAML = "lab.yaml"
+RUNS = "runs"                      # every run's folder: a link to <store>/runs, or a plain folder
+RUNNING = ".lab/running"           # a run's folder while it runs, on local disk, when the lab has a store
+FETCHED = ".lab/fetched"           # runs copied here from the store, on a machine that does not mount it
+EXPERIMENT_ID = re.compile(r"^(\d{2}-\d{2}-\d{2})-e_([a-z0-9]+(?:-[a-z0-9]+)*)$")
 _KEYS = ("lab-kit", "library", "front", "frozen", "rederive_timeout", "store")
 
 
@@ -70,9 +75,36 @@ class Lab:
         return self.root / "experiments"
 
     def experiment_slugs(self) -> list[str]:
+        """Every experiment folder's name: its id, `<YY-MM-DD>-e_<slug>` (a folder from before 0.6.0 is the bare slug)."""
         if not self.experiments.is_dir():
             return []
         return sorted(p.name for p in self.experiments.iterdir() if p.is_dir() and not p.name.startswith("."))
+
+    def experiment_for(self, slug: str) -> str | None:
+        """The id of the experiment whose protocol is `slug`, or None."""
+        for name in self.experiment_slugs():
+            if protocol_slug(name).casefold() == slug.casefold():
+                return name
+        return None
+
+    @property
+    def runs_dir(self) -> Path:
+        return self.root / RUNS
+
+    def runs_here(self) -> bool:
+        """Whether `runs/` resolves to a folder here; a link to a store this machine does not mount does not."""
+        return self.runs_dir.is_dir()
+
+    def run_roots(self) -> list[Path]:
+        """Where runs are read from: `runs/` when it resolves, runs still running here, and fetched copies."""
+        roots = [self.runs_dir] if self.runs_here() else []
+        return roots + [p for p in (self.root / RUNNING, self.root / FETCHED) if p.is_dir()]
+
+
+def protocol_slug(experiment_id: str) -> str:
+    """The protocol slug inside an experiment id: `portfolio-floor` in `26-11-04-e_portfolio-floor`."""
+    match = EXPERIMENT_ID.match(experiment_id)
+    return match.group(2) if match else experiment_id
 
 
 def _relative_root(lab: Lab) -> str:

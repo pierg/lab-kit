@@ -5,12 +5,12 @@ build-backend = "hatchling.build"
 [project]
 dynamic = ["readme"]
 name = "lab-kit-cli"
-version = "0.5.0"
+version = "0.6.0"
 description = "A research lab's method and machinery on top of folio: pre-register, lock, run, score, re-derive."
 license = "MIT"
 authors = [{ name = "Piergiuseppe Mallozzi" }]
 requires-python = ">=3.10"
-dependencies = ["folio-kb>=0.1.0", "pyyaml"]
+dependencies = ["folio-kb>=0.3.5", "pyyaml"]
 
 [project.optional-dependencies]
 dev = ["pytest"]

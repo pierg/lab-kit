@@ -7,4 +7,4 @@ kind: decision
 about: [Q-1, lab]
 ---
 
-The operator asked whether the error of the Monte Carlo estimate of pi falls as one over the square root of the sample size. The mission file is ops/missions/2026-10-04-pi-error-scaling.md.
+The operator asked whether the error of the Monte Carlo estimate of pi falls as one over the square root of the sample size. The mission file is missions/26-10-04-m_pi-error-scaling.md.

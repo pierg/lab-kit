@@ -1,0 +1,425 @@
+{
+  "content/claims/C-1.md": {
+    "about": [],
+    "cited_by": [
+      "content/maps/research.html",
+      "content/questions/Q-1.md"
+    ],
+    "cites": [
+      "content/protocols/pi-error-scaling.md",
+      "content/results/R-2.md"
+    ],
+    "fields": {},
+    "id": "C-1",
+    "retracted_by": [],
+    "superseded_by": []
+  },
+  "content/index.html": {
+    "about": [],
+    "cited_by": [],
+    "cites": [],
+    "fields": {},
+    "id": "home",
+    "retracted_by": [],
+    "superseded_by": []
+  },
+  "content/journal/2026/2026-10-04-concluded-the-pi-error-scaling-mission.md": {
+    "about": [],
+    "cited_by": [],
+    "cites": [
+      "content/projects/lab/index.html",
+      "content/questions/Q-1.md"
+    ],
+    "fields": {},
+    "id": "2026-10-04-concluded-the-pi-error-scaling-mission",
+    "retracted_by": [],
+    "superseded_by": []
+  },
+  "content/journal/2026/2026-10-04-lab-set-up.md": {
+    "about": [],
+    "cited_by": [],
+    "cites": [
+      "content/projects/lab/index.html",
+      "content/questions/Q-1.md"
+    ],
+    "fields": {},
+    "id": "2026-10-04-lab-set-up",
+    "retracted_by": [],
+    "superseded_by": []
+  },
+  "content/journal/2026/2026-10-04-locked-the-pi-error-scaling-protocol.md": {
+    "about": [],
+    "cited_by": [],
+    "cites": [
+      "content/protocols/pi-error-scaling.md",
+      "content/questions/Q-1.md"
+    ],
+    "fields": {},
+    "id": "2026-10-04-locked-the-pi-error-scaling-protocol",
+    "retracted_by": [],
+    "superseded_by": []
+  },
+  "content/journal/2026/2026-10-04-opened-the-pi-error-scaling-mission.md": {
+    "about": [],
+    "cited_by": [],
+    "cites": [
+      "content/projects/lab/index.html",
+      "content/questions/Q-1.md"
+    ],
+    "fields": {},
+    "id": "2026-10-04-opened-the-pi-error-scaling-mission",
+    "retracted_by": [],
+    "superseded_by": []
+  },
+  "content/journal/2026/2026-10-04-r-1-fitted-the-mean-absolute-error.md": {
+    "about": [],
+    "cited_by": [],
+    "cites": [
+      "content/protocols/pi-error-scaling.md",
+      "content/results/R-1.md"
+    ],
+    "fields": {},
+    "id": "2026-10-04-r-1-fitted-the-mean-absolute-error",
+    "retracted_by": [],
+    "superseded_by": []
+  },
+  "content/journal/2026/2026-10-04-ran-the-pi-error-scaling-protocol.md": {
+    "about": [],
+    "cited_by": [],
+    "cites": [
+      "content/protocols/pi-error-scaling.md"
+    ],
+    "fields": {},
+    "id": "2026-10-04-ran-the-pi-error-scaling-protocol",
+    "retracted_by": [],
+    "superseded_by": []
+  },
+  "content/journal/2026/2026-10-04-recorded-r-1.md": {
+    "about": [],
+    "cited_by": [],
+    "cites": [
+      "content/protocols/pi-error-scaling.md",
+      "content/results/R-1.md"
+    ],
+    "fields": {},
+    "id": "2026-10-04-recorded-r-1",
+    "retracted_by": [],
+    "superseded_by": []
+  },
+  "content/journal/2026/2026-10-04-recorded-r-2.md": {
+    "about": [],
+    "cited_by": [],
+    "cites": [
+      "content/protocols/pi-error-scaling.md",
+      "content/results/R-2.md"
+    ],
+    "fields": {},
+    "id": "2026-10-04-recorded-r-2",
+    "retracted_by": [],
+    "superseded_by": []
+  },
+  "content/journal/2026/2026-10-04-reported-the-pi-error-scaling-experiment.md": {
+    "about": [],
+    "cited_by": [],
+    "cites": [
+      "content/reports/pi-error-scaling-report/index.html",
+      "content/results/R-2.md"
+    ],
+    "fields": {},
+    "id": "2026-10-04-reported-the-pi-error-scaling-experiment",
+    "retracted_by": [],
+    "superseded_by": []
+  },
+  "content/journal/2026/2026-10-04-the-square-root-law-holds-per-size-predictions.md": {
+    "about": [],
+    "cited_by": [],
+    "cites": [
+      "content/protocols/pi-error-scaling.md",
+      "content/questions/Q-1.md",
+      "content/reports/pi-error-scaling-report/index.html",
+      "content/results/R-2.md"
+    ],
+    "fields": {},
+    "id": "2026-10-04-the-square-root-law-holds-per-size-predictions",
+    "retracted_by": [],
+    "superseded_by": []
+  },
+  "content/maps/research.html": {
+    "about": [],
+    "cited_by": [],
+    "cites": [
+      "content/claims/C-1.md",
+      "content/projects/lab/index.html",
+      "content/questions/Q-1.md",
+      "content/reports/pi-error-scaling-report/index.html"
+    ],
+    "fields": {},
+    "id": "research",
+    "retracted_by": [],
+    "superseded_by": []
+  },
+  "content/projects/lab/index.html": {
+    "about": [
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-opened-the-pi-error-scaling-mission",
+        "kind": "decision",
+        "path": "content/journal/2026/2026-10-04-opened-the-pi-error-scaling-mission.md"
+      },
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-lab-set-up",
+        "kind": "decision",
+        "path": "content/journal/2026/2026-10-04-lab-set-up.md"
+      },
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-concluded-the-pi-error-scaling-mission",
+        "kind": "decision",
+        "path": "content/journal/2026/2026-10-04-concluded-the-pi-error-scaling-mission.md"
+      }
+    ],
+    "cited_by": [
+      "content/journal/2026/2026-10-04-concluded-the-pi-error-scaling-mission.md",
+      "content/journal/2026/2026-10-04-lab-set-up.md",
+      "content/journal/2026/2026-10-04-opened-the-pi-error-scaling-mission.md",
+      "content/maps/research.html"
+    ],
+    "cites": [
+      "content/questions/Q-1.md",
+      "content/reports/pi-error-scaling-report/index.html"
+    ],
+    "fields": {},
+    "id": "lab",
+    "retracted_by": [],
+    "superseded_by": []
+  },
+  "content/protocols/pi-error-scaling.md": {
+    "about": [
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-the-square-root-law-holds-per-size-predictions",
+        "kind": "lesson",
+        "path": "content/journal/2026/2026-10-04-the-square-root-law-holds-per-size-predictions.md"
+      },
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-recorded-r-2",
+        "kind": null,
+        "path": "content/journal/2026/2026-10-04-recorded-r-2.md"
+      },
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-recorded-r-1",
+        "kind": null,
+        "path": "content/journal/2026/2026-10-04-recorded-r-1.md"
+      },
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-ran-the-pi-error-scaling-protocol",
+        "kind": "run",
+        "path": "content/journal/2026/2026-10-04-ran-the-pi-error-scaling-protocol.md"
+      },
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-r-1-fitted-the-mean-absolute-error",
+        "kind": "correction",
+        "path": "content/journal/2026/2026-10-04-r-1-fitted-the-mean-absolute-error.md"
+      },
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-locked-the-pi-error-scaling-protocol",
+        "kind": "lock",
+        "path": "content/journal/2026/2026-10-04-locked-the-pi-error-scaling-protocol.md"
+      }
+    ],
+    "cited_by": [
+      "content/claims/C-1.md",
+      "content/journal/2026/2026-10-04-locked-the-pi-error-scaling-protocol.md",
+      "content/journal/2026/2026-10-04-r-1-fitted-the-mean-absolute-error.md",
+      "content/journal/2026/2026-10-04-ran-the-pi-error-scaling-protocol.md",
+      "content/journal/2026/2026-10-04-recorded-r-1.md",
+      "content/journal/2026/2026-10-04-recorded-r-2.md",
+      "content/journal/2026/2026-10-04-the-square-root-law-holds-per-size-predictions.md",
+      "content/questions/Q-1.md",
+      "content/reports/pi-error-scaling-report/index.html",
+      "content/results/R-1.md",
+      "content/results/R-2.md"
+    ],
+    "cites": [
+      "content/questions/Q-1.md"
+    ],
+    "fields": {
+      "protocol": [
+        "content/results/R-1.md",
+        "content/results/R-2.md"
+      ]
+    },
+    "id": "pi-error-scaling",
+    "retracted_by": [],
+    "superseded_by": []
+  },
+  "content/questions/Q-1.md": {
+    "about": [
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-the-square-root-law-holds-per-size-predictions",
+        "kind": "lesson",
+        "path": "content/journal/2026/2026-10-04-the-square-root-law-holds-per-size-predictions.md"
+      },
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-opened-the-pi-error-scaling-mission",
+        "kind": "decision",
+        "path": "content/journal/2026/2026-10-04-opened-the-pi-error-scaling-mission.md"
+      },
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-locked-the-pi-error-scaling-protocol",
+        "kind": "lock",
+        "path": "content/journal/2026/2026-10-04-locked-the-pi-error-scaling-protocol.md"
+      },
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-lab-set-up",
+        "kind": "decision",
+        "path": "content/journal/2026/2026-10-04-lab-set-up.md"
+      },
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-concluded-the-pi-error-scaling-mission",
+        "kind": "decision",
+        "path": "content/journal/2026/2026-10-04-concluded-the-pi-error-scaling-mission.md"
+      }
+    ],
+    "cited_by": [
+      "content/journal/2026/2026-10-04-concluded-the-pi-error-scaling-mission.md",
+      "content/journal/2026/2026-10-04-lab-set-up.md",
+      "content/journal/2026/2026-10-04-locked-the-pi-error-scaling-protocol.md",
+      "content/journal/2026/2026-10-04-opened-the-pi-error-scaling-mission.md",
+      "content/journal/2026/2026-10-04-the-square-root-law-holds-per-size-predictions.md",
+      "content/maps/research.html",
+      "content/projects/lab/index.html",
+      "content/protocols/pi-error-scaling.md",
+      "content/reports/pi-error-scaling-report/index.html"
+    ],
+    "cites": [
+      "content/claims/C-1.md",
+      "content/protocols/pi-error-scaling.md",
+      "content/results/R-2.md"
+    ],
+    "fields": {
+      "question": [
+        "content/protocols/pi-error-scaling.md"
+      ]
+    },
+    "id": "Q-1",
+    "retracted_by": [],
+    "superseded_by": []
+  },
+  "content/reports/pi-error-scaling-report/index.html": {
+    "about": [
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-the-square-root-law-holds-per-size-predictions",
+        "kind": "lesson",
+        "path": "content/journal/2026/2026-10-04-the-square-root-law-holds-per-size-predictions.md"
+      },
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-reported-the-pi-error-scaling-experiment",
+        "kind": null,
+        "path": "content/journal/2026/2026-10-04-reported-the-pi-error-scaling-experiment.md"
+      }
+    ],
+    "cited_by": [
+      "content/journal/2026/2026-10-04-reported-the-pi-error-scaling-experiment.md",
+      "content/journal/2026/2026-10-04-the-square-root-law-holds-per-size-predictions.md",
+      "content/maps/research.html",
+      "content/projects/lab/index.html"
+    ],
+    "cites": [
+      "content/protocols/pi-error-scaling.md",
+      "content/questions/Q-1.md",
+      "content/results/R-1.md",
+      "content/results/R-2.md"
+    ],
+    "fields": {},
+    "id": "pi-error-scaling-report",
+    "retracted_by": [],
+    "superseded_by": []
+  },
+  "content/results/R-1.md": {
+    "about": [
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-recorded-r-1",
+        "kind": null,
+        "path": "content/journal/2026/2026-10-04-recorded-r-1.md"
+      },
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-r-1-fitted-the-mean-absolute-error",
+        "kind": "correction",
+        "path": "content/journal/2026/2026-10-04-r-1-fitted-the-mean-absolute-error.md"
+      }
+    ],
+    "cited_by": [
+      "content/journal/2026/2026-10-04-r-1-fitted-the-mean-absolute-error.md",
+      "content/journal/2026/2026-10-04-recorded-r-1.md",
+      "content/reports/pi-error-scaling-report/index.html",
+      "content/results/R-2.md"
+    ],
+    "cites": [
+      "content/protocols/pi-error-scaling.md"
+    ],
+    "fields": {
+      "supersedes": [
+        "content/results/R-2.md"
+      ]
+    },
+    "id": "R-1",
+    "retracted_by": [],
+    "superseded_by": [
+      "content/results/R-2.md"
+    ]
+  },
+  "content/results/R-2.md": {
+    "about": [
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-the-square-root-law-holds-per-size-predictions",
+        "kind": "lesson",
+        "path": "content/journal/2026/2026-10-04-the-square-root-law-holds-per-size-predictions.md"
+      },
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-reported-the-pi-error-scaling-experiment",
+        "kind": null,
+        "path": "content/journal/2026/2026-10-04-reported-the-pi-error-scaling-experiment.md"
+      },
+      {
+        "date": "2026-10-04",
+        "id": "2026-10-04-recorded-r-2",
+        "kind": null,
+        "path": "content/journal/2026/2026-10-04-recorded-r-2.md"
+      }
+    ],
+    "cited_by": [
+      "content/claims/C-1.md",
+      "content/journal/2026/2026-10-04-recorded-r-2.md",
+      "content/journal/2026/2026-10-04-reported-the-pi-error-scaling-experiment.md",
+      "content/journal/2026/2026-10-04-the-square-root-law-holds-per-size-predictions.md",
+      "content/questions/Q-1.md",
+      "content/reports/pi-error-scaling-report/index.html"
+    ],
+    "cites": [
+      "content/protocols/pi-error-scaling.md",
+      "content/results/R-1.md"
+    ],
+    "fields": {},
+    "id": "R-2",
+    "retracted_by": [],
+    "superseded_by": []
+  }
+}

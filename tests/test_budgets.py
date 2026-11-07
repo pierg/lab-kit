@@ -19,7 +19,7 @@ def budget(root: Path, grants: str = GRANT) -> None:
 
 
 def mission(root: Path, slug: str, cap: float, status: str = "active", name: str = "credits") -> str:
-    path = f"ops/missions/2026-10-05-{slug}.md"
+    path = f"missions/26-10-05-m_{slug}.md"
     approved = "" if status == "draft" else 'approved: "The commander, 2026-10-05, under budget credits"\n'
     (root / path).write_text(f"---\ntitle: {slug}\nstatus: {status}\nrests_on: [Q-1]\nbudget: {name}\n"
                              f"cap: {cap}\n{approved}---\n\n## Log\n\n- 2026-10-05 Drafted.\n", encoding="utf-8")
@@ -127,7 +127,7 @@ def test_status_shows_the_budgets(make_lab, lab_kit) -> None:
     make_lab(setup)
     code, out = lab_kit("status")
     assert code == 0 and "credits: 200 USD granted, 120 committed, 80 left" in out
-    assert "ops/missions/2026-10-05-first.md: 120" in out
+    assert "missions/26-10-05-m_first.md: 120" in out
 
 
 @pytest.mark.parametrize("cap", ["-100", ".nan", ".inf"])

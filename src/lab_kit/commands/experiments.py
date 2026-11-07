@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import datetime as _dt
+
 from folio.checks.run import run as folio_run
 from folio.util import is_slug
 
@@ -10,23 +12,24 @@ from .. import records
 from ..errors import LabError
 from ..lab import Lab
 
-GITIGNORE = "# A run's scratch and log stay out of git; out/ is committed once, at the end.\nruns/*/work/\nruns/*/run.log\n"
+def experiment_id(slug: str, day: _dt.date | None = None) -> str:
+    """`<YY-MM-DD>-e_<slug>`: the day the experiment was created (UTC), and its protocol's slug."""
+    day = day or _dt.datetime.now(_dt.timezone.utc).date()
+    return f"{day.strftime('%y-%m-%d')}-e_{slug}"
 
 
 def experiment(lab: Lab, slug: str) -> list[str]:
     if not is_slug(slug):
         raise LabError(f"`{slug}` is not a slug: lowercase letters, digits and single hyphens")
     proto = protocol_mod.require(lab, slug)
-    folder = lab.experiments / proto.slug
-    if folder.exists():
-        raise LabError(f"experiments/{proto.slug}/ exists already")
+    existing = lab.experiment_for(proto.slug)
+    if existing:
+        raise LabError(f"experiments/{existing}/ exists already")
+    ident = experiment_id(proto.slug)
+    folder = lab.experiments / ident
     (folder / "bin").mkdir(parents=True)
-    (folder / "runs").mkdir()
     (folder / "bin" / ".gitkeep").touch()
-    (folder / "runs" / ".gitkeep").touch()
-    (folder / ".gitignore").write_text(GITIGNORE, encoding="utf-8")
-    base = f"experiments/{proto.slug}"
-    return [f"created {base}/bin/", f"created {base}/runs/", f"created {base}/.gitignore"]
+    return [f"created experiments/{ident}/bin/; its runs will be under runs/{ident}/"]
 
 
 def lock(lab: Lab, slug: str) -> list[str]:
@@ -34,12 +37,13 @@ def lock(lab: Lab, slug: str) -> list[str]:
     if proto.status != "locked":
         raise LabError(f"{proto.path} has status `{proto.status}`; set it to `locked` through folio's write "
                        "skill first")
-    folder = lab.experiments / proto.slug
-    if not folder.is_dir():
-        raise LabError(f"experiments/{proto.slug}/ does not exist; run `lab-kit experiment {proto.slug}` first")
-    path = records.lock_path(lab, proto.slug)
+    ident = lab.experiment_for(proto.slug)
+    if ident is None:
+        raise LabError(f"no experiments/<YY-MM-DD>-e_{proto.slug}/; run `lab-kit experiment {proto.slug}` first")
+    folder = lab.experiments / ident
+    path = folder / records.LOCK
     if path.exists():
-        raise LabError(f"experiments/{proto.slug}/{records.LOCK} exists already: a protocol is locked once")
+        raise LabError(f"experiments/{ident}/{records.LOCK} exists already: a protocol is locked once")
     main = proto.doc.main
     errors = [p for p in folio_run(lab.library()) if p.severity == "error" and main is not None
               and p.path == main.path]
@@ -55,11 +59,13 @@ def lock(lab: Lab, slug: str) -> list[str]:
         "instrument": records.instrument_hash(folder / "bin"),
         **records.provenance(lab.root),
     })
-    return [f"created experiments/{proto.slug}/{records.LOCK}"]
+    return [f"created experiments/{ident}/{records.LOCK}"]
 
 
 
 def score(lab: Lab, slug: str) -> list[str]:
+    if not (lab.experiments / slug).is_dir():
+        slug = lab.experiment_for(slug) or slug
     lock_record = records.read_lock(lab, slug)
     if lock_record is None:
         raise LabError(f"experiments/{slug}/{records.LOCK} does not exist: only a locked experiment is scored")
@@ -72,7 +78,7 @@ def score(lab: Lab, slug: str) -> list[str]:
         f"# The scorecard of experiment {slug}, against its lock.",
         f"# A prediction's verdict: {', '.join(records.PREDICTION_VERDICTS)}.",
         f"# A decision rule's verdict: {', '.join(records.RULE_VERDICTS)}.",
-        "# `evidence` is a path from the lab root, inside a finished run.",
+        "# `evidence` is a path from the lab root, inside a finished run: runs/<experiment>/<run id>/...",
         f"protocol: {proto.slug}",
         f"lock: {lock_record.sha256}",
         "review:            # the independent reviewer's pass: `pass` or `fail`, and where its verdict is recorded",

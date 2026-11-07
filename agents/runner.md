@@ -17,7 +17,7 @@ Execution:
 - Launch every run with `lab-kit run`. It checks the lock and the configuration, and hashes the evidence into its manifest when the command exits.
 - Copy the mechanics of the earlier experiment the protocol names: its scripts, its pins, its gitignore. Do not invent new ones.
 - Verify every recovered artefact against its expected hash. Report a mismatch; never substitute silently.
-- Write only in the experiment's `bin/` and in a run's `work/`. Evidence reaches `out/` through the run's own command.
+- Write only in the experiment's `bin/` and in the run's own folder (`$LAB_RUN`). Evidence reaches it through the run's own command.
 - Fail loud. An apparatus failure is a result to report, not a thing to patch around.
 
 Reporting:

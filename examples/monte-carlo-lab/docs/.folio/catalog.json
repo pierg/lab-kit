@@ -434,10 +434,10 @@
         "baseline": "the theoretical slope of -0.5, for independent points",
         "bound": "64 to 16,384 points, 100 seeds per size, Python's standard generator; the estimator in substrate/ only.",
         "date": "2026-10-04",
-        "evidence": "experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv",
+        "evidence": "runs/26-10-04-e_pi-error-scaling/26-10-04-2316-r_zlk7/out/estimates.tsv",
         "number": "-0.483",
         "protocol": "pi-error-scaling",
-        "rederive": "python3 experiments/pi-error-scaling/bin/fold.py experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv --stat slope --error mae"
+        "rederive": "python3 experiments/26-10-04-e_pi-error-scaling/bin/fold.py runs/26-10-04-e_pi-error-scaling/26-10-04-2316-r_zlk7/out/estimates.tsv --stat slope --error mae"
       },
       "genre": "result",
       "id": "R-1",
@@ -468,10 +468,10 @@
         "baseline": "the theoretical slope of -0.5, for independent points",
         "bound": "64 to 16,384 points, 100 seeds per size, Python's standard generator; the estimator in substrate/ only.",
         "date": "2026-10-04",
-        "evidence": "experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv",
+        "evidence": "runs/26-10-04-e_pi-error-scaling/26-10-04-2316-r_zlk7/out/estimates.tsv",
         "number": "-0.493",
         "protocol": "pi-error-scaling",
-        "rederive": "python3 experiments/pi-error-scaling/bin/fold.py experiments/pi-error-scaling/runs/20261004-231629/out/estimates.tsv --stat slope",
+        "rederive": "python3 experiments/26-10-04-e_pi-error-scaling/bin/fold.py runs/26-10-04-e_pi-error-scaling/26-10-04-2316-r_zlk7/out/estimates.tsv --stat slope",
         "supersedes": "R-1"
       },
       "genre": "result",

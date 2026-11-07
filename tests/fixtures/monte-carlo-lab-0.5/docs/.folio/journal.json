@@ -1,0 +1,143 @@
+[
+  {
+    "about": [
+      "pi-error-scaling",
+      "R-2",
+      "pi-error-scaling-report",
+      "Q-1"
+    ],
+    "date": "2026-10-04",
+    "description": "D1 fired and the hypothesis is kept; P2 and P4 missed, because 100 seeds cannot pin one size's error that closely.",
+    "id": "2026-10-04-the-square-root-law-holds-per-size-predictions",
+    "kind": "lesson",
+    "path": "content/journal/2026/2026-10-04-the-square-root-law-holds-per-size-predictions.md",
+    "tags": [],
+    "title": "The square-root law holds; per-size predictions were too tight",
+    "url": "/content/journal/2026/2026-10-04-the-square-root-law-holds-per-size-predictions.md"
+  },
+  {
+    "about": [
+      "pi-error-scaling-report",
+      "R-2"
+    ],
+    "date": "2026-10-04",
+    "description": "The report on how the error of the pi estimate scales with the sample size.",
+    "id": "2026-10-04-reported-the-pi-error-scaling-experiment",
+    "kind": null,
+    "path": "content/journal/2026/2026-10-04-reported-the-pi-error-scaling-experiment.md",
+    "tags": [],
+    "title": "Reported the pi error scaling experiment",
+    "url": "/content/journal/2026/2026-10-04-reported-the-pi-error-scaling-experiment.md"
+  },
+  {
+    "about": [
+      "R-2",
+      "pi-error-scaling"
+    ],
+    "date": "2026-10-04",
+    "description": "The RMS slope, which supersedes R-1.",
+    "id": "2026-10-04-recorded-r-2",
+    "kind": null,
+    "path": "content/journal/2026/2026-10-04-recorded-r-2.md",
+    "tags": [],
+    "title": "Recorded R-2",
+    "url": "/content/journal/2026/2026-10-04-recorded-r-2.md"
+  },
+  {
+    "about": [
+      "R-1",
+      "pi-error-scaling"
+    ],
+    "date": "2026-10-04",
+    "description": "The fitted log-log slope of the estimate's error against the number of points.",
+    "id": "2026-10-04-recorded-r-1",
+    "kind": null,
+    "path": "content/journal/2026/2026-10-04-recorded-r-1.md",
+    "tags": [],
+    "title": "Recorded R-1",
+    "url": "/content/journal/2026/2026-10-04-recorded-r-1.md"
+  },
+  {
+    "about": [
+      "pi-error-scaling"
+    ],
+    "date": "2026-10-04",
+    "description": "One token-free run over all five sample sizes; it finished cleanly.",
+    "id": "2026-10-04-ran-the-pi-error-scaling-protocol",
+    "kind": "run",
+    "path": "content/journal/2026/2026-10-04-ran-the-pi-error-scaling-protocol.md",
+    "tags": [],
+    "title": "Ran the pi error scaling protocol",
+    "url": "/content/journal/2026/2026-10-04-ran-the-pi-error-scaling-protocol.md"
+  },
+  {
+    "about": [
+      "R-1",
+      "pi-error-scaling"
+    ],
+    "date": "2026-10-04",
+    "description": "The protocol's measure is the RMS error; R-1 fitted the slope to the mean absolute error by mistake.",
+    "id": "2026-10-04-r-1-fitted-the-mean-absolute-error",
+    "kind": "correction",
+    "path": "content/journal/2026/2026-10-04-r-1-fitted-the-mean-absolute-error.md",
+    "tags": [],
+    "title": "R-1 fitted the mean absolute error, not the RMS error",
+    "url": "/content/journal/2026/2026-10-04-r-1-fitted-the-mean-absolute-error.md"
+  },
+  {
+    "about": [
+      "Q-1",
+      "lab"
+    ],
+    "date": "2026-10-04",
+    "description": "One experiment on Q-1, token-free, with no spend.",
+    "id": "2026-10-04-opened-the-pi-error-scaling-mission",
+    "kind": "decision",
+    "path": "content/journal/2026/2026-10-04-opened-the-pi-error-scaling-mission.md",
+    "tags": [],
+    "title": "Opened the pi error scaling mission",
+    "url": "/content/journal/2026/2026-10-04-opened-the-pi-error-scaling-mission.md"
+  },
+  {
+    "about": [
+      "pi-error-scaling",
+      "Q-1"
+    ],
+    "date": "2026-10-04",
+    "description": "Five sample sizes, 100 seeds each, three decision rules and four predictions.",
+    "id": "2026-10-04-locked-the-pi-error-scaling-protocol",
+    "kind": "lock",
+    "path": "content/journal/2026/2026-10-04-locked-the-pi-error-scaling-protocol.md",
+    "tags": [],
+    "title": "Locked the pi error scaling protocol",
+    "url": "/content/journal/2026/2026-10-04-locked-the-pi-error-scaling-protocol.md"
+  },
+  {
+    "about": [
+      "lab",
+      "Q-1"
+    ],
+    "date": "2026-10-04",
+    "description": "Does the error of a Monte Carlo estimate of pi shrink as 1/sqrt(n)?",
+    "id": "2026-10-04-lab-set-up",
+    "kind": "decision",
+    "path": "content/journal/2026/2026-10-04-lab-set-up.md",
+    "tags": [],
+    "title": "Lab set up",
+    "url": "/content/journal/2026/2026-10-04-lab-set-up.md"
+  },
+  {
+    "about": [
+      "Q-1",
+      "lab"
+    ],
+    "date": "2026-10-04",
+    "description": "One experiment run, scored, recorded and reported; no spend.",
+    "id": "2026-10-04-concluded-the-pi-error-scaling-mission",
+    "kind": "decision",
+    "path": "content/journal/2026/2026-10-04-concluded-the-pi-error-scaling-mission.md",
+    "tags": [],
+    "title": "Concluded the pi error scaling mission",
+    "url": "/content/journal/2026/2026-10-04-concluded-the-pi-error-scaling-mission.md"
+  }
+]

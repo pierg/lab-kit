@@ -6,3 +6,4 @@ home:
   maps: [research]
 reader: Anyone checking the lab's result; they know what a random sample and a log-log plot are.
 root: ..
+baseline: baseline.sha256

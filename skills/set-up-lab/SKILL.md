@@ -41,7 +41,7 @@ Create the lab's library and files, record its question, and leave `lab-kit chec
    - `root`: `..` when the library is in `docs/`, nothing when it is the repository root.
 
    Skip its journal entry and its commit: step 10 records and commits the whole setup once.
-4. **Install the lab.** Run `lab-kit init --library <dir>`. It writes `lab.yaml`, `ops/STATE.md`, `ops/missions/`, `experiments/` and `.lab/`, restores the method, the skills and the roles to this version, links `.claude/agents` to `.agents/agents`, and switches the lab pack on if set-up did not.
+4. **Install the lab.** Run `lab-kit init --library <dir>`. It writes `lab.yaml`, `ops/STATE.md`, `missions/`, `experiments/`, `runs/` (a link to the store when `lab.yaml` names one) and `.lab/`, restores the method, the skills and the roles to this version, links `.claude/agents` to `.agents/agents`, and switches the lab pack on if set-up did not.
 5. **Add the front door.** Through folio's write skill, add a project document `lab`. Its description states the question. Its `reviewed` date is today, its state says the lab is set up and no mission is active, and its next step is the operator's first objective. Create a top-level map, `research`, through the write skill, keep it `live`, add the front door to it, and set it on the home page: `folio config set home.maps research`. Set `front: lab` in `lab.yaml`.
 6. **Add the question.** Through the write skill, add the question as `Q-1`, with rank 1, why it matters, what would settle it, and what would make the lab drop it. Add it to the `research` map.
 7. **Freeze the surfaces.** List each path the operator named under `frozen:` in `lab.yaml`, then run `lab-kit freeze <path>` for each. With none, leave `frozen: []`.
