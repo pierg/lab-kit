@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import hashlib
+import json
 import os
 import re
 import shutil
@@ -311,7 +312,7 @@ def _verify_against(folder: Path, manifest: Path) -> list[str]:
 
 
 def assemble(lab: Lab, run: Run, missions: dict[str, str], locks: dict[str, tuple[str, str]],
-             stage: Path) -> tuple[Path, dict]:
+             stage: Path, rewrite=None) -> tuple[Path, dict]:
     """Build the run's new folder under `stage`, verified against its old manifests, and seal it."""
     where = lab.rel(run.folder)
     dest = stage / run.experiment / run.new_id
@@ -361,6 +362,9 @@ def assemble(lab: Lab, run: Run, missions: dict[str, str], locks: dict[str, tupl
     mission = data.get("mission")
     if isinstance(mission, str) and mission in missions:
         data["mission"] = missions[mission]
+    if rewrite is not None and data.get("config") is not None:
+        # the configuration is a copy of the protocol's pinned block, which the rewrite changes alike
+        data["config"] = json.loads(rewrite(json.dumps(data["config"], ensure_ascii=False))[0])
     old_new = locks.get(run.experiment)
     if old_new and data.get("lock") == old_new[0]:
         data["lock"] = old_new[1]
@@ -514,7 +518,7 @@ def _apply(lab: Lab, plan_: Plan, table: list[tuple[str, str, str]], rewrite) ->
                                f"({'; '.join(wrong[:3])}); look at it before migrating again")
             continue
         try:
-            built, data = assemble(lab, run, missions, run_locks, stage)
+            built, data = assemble(lab, run, missions, run_locks, stage, rewrite)
             _put_in_place(lab, run, built, data)
         except Exception as exc:
             raise LabError(f"{exc}\nNothing in git changed; the runs put in place so far are reused when you run "
