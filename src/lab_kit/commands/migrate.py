@@ -263,7 +263,7 @@ def rewriter(pairs: tuple[dict[str, str], dict[str, str]]):
         return re.compile(r"(?<![\w-])(" + "|".join(re.escape(k) for k in keys) + r")" + tail) if keys else None
     # A path never inside a longer name. A bare run id only where it stands alone as a word: never where it
     # names a file (`<id>.png`, `<id>.work.tar.zst`), which is not renamed.
-    path_re = compile_(paths, r"(?![\w-])")
+    path_re = compile_(paths, r"(?![\w-]|\.\w)")
     bare_re = compile_(bare, r"(?=$|[\s/`)\]\"',;:]|\.(?:$|\s))")
 
     def apply(text: str) -> tuple[str, int]:
@@ -285,15 +285,15 @@ def _read(path: Path) -> str | None:
         return None
 
 
-def _instrument_after(folder: Path, rewrite) -> str:
-    """`records.instrument_hash` of `folder` as it will be once rewritten."""
+def _instrument_after(folder: Path, rewrite, rewritable: set[Path]) -> str:
+    """`records.instrument_hash` of `folder` as it will be once its git-tracked text files are rewritten."""
     digest = hashlib.sha256()
     if folder.is_dir():
         files = sorted((p.relative_to(folder).as_posix(), p) for p in folder.rglob("*")
                        if p.is_file() and "__pycache__" not in p.relative_to(folder).parts)
         for rel, path in files:
             digest.update(rel.encode("utf-8") + b"\n")
-            text = _read(path)
+            text = _read(path) if path in rewritable else None
             digest.update(path.read_bytes() if text is None else rewrite(text)[0].encode("utf-8"))
     return digest.hexdigest()
 
@@ -471,15 +471,27 @@ def migrate(lab: Lab, apply: bool = False, orphaned: list[str] | None = None) ->
 def _new_locks(lab: Lab, plan_: Plan, rewrite) -> dict[str, tuple[str, str, str | None, str | None]]:
     """Per experiment (new id): (old sha256, new sha256, old instrument, new instrument) after the rewrite."""
     out = {}
+    rewritable = set(_text_files(lab))
     for old, new in plan_.experiments.items():
+        if old != new and (lab.experiments / new).is_dir():
+            continue  # moved by an earlier pass: its lock is already in the new layout
         lock = records.read_lock(lab, old)
         if lock is None:
             continue
         proto = protocol_mod.find(lab, lock.protocol)
-        text = (lab.root / proto.path).read_bytes().decode("utf-8")
-        sha = protocol_mod.hash_text(rewrite(text)[0])
-        inst = _instrument_after(lab.experiments / old / "bin", rewrite) if lock.instrument else None
+        sha = protocol_mod.hash_text(rewrite(proto.text())[0])  # as the gate reads it
+        inst = _instrument_after(lab.experiments / old / "bin", rewrite, rewritable) if lock.instrument else None
         out[new] = (lock.sha256, sha, lock.instrument, inst)
+    return out
+
+
+def _earlier_locks(table: list[tuple[str, str, str]]) -> dict[str, tuple[str, str]]:
+    """Lock hashes an earlier pass took again, per experiment: a late run naming the old one gets the new."""
+    out = {}
+    for kind, exp, rest in table:
+        if kind == "lock":
+            old, _, new = rest.partition(">")
+            out[exp] = (old, new)
     return out
 
 
@@ -487,6 +499,7 @@ def _apply(lab: Lab, plan_: Plan, table: list[tuple[str, str, str]], rewrite) ->
     out: list[str] = []
     locks = _new_locks(lab, plan_, rewrite)
     missions = {**{o: n for k, o, n in table if k == "mission"}, **plan_.missions}
+    run_locks = {**_earlier_locks(table), **{k: (v[0], v[1]) for k, v in locks.items()}}
     # Phase 1: every run assembled, verified, sealed and put in place before git changes at all.
     stage = stage_root(lab)
     stage.mkdir(parents=True, exist_ok=True)
@@ -500,8 +513,12 @@ def _apply(lab: Lab, plan_: Plan, table: list[tuple[str, str, str]], rewrite) ->
                 raise LabError(f"{target}, placed by an earlier attempt, does not match its seal "
                                f"({'; '.join(wrong[:3])}); look at it before migrating again")
             continue
-        built, data = assemble(lab, run, missions, {k: (v[0], v[1]) for k, v in locks.items()}, stage)
-        _put_in_place(lab, run, built, data)
+        try:
+            built, data = assemble(lab, run, missions, run_locks, stage)
+            _put_in_place(lab, run, built, data)
+        except Exception as exc:
+            raise LabError(f"{exc}\nNothing in git changed; the runs put in place so far are reused when you run "
+                           "`lab-kit migrate --apply` again.") from exc
         moved += 1
     store_mod.remove(stage)
     out.append(f"put {moved} runs in place under {target_root(lab)}, each verified and sealed"
@@ -596,6 +613,7 @@ def _git_phase(lab: Lab, plan_: Plan, table, rewrite, locks) -> list[str]:
     rows += [f"mission\t{o}\t{n}\t{day}\n" for o, n in sorted(plan_.missions.items())]
     rows += [f"experiment\t{o}\t{n}\t{day}\n" for o, n in sorted(plan_.experiments.items()) if o != n]
     rows += [f"run\t{r.slug}/{r.old_id}\t{r.experiment}/{r.new_id}\t{day}\n" for r in plan_.runs]
+    rows += [f"lock\t{exp}\t{old}>{new}\t{day}\n" for exp, (old, new, _, _) in sorted(locks.items()) if old != new]
     table_path.parent.mkdir(parents=True, exist_ok=True)
     with table_path.open("a", encoding="utf-8") as handle:
         handle.writelines(rows)

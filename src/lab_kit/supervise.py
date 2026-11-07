@@ -111,7 +111,13 @@ def _after_failed_move(run_dir: Path, lab_root: Path, exc: Exception) -> None:
     try:
         lab = lab_mod.load_at(lab_root)
         landed = store_mod.runs_root(lab) / run_dir.parent.name / run_dir.name
-        if landed.is_dir() and not store_mod._verify(landed, data):
+        host = os.environ.get(store_mod.ENV_HOST, "").strip()
+        if host:
+            check, manifest = store_mod._remote_check(landed.as_posix(), data.get("files") or {})
+            if store_mod._ssh(host, check, manifest).returncode == 0:
+                store_mod.remove(run_dir)
+                return
+        elif landed.is_dir() and not store_mod._verify(landed, data):
             store_mod.remove(run_dir)
             return
     except Exception:  # noqa: BLE001 - when it cannot tell, the run stays here, noted

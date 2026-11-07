@@ -160,3 +160,47 @@ def test_names_inside_file_names_stay(tmp_path) -> None:
     assert "runs/26-11-04-e_floor/26-11-04-0538-r_abcd/out/x.tsv" in new and "run 26-11-04-0538-r_abcd." in new
     assert "figures/20261104-053817.png" in new and "journal/2026/2026-11-04-floor.md" in new
     assert "missions/26-11-04-m_floor.md#log" in new
+
+
+def test_a_rewritten_protocol_is_relocked_and_late_runs_follow(tmp_path, monkeypatch, lab_kit, folio) -> None:
+    def mention(root: Path) -> None:
+        protocol = root / "docs/content/protocols/pi-error-scaling.md"
+        protocol.write_text(protocol.read_text().replace(
+            "## Pinned configuration", "The runs go in experiments/pi-error-scaling/runs.\n\n## Pinned configuration", 1))
+    root = tmp_path / "lab"
+    shutil.copytree(LEGACY, root, symlinks=True)
+    mention(root)
+    # Lock it again over the edited text, as if the protocol had said so when it was locked.
+    from lab_kit import protocol as protocol_mod
+    lock_path = root / "experiments/pi-error-scaling/lock.json"
+    lock = json.loads(lock_path.read_text())
+    old_sha = protocol_mod.hash_text((root / "docs/content/protocols/pi-error-scaling.md").read_text())
+    lock["sha256"] = old_sha
+    lock_path.write_text(json.dumps(lock, indent=2) + "\n")
+    run_json = root / OLD_RUN / "run.json"
+    data = json.loads(run_json.read_text())
+    data["lock"] = old_sha
+    run_json.write_text(json.dumps(data, indent=2) + "\n")
+    score = root / "experiments/pi-error-scaling/score.yaml"
+    text = score.read_text()
+    score.write_text(text.replace(text.split("lock: ")[1].split("\n")[0], old_sha, 1))
+    keep = tmp_path / "late"
+    shutil.copytree(root / OLD_RUN, keep)
+    init_repo(root)
+    commit(root, "the lab before 0.6.0")
+    monkeypatch.chdir(root)
+    code, out = lab_kit("migrate", "--apply")
+    assert code == 0 and "took the lock hash again for 1" in out, out
+    _finish(root, folio)
+    code, out = lab_kit("check")
+    assert code == 0, out
+    late = root / "experiments/pi-error-scaling/runs/20261004-235959"
+    shutil.copytree(keep, late)
+    data = json.loads((late / "run.json").read_text())
+    data["started"] = "2026-10-04T23:59:59+00:00"
+    (late / "run.json").write_text(json.dumps(data))
+    commit(root, "a late run with the old lock hash")
+    assert lab_kit("migrate", "--apply")[0] == 0
+    _finish(root, folio)
+    code, out = lab_kit("check")
+    assert code == 0, out
