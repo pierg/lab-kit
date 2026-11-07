@@ -3,7 +3,8 @@ name: release
 # Publishes lab-kit to PyPI through trusted publishing: no token is stored anywhere.
 # One-time setup on pypi.org: Account, Publishing, add a publisher for
 #   project lab-kit-cli, owner pierg, repository lab-kit, workflow release.yml, environment pypi.
-# Run it by hand from the Actions tab. Pushing a tag does not publish.
+# Run it by hand from the Actions tab. Pushing a tag does not publish; publishing pushes the tag
+# v<version> and a GitHub release with that version's changelog section.
 
 on:
   workflow_dispatch:
@@ -14,7 +15,7 @@ jobs:
     environment: pypi
     permissions:
       id-token: write
-      contents: read
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -35,3 +36,13 @@ jobs:
           python -m pip install build
           python -m build
       - uses: pypa/gh-action-pypi-publish@release/v1
+      # The tag and the GitHub release follow what was published, with the changelog's section.
+      - name: Tag and GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NAME: lab-kit
+        run: |
+          v=$(ls dist/*.whl | head -1 | sed -E 's|^dist/[^-]+-([^-]+)-.*|\1|')
+          awk -v v="$v" '/^## /{ if (on) exit; if ($2 == v || $2 == "v" v) { on = 1; next } } on' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "See CHANGELOG.md." > notes.md
+          gh release create "v$v" --target "$GITHUB_SHA" --title "$NAME $v" --notes-file notes.md
