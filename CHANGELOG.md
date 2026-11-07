@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1
+
+- `lab-kit migrate` rewrites a run's `config` with the same names it rewrites in its protocol's pinned configuration, so `lab-roster-frozen` holds after the move.
+- The plan-mission skill points `ops/STATE.md` at `missions/`.
+
 ## 0.6.0
 
 - One folder per run, outside git. A run is `runs/<experiment>/<YY-MM-DD-HHMM>-r_<4 characters>/` and holds everything it produced. lab-kit writes only `run.json` and `run.log` there; the rest is the experiment's own. `LAB_RUN` names the folder. `LAB_OUT`, `LAB_WORK` and `LAB_RUN_DIR` still work for one release.

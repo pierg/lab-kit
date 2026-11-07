@@ -46,7 +46,7 @@ from .. import __version__, ops, records
 from .. import protocol as protocol_mod
 from .. import store as store_mod
 from ..errors import LabError
-from ..lab import EXPERIMENT_ID, RUNS, Lab
+from ..lab import EXPERIMENT_ID, RUNS, Lab, protocol_slug
 from .experiments import experiment_id
 from .setup import ignore_runs, install
 
@@ -311,7 +311,7 @@ def _verify_against(folder: Path, manifest: Path) -> list[str]:
 
 
 def assemble(lab: Lab, run: Run, missions: dict[str, str], locks: dict[str, tuple[str, str]],
-             stage: Path) -> tuple[Path, dict]:
+             stage: Path, configs: dict[str, tuple[object, object]] | None = None) -> tuple[Path, dict]:
     """Build the run's new folder under `stage`, verified against its old manifests, and seal it."""
     where = lab.rel(run.folder)
     dest = stage / run.experiment / run.new_id
@@ -361,6 +361,10 @@ def assemble(lab: Lab, run: Run, missions: dict[str, str], locks: dict[str, tupl
     mission = data.get("mission")
     if isinstance(mission, str) and mission in missions:
         data["mission"] = missions[mission]
+    old_new_config = (configs or {}).get(run.experiment)
+    if old_new_config is not None and data.get("config") == old_new_config[0]:
+        # the configuration is a copy of the protocol's pinned block: it takes that block as rewritten
+        data["config"] = old_new_config[1]
     old_new = locks.get(run.experiment)
     if old_new and data.get("lock") == old_new[0]:
         data["lock"] = old_new[1]
@@ -485,6 +489,22 @@ def _new_locks(lab: Lab, plan_: Plan, rewrite) -> dict[str, tuple[str, str, str 
     return out
 
 
+def _pinned_configs(lab: Lab, plan_: Plan, rewrite) -> dict[str, tuple[object, object]]:
+    """Per experiment (new id): its protocol's pinned configuration before and after the rewrite."""
+    out = {}
+    for old, new in plan_.experiments.items():
+        proto = protocol_mod.find(lab, protocol_slug(new))
+        if proto is None:
+            continue
+        try:
+            before = protocol_mod.pinned_config(proto.text(), proto.path)
+            after = protocol_mod.pinned_config(rewrite(proto.text())[0], proto.path)
+        except LabError:
+            continue
+        out[new] = (before, after)
+    return out
+
+
 def _earlier_locks(table: list[tuple[str, str, str]]) -> dict[str, tuple[str, str]]:
     """Lock hashes an earlier pass took again, per experiment: a late run naming the old one gets the new."""
     out = {}
@@ -500,6 +520,7 @@ def _apply(lab: Lab, plan_: Plan, table: list[tuple[str, str, str]], rewrite) ->
     locks = _new_locks(lab, plan_, rewrite)
     missions = {**{o: n for k, o, n in table if k == "mission"}, **plan_.missions}
     run_locks = {**_earlier_locks(table), **{k: (v[0], v[1]) for k, v in locks.items()}}
+    configs = _pinned_configs(lab, plan_, rewrite)
     # Phase 1: every run assembled, verified, sealed and put in place before git changes at all.
     stage = stage_root(lab)
     stage.mkdir(parents=True, exist_ok=True)
@@ -514,7 +535,7 @@ def _apply(lab: Lab, plan_: Plan, table: list[tuple[str, str, str]], rewrite) ->
                                f"({'; '.join(wrong[:3])}); look at it before migrating again")
             continue
         try:
-            built, data = assemble(lab, run, missions, run_locks, stage)
+            built, data = assemble(lab, run, missions, run_locks, stage, configs)
             _put_in_place(lab, run, built, data)
         except Exception as exc:
             raise LabError(f"{exc}\nNothing in git changed; the runs put in place so far are reused when you run "
