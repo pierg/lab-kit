@@ -69,6 +69,8 @@ def _inside_finished_run(lab: Lab, slug: str, evidence: str) -> str | None:
     parts = PurePosixPath(evidence).parts
     if len(parts) < 4 or parts[0] != "runs" or parts[1] != slug:
         return f"its evidence `{evidence}` is not inside runs/{slug}/<run>/"
+    if not records.RUN_ID.match(parts[2]) and not lab.runs_here():
+        return f"its evidence names run `{parts[2]}`, which is not a run id (<YY-MM-DD-HHMM>-r_<4 characters>)"
     if not lab.runs_here():
         return None  # lab-evidence-sealed says runs/ is not here
     for run in records.runs(lab, slug):

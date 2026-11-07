@@ -126,9 +126,10 @@ def roster_frozen(lab: Lab, rep: Reporter) -> None:
 def evidence_sealed(lab: Lab, rep: Reporter) -> None:
     """Every ended run's folder matches the seal in its run.json; a run with no end and no live process is
     orphaned. Where runs/ does not resolve (the store is not mounted), the checks that read runs are skipped."""
-    if not lab.runs_here() and (lab.runs_dir.is_symlink() or lab.settings.store):
-        rep.warn("runs", f"does not resolve here (the store {lab.settings.store or ''} is not mounted), so the "
-                         "checks that read runs and their evidence were skipped; run the gate where it is mounted")
+    if not lab.runs_here():
+        where = f"the store {lab.settings.store} is not mounted" if lab.settings.store else "there is no runs/ folder"
+        rep.warn("runs", f"does not resolve here ({where}), so the checks that read runs, their evidence, "
+                         "re-derive commands and spend were skipped; run the gate where runs/ resolves")
     for run in records.runs(lab):
         def one(run=run) -> None:
             state = run.state

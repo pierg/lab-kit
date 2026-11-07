@@ -98,7 +98,7 @@ def cmd_verify(args: argparse.Namespace) -> int:
 
 
 def cmd_migrate(args: argparse.Namespace) -> int:
-    _print(migrate.migrate(_lab(), apply=args.apply))
+    _print(migrate.migrate(_lab(), apply=args.apply, orphaned=args.orphaned))
     return 0
 
 
@@ -186,6 +186,8 @@ def parser() -> argparse.ArgumentParser:
     s = sub.add_parser("migrate", help="Move a lab from the layout before 0.6.0 to this one: dated ids, "
                        "missions/, one folder per run in runs/, every citation rewritten. Dry run by default.")
     s.add_argument("--apply", action="store_true", help="make the changes (default: print the plan)")
+    s.add_argument("--orphaned", action="append", metavar="PATH", help="an old run folder committed without an "
+                   "end that is known to be dead: it moves as it is (repeatable)")
     s.set_defaults(func=cmd_migrate)
 
     s = sub.add_parser("score", help="Create score.yaml from the lock's prediction and rule ids.")

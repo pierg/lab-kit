@@ -163,10 +163,11 @@ def _place_remote(lab: Lab, run: records.RunRecord, host: str) -> str:
     if _ssh(host, check, manifest).returncode:
         _ssh(host, f"chmod -R u+w {q(incoming)}; rm -rf {q(incoming)}")
         raise LabError(f"the copy on {host} does not match the run's seal; nothing was moved")
-    done = _ssh(host, f"mkdir -p {q(str(Path(dest).parent))} && mv -T {q(incoming)} {q(dest)} && chmod -R a-w {q(dest)}")
+    done = _ssh(host, f"mkdir -p {q(str(Path(dest).parent))} && mv -T {q(incoming)} {q(dest)}")
     if done.returncode:
         _ssh(host, f"chmod -R u+w {q(incoming)}; rm -rf {q(incoming)}")
         raise LabError(f"cannot move the copy into place on {host}: {done.stderr.strip()[-200:]}")
+    _ssh(host, f"chmod -R a-w {q(dest)}")  # in place and verified; read-only is best effort from here
     return f"copied to {host} and verified"
 
 

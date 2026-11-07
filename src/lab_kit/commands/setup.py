@@ -67,7 +67,7 @@ def install(root: Path) -> list[str]:
     return changed
 
 
-IGNORED = (f"/{RUNNING}/", f"/{FETCHED}/")  # runs on this machine: never committed
+IGNORED = (f"/{RUNNING}/", f"/{FETCHED}/", "/.lab/migrating/")  # runs on this machine: never committed
 
 
 def ignore_runs(root: Path) -> list[str]:

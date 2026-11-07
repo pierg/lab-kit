@@ -99,15 +99,28 @@ def _publish(run_dir: Path, lab_root: Path) -> None:
         run = next(r for r in records.runs(lab, run_dir.parent.name) if r.run_id == run_dir.name)
         store.publish(lab, run)
     except Exception as exc:  # noqa: BLE001 - a failed move never changes the run's outcome
-        if (run_dir / records.LOG).exists():
-            store_note = f"lab-kit: not moved to the store: {exc}; `lab-kit publish --pending` retries\n"
-            from . import store as store_mod
-            store_mod.writable(run_dir)
-            with (run_dir / records.LOG).open("a", encoding="utf-8") as log:
-                log.write(store_note)
-            data = records.read_json(run_dir / records.RUN, str(run_dir / records.RUN))
-            records.write_json(run_dir / records.RUN, records.seal(run_dir, data))  # run.log grew: seal again
+        _after_failed_move(run_dir, lab_root, exc)
 
+
+def _after_failed_move(run_dir: Path, lab_root: Path, exc: Exception) -> None:
+    """Note the failure in run.log and seal again, unless the store already holds a copy that verifies
+    against the seal: then the move did land, and the local copy goes."""
+    from . import lab as lab_mod
+    from . import store as store_mod
+    data = records.read_json(run_dir / records.RUN, str(run_dir / records.RUN))
+    try:
+        lab = lab_mod.load_at(lab_root)
+        landed = store_mod.runs_root(lab) / run_dir.parent.name / run_dir.name
+        if landed.is_dir() and not store_mod._verify(landed, data):
+            store_mod.remove(run_dir)
+            return
+    except Exception:  # noqa: BLE001 - when it cannot tell, the run stays here, noted
+        pass
+    if (run_dir / records.LOG).exists():
+        store_mod.writable(run_dir)
+        with (run_dir / records.LOG).open("a", encoding="utf-8") as log:
+            log.write(f"lab-kit: not moved to the store: {exc}; `lab-kit publish --pending` retries\n")
+        records.write_json(run_dir / records.RUN, records.seal(run_dir, data))  # run.log grew: seal again
 
 if __name__ == "__main__":
     raise SystemExit(supervise(Path(sys.argv[1]), Path(sys.argv[2])))

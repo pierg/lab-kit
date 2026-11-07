@@ -98,3 +98,65 @@ def test_an_old_run_that_lands_later_moves_on_a_second_pass(tmp_path, monkeypatc
     _finish(root, folio)
     code, out = lab_kit("check")
     assert code == 0, out
+
+
+def test_a_failed_git_phase_loses_nothing_and_a_retry_reuses_the_runs(tmp_path, monkeypatch, lab_kit, folio) -> None:
+    from lab_kit.commands import migrate as migrate_mod
+    store = tmp_path / "labs" / "mc"
+    root = _legacy(tmp_path, monkeypatch, store)
+    (root / OLD_RUN / "work").mkdir()
+    (root / OLD_RUN / "work" / "only-here.txt").write_text("raw, never published")
+    real = migrate_mod.write_baseline
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("the disk filled up")
+    monkeypatch.setattr(migrate_mod, "write_baseline", boom)
+    code, out = lab_kit("migrate", "--apply")
+    assert code == 2 and "The runs are in place and safe" in out
+    [placed] = [p for p in (store / "runs" / EXP).iterdir()]
+    assert (placed / "work" / "only-here.txt").read_text() == "raw, never published"
+    git(root, "reset", "-q", "--hard")
+    monkeypatch.setattr(migrate_mod, "write_baseline", real)
+    code, out = lab_kit("migrate", "--apply")
+    assert code == 0 and "were in place already" in out, out
+    assert [p.name for p in (store / "runs" / EXP).iterdir()] == [placed.name]
+    _finish(root, folio)
+    assert lab_kit("check")[0] == 0
+
+
+def test_a_lock_that_drifted_before_is_refused(tmp_path, monkeypatch, lab_kit) -> None:
+    root = _legacy(tmp_path, monkeypatch)
+    protocol = root / "docs/content/protocols/pi-error-scaling.md"
+    protocol.write_text(protocol.read_text().replace("100 estimates per arm", "200 estimates per arm"))
+    commit(root, "an edit after the lock")
+    code, out = lab_kit("migrate", "--apply")
+    assert code == 2 and "the gate fails before the rewrite" in out
+    assert (root / OLD_RUN).is_dir()
+
+
+def test_a_run_with_no_end_moves_only_when_named(tmp_path, monkeypatch, lab_kit) -> None:
+    root = _legacy(tmp_path, monkeypatch)
+    record = root / OLD_RUN / "run.json"
+    data = json.loads(record.read_text())
+    data.update(ended=None, exit=None, pid=None)
+    record.write_text(json.dumps(data))
+    commit(root, "a run committed while going")
+    code, out = lab_kit("migrate")
+    assert "--orphaned" in out and "Problems" in out
+    code, out = lab_kit("migrate", "--orphaned", OLD_RUN)
+    assert "Dry run" in out and "named as dead" in out
+
+
+def test_names_inside_file_names_stay(tmp_path) -> None:
+    from lab_kit.commands.migrate import Plan, Run, replacements, rewriter
+    plan_ = Plan(missions={"ops/missions/2026-11-04-floor.md": "missions/26-11-04-m_floor.md"},
+                 experiments={"floor": "26-11-04-e_floor", "floor-2": "26-11-05-e_floor-2"})
+    plan_.runs.append(Run("floor", "20261104-053817", Path("x"), {}, "26-11-04-e_floor", "26-11-04-0538-r_abcd"))
+    rewrite = rewriter(replacements(plan_, []))
+    text = ("see experiments/floor-2/bin and experiments/floor/runs/20261104-053817/out/x.tsv; run 20261104-053817. "
+            "figures/20261104-053817.png; journal/2026/2026-11-04-floor.md; ops/missions/2026-11-04-floor.md#log")
+    new, _ = rewrite(text)
+    assert "experiments/26-11-05-e_floor-2/bin" in new
+    assert "runs/26-11-04-e_floor/26-11-04-0538-r_abcd/out/x.tsv" in new and "run 26-11-04-0538-r_abcd." in new
+    assert "figures/20261104-053817.png" in new and "journal/2026/2026-11-04-floor.md" in new
+    assert "missions/26-11-04-m_floor.md#log" in new
