@@ -239,3 +239,33 @@ def test_a_pinned_configuration_that_names_a_run_is_rewritten_in_both(tmp_path, 
     _finish(root, folio)
     code, out = lab_kit("check")
     assert code == 0, out
+
+
+def test_a_block_scalar_in_the_pinned_configuration_stays_equal(tmp_path, monkeypatch, lab_kit, folio) -> None:
+    root = tmp_path / "lab"
+    shutil.copytree(LEGACY, root, symlinks=True)
+    protocol = root / "docs/content/protocols/pi-error-scaling.md"
+    note = f"notes: |\n  {OLD_RUN}/out\n  see \"20261004-231629\"\n"
+    protocol.write_text(protocol.read_text().replace(
+        "language: python 3, standard library only\n", "language: python 3, standard library only\n" + note, 1))
+    from lab_kit import protocol as protocol_mod
+    lock_path = root / "experiments/pi-error-scaling/lock.json"
+    lock = json.loads(lock_path.read_text())
+    sha = protocol_mod.hash_text(protocol.read_text())
+    lock["sha256"] = sha
+    lock_path.write_text(json.dumps(lock, indent=2) + "\n")
+    run_json = root / OLD_RUN / "run.json"
+    data = json.loads(run_json.read_text())
+    data["lock"] = sha
+    data["config"] = protocol_mod.pinned_config(protocol.read_text(), "p")
+    run_json.write_text(json.dumps(data, indent=2) + "\n")
+    score = root / "experiments/pi-error-scaling/score.yaml"
+    text = score.read_text()
+    score.write_text(text.replace(text.split("lock: ")[1].split("\n")[0], sha, 1))
+    init_repo(root)
+    commit(root, "the lab before 0.6.0")
+    monkeypatch.chdir(root)
+    assert lab_kit("migrate", "--apply")[0] == 0
+    _finish(root, folio)
+    code, out = lab_kit("check")
+    assert code == 0, out

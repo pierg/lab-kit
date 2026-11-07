@@ -79,7 +79,7 @@ def ignore_runs(root: Path) -> list[str]:
     if not missing:
         return []
     block = ("" if not text or text.endswith("\n") else "\n") + \
-        "# lab-kit: a run's folder while it runs here, and runs fetched from the store\n" + "\n".join(missing) + "\n"
+        "# lab-kit: runs on this machine (running, fetched from the store, or being migrated)\n" + "\n".join(missing) + "\n"
     path.write_text(text + block, encoding="utf-8")
     return [f"added {', '.join(missing)} to .gitignore"]
 

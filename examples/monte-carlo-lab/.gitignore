@@ -1,6 +1,5 @@
 __pycache__/
-# lab-kit: a run's folder while it runs here, and runs fetched from the store
+# lab-kit: runs on this machine (running, fetched from the store, or being migrated)
 /.lab/running/
 /.lab/fetched/
-# lab-kit: a run's folder while it runs here, and runs fetched from the store
 /.lab/migrating/
