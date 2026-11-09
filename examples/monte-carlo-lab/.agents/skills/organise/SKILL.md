@@ -30,7 +30,7 @@ Change where documents live and how the maps reach them, with every link, commen
 4. Prose changes go through the write skill. This skill changes places, not words.
 5. A map row links a document. Give it a one-line reason only when this map's reader needs one; without it, the row shows the document's description.
 6. Tags are facets for filtering, never structure. Structure lives in maps.
-7. Structural changes are the owner's call: a new top-level map, a merge, a retirement of their own writing. Propose, say why, and act when asked.
+7. A change that removes or merges the owner's own writing is the owner's call: a merge, a retirement of their own writing. Propose, say why, and act when asked. A new map, and any move or rename, is yours: make it and report it.
 8. Record every reorganisation as a journal entry of kind `decision`, old names to new, about the documents and maps it touched.
 
 ## Steps
