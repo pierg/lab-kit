@@ -52,8 +52,8 @@ You plan the mission with the operator, and you stop at their approval. The run-
 
    Do not point `ops/STATE.md` at a draft.
 4. **Show the summary.** Tell the operator, in at most eight lines: the objective as written in the draft, so they approve that text, the questions by id, the milestones, the scope, the spend, the stops. End with: "Approve, or tell me what to change." Under a standing budget, when rule 5 lets you approve it yourself, go to step 6 and send the summary as a report instead, ending with what you approved and the budget left.
-5. **Revise.** Change the draft as the operator asks, and append a dated log line for each revision that says what changed, not what the operator wrote. Show the summary again. Repeat until the operator approves in their own words.
-6. **Record the approval.** Set `approved:` to who approved and when, for example `"the operator, 2026-10-05"`, or, under a standing budget, `"the commander, 2026-10-05, under budget <name>"`, and set `status: active`. Append one log line with the time: "Approved by <who>", and, when the operator approved, their short sentence that said yes, for example `2026-10-05 14:02Z: Approved by the operator ("Yes, go ahead.")`. That line is the only place their words appear. Point `ops/STATE.md` at it: `Active mission: missions/{YY-MM-DD}-m_{slug}.md`, with the next step. Record it: `folio journal add --title "Opened the <slug> mission" --description ".." --body "<the objective as the mission states it; where the mission file is>" --kind decision --about <ids it rests on>`. Run `folio index` in the library and `lab-kit check` from the root.
+5. **Revise.** Change the draft as the operator asks, and append a dated log line for each revision that says what changed, not what the operator wrote. Show the summary again. Repeat until the operator says yes.
+6. **Record the approval.** Set `approved:` to who approved and when, for example `"the operator, 2026-10-05"`, or, under a standing budget, `"the commander, 2026-10-05, under budget <name>"`, and set `status: active`. Append one log line with the time: "Approved by <who>", and, when the operator approved, their short sentence that said yes, for example `- 2026-10-05 14:02Z Approved by the operator ("Yes, go ahead.")`. That line is the only place their words appear. Point `ops/STATE.md` at it: `Active mission: missions/{YY-MM-DD}-m_{slug}.md`, with the next step. Record it: `folio journal add --title "Opened the <slug> mission" --description ".." --body "<the objective as the mission states it; where the mission file is>" --kind decision --about <ids it rests on>`. Run `folio index` in the library and `lab-kit check` from the root.
 7. **Commit and hand over.** Commit the mission file, `ops/STATE.md`, the journal entry and `.folio/`. Tell the operator the mission is approved and that the run-mission skill will carry it out. Do not start it yourself unless they ask you to run it now; then follow run-mission from its start.
 
 ## Stops
@@ -65,7 +65,7 @@ You plan the mission with the operator, and you stop at their approval. The run-
 
 ## Done when
 
-- The mission file has `status: active`, `approved` with who and when, a numeric `cap`, an objective in the lab's own words, and a log ending "Approved by <who>".
+- The mission file has `status: active`, `approved` with who and when, a numeric `cap`, an objective in the lab's own words, and a log ending with one timed line "Approved by <who>", holding the operator's sentence of approval when they gave it.
 - `ops/STATE.md` names it as the active mission.
 - One `decision` journal entry records the opening.
 - `lab-kit check` passes, and the mission is committed.
