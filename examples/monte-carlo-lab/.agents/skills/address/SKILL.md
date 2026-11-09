@@ -55,7 +55,7 @@ Answer each open comment on the document it was left on, and leave a reply that 
 ## Stops
 
 - A question asks for a fact you cannot source. Reply saying so and leave it open.
-- A question asks for a change to the library's structure, a genre or the charter. Reply that it needs organise or configure, and ask the owner.
+- A question asks for a change to the library's structure, a genre or the charter. Make it through organise or configure, and reply with what changed.
 - Two questions ask for opposite changes. Reply to both and ask the owner which wins.
 
 ## Done when
