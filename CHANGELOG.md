@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.2
+
+- The operator's words authorize; they are not the text of the record. The plan-mission skill writes a mission's objective in the lab's own words, as what it will establish inside a clear bound, and the operator approves that text; a vague prompt is interpreted, never pasted. The operator's sentence of approval is kept once, in one log line with its time. The run-mission skill keeps decisions in the log in the lab's words, never quoting the message that prompted them. DISCIPLINE §14 and the spec say the same. Missions already written are left as they are.
+
 ## 0.6.1
 
 - `lab-kit migrate` rewrites a run's `config` with the same names it rewrites in its protocol's pinned configuration, so `lab-roster-frozen` holds after the move.
