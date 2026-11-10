@@ -112,7 +112,8 @@ def roster_frozen(lab: Lab, rep: Reporter) -> None:
             if run.slug not in pinned_by:
                 lock = records.read_lock(lab, run.slug)
                 proto = protocol_mod.find(lab, lock.protocol if lock else protocol_slug(run.slug))
-                pinned_by[run.slug] = (proto, protocol_mod.pinned_config(proto.text(), proto.path)) if proto else None
+                pinned_by[run.slug] = ((proto, protocol_mod.as_recorded(protocol_mod.pinned_config(proto.text(), proto.path)))
+                                      if proto else None)
             found = pinned_by[run.slug]
             if found is None:
                 return

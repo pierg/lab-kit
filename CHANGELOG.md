@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.4
+
+- `lab-roster-frozen` compares a run's `config` with its protocol's pinned configuration as the run records it, through JSON. YAML reads a key such as `1:` as an integer and `run.json` holds it as the string `"1"`, so a run that used exactly its pinned configuration was reported as differing.
+
 ## 0.6.3
 
 - A mission runs to its conclusion with no further input from the operator. The approval launches it: plan-mission hands it to run-mission at once, with no separate "go". A running mission never waits for an answer. A few lines it never crosses (new money, a credential, publishing outside the lab, a change to a frozen surface, anything irreversible outside git) unless its approved plan names the exact step; work that reaches one is recorded as blocked, and the mission carries on and concludes with it open for the next mission. plan-mission settles those lines in the plan instead of naming points where the run comes back to the operator.
