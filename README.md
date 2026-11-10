@@ -29,7 +29,7 @@ Installing lab-kit brings folio with it; the flag puts folio's command on the pa
 Mission: find out whether our pi estimator's error falls as 1/sqrt(n).
 ```
 
-The **plan-mission** skill reads the lab, then asks in one message only what it cannot look up: "How many sample sizes and repeats count as enough? Token-free only? What would make you stop it early?" It drafts the plan: the question served, observable milestones, the scope, the spend, what it never touches, and any line it would meet (new money, a credential, publishing, a frozen surface). You change what you want and say "approved". It records your approval, and that launches the mission.
+The **plan-mission** skill reads the lab, then asks in one message only what it cannot look up: "How many sample sizes and repeats count as enough? Token-free only? What would make you stop it early?" It drafts the plan: the question served, observable milestones, the scope, the spend, what it never touches, and any line it would meet (new money, a credential, publishing, a frozen surface, anything irreversible outside git). You change what you want and say "approved". It records your approval, and that launches the mission.
 
 **2. Let it run.** The **run-mission** skill carries out the approved plan alone; it refuses an unapproved one. It dispatches workers through the **experiment** and **review** skills, sends a reviewer before the protocol locks and before any result counts, and keeps `ops/STATE.md` current so a crashed session resumes from the record. It never comes back to you with a question. Work that would cross one of your lines and that the plan does not name is recorded as blocked; the mission carries on and concludes with it open.
 
