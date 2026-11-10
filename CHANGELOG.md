@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.3
+
+- A mission runs to its conclusion with no further input from the operator. The approval launches it: plan-mission hands it to run-mission at once, with no separate "go". A running mission never waits for an answer. A few lines it never crosses (new money, a credential, publishing outside the lab, a change to a frozen surface); work that reaches one is recorded as blocked, and the mission carries on and concludes with it open for the next mission. plan-mission settles those lines in the plan instead of naming points where the run comes back to the operator.
+- The commander settles what used to go back to the operator mid-mission: a reviewer disagreement (on the evidence, with a second reviewer), a protocol that must change after its lock (a new protocol), and a correction or retraction of a recorded result (a new record through the review skill, reported afterwards). Reports say what was decided, never ask. The reporter leaves pushing to the commander. DISCIPLINE §8 and §14 and the spec say the same.
+
 ## 0.6.2
 
 - The operator's words authorize; they are not the text of the record. The plan-mission skill writes a mission's objective in the lab's own words, as what it will establish inside a clear bound, and the operator approves that text; a vague prompt is interpreted, never pasted. The operator's sentence of approval is kept once, in one log line with its time. The run-mission skill keeps decisions in the log in the lab's words, never quoting the message that prompted them. DISCIPLINE §14 and the spec say the same. Missions already written are left as they are.

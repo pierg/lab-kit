@@ -67,7 +67,7 @@ A locked protocol and its evidence are frozen too. Checked by folio's `frozen` c
 
 A known defect in a frozen surface is recorded, not fixed. Fixing it breaks comparison with results already taken. Judged, not checked.
 
-Work is additive. If a frozen surface must change, stop and put the case to the operator. Judged, not checked.
+Work is additive. If a frozen surface seems to need a change, record the need and leave it; the work that needs the change waits for a mission the operator approves with it. Judged, not checked.
 
 ## 9. The roster is frozen per run
 
@@ -111,4 +111,4 @@ A mission has two phases. It is planned, then it runs on its own. The plan names
 
 The operator approves a mission. Under a standing budget the commander may approve one itself when the mission fits inside what is left of the budget and needs nothing that stays the operator's: new money, credentials, publishing outside the lab, or a change to a frozen surface, a lock or a record. It records the approval as its own, with the budget named, and reports it to the operator without waiting. Judged, except that the budget is checked by `lab-mission-approved`.
 
-A running mission comes back to the operator only at the stops its plan names and at the method's own: a frozen surface, a lock, spend past the cap, publishing outside the lab. Everything else it decides and records. Under a standing budget the commander also decides the stops its own plan names, and sets the caps of the missions under the budget, never below what a mission has already spent, while the total fits inside it. It records each call in the mission's log and reports it afterwards. Judged, not checked.
+The approval launches the mission, and from then on it runs to its conclusion with no further input from the operator. It never waits for an answer. A few lines it never crosses: new money, a credential, publishing outside the lab, a change to a frozen surface. When work reaches one, the commander records it as blocked, carries on with the rest, and concludes with that work open for the next mission. Everything else it decides, records and reports afterwards. Under a standing budget the commander also sets the caps of the missions under the budget, never below what a mission has already spent, while the total fits inside it. It records each call in the mission's log and reports it afterwards. Judged, not checked.

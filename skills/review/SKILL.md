@@ -51,8 +51,8 @@ You turn a finished experiment's evidence into a scorecard against its lock, the
 ## Stops
 
 - The evidence does not support any verdict the lock allows. Score INDETERMINATE and say why; do not invent a rule.
-- The reviewer disagrees with your score. The commander decides, or the operator.
-- A recorded result elsewhere must be corrected or retracted. Put it to the operator before writing the superseding result or the retraction entry.
+- The reviewer disagrees with your score. The commander decides on the evidence, with a second fresh reviewer when it does not settle it.
+- A recorded result elsewhere must be corrected or retracted. Write the superseding result or the retraction entry through this skill, gated by a fresh reviewer, and report it to the operator afterwards. The old record is never edited.
 - A frozen surface or the lock seems wrong. Record the flaw; do not change it.
 
 ## Done when

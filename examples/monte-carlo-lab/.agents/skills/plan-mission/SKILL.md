@@ -10,7 +10,7 @@ description: >-
 
 # plan-mission
 
-You plan the mission with the operator, and you stop at their approval. The run-mission skill carries it out afterwards, on its own, so the plan must say everything it may and may not do.
+You plan the mission with the operator, and their approval launches it. The run-mission skill then carries it out to its conclusion with no further input from the operator, so the plan must say everything it may and may not do, and settle every question now.
 
 ## Start
 
@@ -38,7 +38,7 @@ You plan the mission with the operator, and you stop at their approval. The run-
    - the scope: what is in, and what is out;
    - the spend: token-free, or which runs may spend and the cap, as a number in one unit, and the standing budget it draws on, if any (`lab-kit status` shows each budget and the missions under it);
    - what must never be touched: frozen surfaces, locked protocols, recorded results, beyond what `lab.yaml` already freezes;
-   - the stops: where the run must come back to the operator, beyond the method's own.
+   - the operator's lines the mission would meet (new money, a credential, publishing outside the lab, a change to a frozen surface): settle each now, in the plan, or put that work out of scope. A running mission never waits for an answer.
 3. **Draft.** Write `missions/{YY-MM-DD}-m_{slug}.md` with front matter `title`, `status: draft`, `rests_on` (the ids it serves), `cap` (a number; `0` for a token-free mission), and `budget` (the standing budget's name) when it draws on one. Its body holds these sections, in order:
    - `## Objective`: in your words, in plain sentences: what the mission will establish, inside a clear bound (the questions, the scope, the spend). Never a paste of the prompt;
    - `## Rests on`: the ids, and why;
@@ -46,15 +46,15 @@ You plan the mission with the operator, and you stop at their approval. The run-
    - `## Scope`: in, and out;
    - `## Spend`: token-free, or the runs that may spend and the cap;
    - `## Never touch`: the frozen surfaces, the locks and records it must leave alone;
-   - `## Stops`: where it comes back to the operator;
+   - `## Stops`: the lines it must not cross, and what it does on reaching one: record it as blocked and carry on with the rest, or conclude. Never a point where it waits for the operator;
    - `## Workers`: the roles it will use;
    - `## Log`: one dated line, "Drafted".
 
    Do not point `ops/STATE.md` at a draft.
-4. **Show the summary.** Tell the operator, in at most eight lines: the objective as written in the draft, so they approve that text, the questions by id, the milestones, the scope, the spend, the stops. End with: "Approve, or tell me what to change." Under a standing budget, when rule 5 lets you approve it yourself, go to step 6 and send the summary as a report instead, ending with what you approved and the budget left.
+4. **Show the summary.** Tell the operator, in at most eight lines: the objective as written in the draft, so they approve that text, the questions by id, the milestones, the scope, the spend, and any line it may meet. End with: "Approve, or tell me what to change." Under a standing budget, when rule 5 lets you approve it yourself, go to step 6 and send the summary as a report instead, ending with what you approved and the budget left.
 5. **Revise.** Change the draft as the operator asks, and append a dated log line for each revision that says what changed, not what the operator wrote. Show the summary again. Repeat until the operator says yes.
 6. **Record the approval.** Set `approved:` to who approved and when, for example `"the operator, 2026-10-05"`, or, under a standing budget, `"the commander, 2026-10-05, under budget <name>"`, and set `status: active`. Append one log line with the time: "Approved by <who>", and, when the operator approved, their short sentence that said yes, for example `- 2026-10-05 14:02Z Approved by the operator ("Yes, go ahead.")`. That line is the only place their words appear. Point `ops/STATE.md` at it: `Active mission: missions/{YY-MM-DD}-m_{slug}.md`, with the next step. Record it: `folio journal add --title "Opened the <slug> mission" --description ".." --body "<the objective as the mission states it; where the mission file is>" --kind decision --about <ids it rests on>`. Run `folio index` in the library and `lab-kit check` from the root.
-7. **Commit and hand over.** Commit the mission file, `ops/STATE.md`, the journal entry and `.folio/`. Tell the operator the mission is approved and that the run-mission skill will carry it out. Do not start it yourself unless they ask you to run it now; then follow run-mission from its start.
+7. **Commit and launch.** Commit the mission file, `ops/STATE.md`, the journal entry and `.folio/`. The approval launches the mission: follow the run-mission skill from its start now, or hand it to the lab's commander. Tell the operator it is approved and running. Do not wait for a separate "go".
 
 ## Stops
 
