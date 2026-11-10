@@ -223,13 +223,44 @@ def _moved(lab: Lab) -> set[str]:
     return out
 
 
+CORRECTIONS = ".lab/corrections.tsv"
+
+
+def _corrections(lab: Lab, rep: Reporter) -> dict[str, list[str]]:
+    """Recorded corrections: `path<TAB>commit<TAB>reason` lines, each naming one commit that edited a lab
+    file in place and was later put right. That commit's version is left out of the file's history, so
+    the versions before and after it must still show the file only growing."""
+    path = lab.root / CORRECTIONS
+    out: dict[str, list[str]] = {}
+    for n, line in enumerate(path.read_text(encoding="utf-8").splitlines() if path.is_file() else [], 1):
+        if not line.strip() or line.startswith("#"):
+            continue
+        fields = line.split("\t")
+        if len(fields) != 3 or not all(f.strip() for f in fields) or not re.fullmatch(r"[0-9a-f]{7,40}", fields[1].strip()):
+            rep.add(CORRECTIONS, f"line {n}: expected `path<TAB>commit (7 to 40 hex)<TAB>reason`")
+            continue
+        out.setdefault(fields[0].strip(), []).append(fields[1].strip())
+    return out
+
+
 def append_only(lab: Lab, rep: Reporter) -> None:
     """Committed mission log entries, budget grants and lock records are unchanged in later commits."""
     if not gitlog.in_git(lab.root):
         rep.warn("lab.yaml", "the lab is not in a git repository, so lab-append-only could not be checked")
         return
+    corrections = _corrections(lab, rep)
     for path in _lab_files(lab):
         history = gitlog.versions(lab.root, path)
+        waived = corrections.get(path, [])
+        if waived:
+            kept = [(sha, text) for sha, text in history if not any(sha.startswith(c) for c in waived)]
+            for c in waived:
+                if not any(sha.startswith(c) for sha, _ in history):
+                    rep.add(CORRECTIONS, f"names commit {c} for {path}, which is not in that file's history")
+            if history and len(kept) < len(history) and kept and kept[-1] != history[-1]:
+                rep.add(path, "its last version is a recorded correction: the in-place edit must be put right "
+                              "in a later commit")
+            history = kept
         committed = [(sha, text) for sha, text in history if sha != gitlog.WORKING]
         if not committed:
             continue

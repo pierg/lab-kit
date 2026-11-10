@@ -235,6 +235,39 @@ def test_append_only_allows_a_new_log_entry(make_lab, lab_kit) -> None:
     assert problems(lab_kit, "lab-append-only") == (0, [])
 
 
+def _head(root: Path) -> str:
+    import subprocess
+    return subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True, text=True,
+                          check=True).stdout.strip()
+
+
+def test_append_only_recorded_correction(make_lab, lab_kit) -> None:
+    root = make_lab()
+    original = (root / MISSION).read_text(encoding="utf-8")
+    edit(root / MISSION, "- 2026-10-04 Opened, for Q-1.", "- 2026-10-04 Opened.")
+    commit(root, "edit a log line in place")
+    bad = _head(root)
+    (root / MISSION).write_text(original + "- 2026-10-05 Correction: restored the entry edited in place.\n",
+                                encoding="utf-8")
+    commit(root, "restore it and record the correction")
+    code, found = problems(lab_kit, "lab-append-only")
+    assert code == 1 and named(found, "lab-append-only")
+    (root / ".lab/corrections.tsv").write_text(f"{MISSION}\t{bad[:8]}\tedited in place, restored\n",
+                                               encoding="utf-8")
+    commit(root, "record the correction")
+    assert problems(lab_kit, "lab-append-only") == (0, [])
+
+
+def test_append_only_correction_must_be_put_right(make_lab, lab_kit) -> None:
+    root = make_lab()
+    edit(root / MISSION, "- 2026-10-04 Opened, for Q-1.", "- 2026-10-04 Opened.")
+    commit(root, "edit a log line in place")
+    (root / ".lab/corrections.tsv").write_text(f"{MISSION}\t{_head(root)}\tnot restored\n", encoding="utf-8")
+    commit(root, "waive it")
+    code, found = problems(lab_kit, "lab-append-only")
+    assert code == 1 and "must be put right" in named(found, "lab-append-only")[0]["message"]
+
+
 def test_method_current(make_lab, lab_kit) -> None:
     root = make_lab()
     with (root / ".lab/method/DISCIPLINE.md").open("a", encoding="utf-8") as handle:

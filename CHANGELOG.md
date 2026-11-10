@@ -2,6 +2,7 @@
 
 ## 0.6.4
 
+- `lab-append-only` accepts a recorded correction. `.lab/corrections.tsv` lists `path<TAB>commit<TAB>reason` for a commit that edited a mission log, a budget or a lock record in place and was later put right. That commit's version is left out of the file's history, so the versions before and after it must still show the file only growing, and the file's current version is never a listed one. The list is committed, so every waiver keeps its reason on the record.
 - `lab-roster-frozen` compares a run's `config` with its protocol's pinned configuration as the run records it, through JSON. YAML reads a key such as `1:` as an integer and `run.json` holds it as the string `"1"`, so a run that used exactly its pinned configuration was reported as differing.
 
 ## 0.6.3
