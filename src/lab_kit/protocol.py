@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -87,6 +88,11 @@ def pinned_config(text: str, where: str) -> Any:
         return yaml.safe_load(blocks[0][1])
     except yaml.YAMLError as exc:
         raise LabError(f"{where}: the pinned configuration is not valid YAML: {exc}") from exc
+
+
+def as_recorded(config: Any) -> Any:
+    """The pinned configuration as a run records it: through JSON, so YAML's integer keys become strings."""
+    return json.loads(json.dumps(config))
 
 
 def scored_ids(text: str, where: str) -> list[str]:

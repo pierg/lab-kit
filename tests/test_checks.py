@@ -77,6 +77,14 @@ def test_roster_frozen(make_lab, lab_kit) -> None:
     assert code == 1 and named(found, "lab-roster-frozen")
 
 
+def test_roster_frozen_compares_as_recorded() -> None:
+    # YAML reads `stops: {1: a}` with an integer key; run.json stores it as the string "1".
+    from lab_kit.protocol import as_recorded
+    pinned = {"stops": {1: "a", 2: "b"}, "repeats": 3}
+    recorded = json.loads(json.dumps(pinned))
+    assert pinned != recorded and as_recorded(pinned) == recorded
+
+
 def test_evidence_sealed(make_lab, lab_kit) -> None:
     root = make_lab()
     with (root / RUN / "out" / "estimates.tsv").open("a", encoding="utf-8") as handle:
