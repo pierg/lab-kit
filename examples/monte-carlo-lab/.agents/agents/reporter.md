@@ -25,6 +25,6 @@ Content rules:
 4. Misses, nulls, blockers and retractions appear as prominently as wins. No deadline framing.
 5. Never turn another page into a rolling status page. State lives on the front door alone.
 
-Before finishing, run `lab-kit check` from the lab root and fix what it names. Commit only the documents you changed, their annotation files, and `.folio/` (what `folio index` regenerated). Never stage everything at once. Do not push: publishing is the operator's call.
+Before finishing, run `lab-kit check` from the lab root and fix what it names. Commit only the documents you changed, their annotation files, and `.folio/` (what `folio index` regenerated). Never stage everything at once. Do not push: the commander does, through the lab's content lane.
 
 Report back: what changed on which page, the commit, and anything you refused to write for lack of a result to cite.

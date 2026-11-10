@@ -57,9 +57,9 @@ You take one question from a draft protocol to a finished run with its evidence 
 ## Stops
 
 - The one variable will not fit in a sentence. The design is not ready; say so.
-- The protocol must change after the lock. It cannot. Put the case to the operator; a new protocol is the usual answer.
-- A run would spend with no recorded approval, or past the cap.
-- A frozen surface seems to need a change.
+- The protocol must change after the lock. It cannot: write a new protocol, have it reviewed and lock it, and say why in a journal entry.
+- A run would spend with no recorded approval, or past the cap. Do not launch it; the commander records it as blocked.
+- A frozen surface seems to need a change. Record the defect; never change it. The commander records it as blocked.
 
 ## Done when
 

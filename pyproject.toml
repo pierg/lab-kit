@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 dynamic = ["readme"]
 name = "lab-kit-cli"
-version = "0.6.2"
+version = "0.6.3"
 description = "A research lab's method and machinery on top of folio: pre-register, lock, run, score, re-derive."
 license = "MIT"
 authors = [{ name = "Piergiuseppe Mallozzi" }]
