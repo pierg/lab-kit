@@ -29,11 +29,11 @@ Installing lab-kit brings folio with it; the flag puts folio's command on the pa
 Mission: find out whether our pi estimator's error falls as 1/sqrt(n).
 ```
 
-The **plan-mission** skill reads the lab, then asks in one message only what it cannot look up: "How many sample sizes and repeats count as enough? Token-free only? What would make you stop it early?" It drafts the plan: the question served, observable milestones, the scope, the spend, what it never touches, and where it must stop. You change what you want and say "approved". It records your approval and starts nothing.
+The **plan-mission** skill reads the lab, then asks in one message only what it cannot look up: "How many sample sizes and repeats count as enough? Token-free only? What would make you stop it early?" It drafts the plan: the question served, observable milestones, the scope, the spend, what it never touches, and any line it would meet (new money, a credential, publishing, a frozen surface). You change what you want and say "approved". It records your approval, and that launches the mission.
 
-**2. Let it run.** The **run-mission** skill carries out the approved plan alone; it refuses an unapproved one. It dispatches workers through the **experiment** and **review** skills, sends a reviewer before the protocol locks and before any result counts, and keeps `ops/STATE.md` current so a crashed session resumes from the record. It comes back to you only at the plan's stops, or when a run would spend past the cap, a change would touch a frozen surface, a lock or a recorded result, or the work would leave the plan's scope.
+**2. Let it run.** The **run-mission** skill carries out the approved plan alone; it refuses an unapproved one. It dispatches workers through the **experiment** and **review** skills, sends a reviewer before the protocol locks and before any result counts, and keeps `ops/STATE.md` current so a crashed session resumes from the record. It never comes back to you with a question. Work that would cross one of your lines and that the plan does not name is recorded as blocked; the mission carries on and concludes with it open.
 
-It reports the result by id, the misses as plainly as the hits, and its recommended next step. Meanwhile, ask "how is the mission going?" or "what should we do next?".
+It reports the result by id, the misses as plainly as the hits, and what it decided along the way. Meanwhile, ask "how is the mission going?" or "what should we do next?".
 
 ## The loop
 
