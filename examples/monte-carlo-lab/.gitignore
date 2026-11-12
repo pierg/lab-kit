@@ -1,5 +1,0 @@
-__pycache__/
-# lab-kit: runs on this machine (running, fetched from the store, or being migrated)
-/.lab/running/
-/.lab/fetched/
-/.lab/migrating/

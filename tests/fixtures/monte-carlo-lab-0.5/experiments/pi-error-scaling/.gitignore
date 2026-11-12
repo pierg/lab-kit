@@ -1,3 +1,0 @@
-# A run's scratch and log stay out of git; out/ is committed once, at the end.
-runs/*/work/
-runs/*/run.log

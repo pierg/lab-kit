@@ -15,12 +15,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - name: Install folio and lab-kit
+      # The site's tests need folio's views hook, in folio-kb 0.5.0 and later: the `site` extra brings it.
+      - name: Install lab-kit, and folio for the site's tests
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[dev]"
+          python -m pip install -e ".[dev,site]"
       - name: Tests
-        run: python -m pytest -q
-      - name: Example lab
-        working-directory: examples/monte-carlo-lab
-        run: lab-kit check
+        run: python -m pytest -q -rs
+        env:
+          LAB_SITE_TESTS: required  # the site's tests run and fail like any other; they never skip here
+      # What a lab gets is the wheel: build it, install it alone, and set up a lab with it.
+      - name: The built wheel sets up a lab that passes its own check
+        if: matrix.python == '3.12'
+        run: |
+          python -m pip install build
+          python -m build --wheel
+          python -m venv /tmp/wheel
+          /tmp/wheel/bin/pip install dist/*.whl
+          mkdir /tmp/new-lab
+          cd /tmp/new-lab
+          /tmp/wheel/bin/lab init
+          /tmp/wheel/bin/lab check

@@ -5,22 +5,26 @@ build-backend = "hatchling.build"
 [project]
 dynamic = ["readme"]
 name = "lab-kit-cli"
-version = "0.6.4"
-description = "A research lab's method and machinery on top of folio: pre-register, lock, run, score, re-derive."
+version = "1.0.0"
+description = "A research lab's record, its method, and the command that keeps both."
 license = "MIT"
 authors = [{ name = "Piergiuseppe Mallozzi" }]
 requires-python = ">=3.10"
-dependencies = ["folio-kb>=0.3.6", "pyyaml"]
+dependencies = ["pyyaml", "tomli; python_version < '3.11'"]
 
 [project.optional-dependencies]
 dev = ["pytest"]
+# folio serves the operator's site and lab_kit.site draws its pages, through the views hook of folio-kb 0.5.0.
+# The `lab` command itself needs no folio.
+site = ["folio-kb>=0.5.0"]
 
 [project.urls]
 Homepage = "https://github.com/pierg/lab-kit"
 Issues = "https://github.com/pierg/lab-kit/issues"
 
 [project.scripts]
-lab-kit = "lab_kit.cli:main"
+lab = "lab_kit.cli:run"
+lab-kit = "lab_kit.cli:run"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/lab_kit"]

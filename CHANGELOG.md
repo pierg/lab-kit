@@ -1,5 +1,96 @@
 # Changelog
 
+## 1.0.0
+
+A rewrite from first principles. Nothing of 0.6 carries over: a lab kept with 0.6 is not read by 1.0,
+and no command converts one. `docs/model.md` is the contract, and its section 8 sets the old model
+beside the new.
+
+What a lab is
+
+- One tree. A goal holds questions. A question holds its steps, of three kinds: an experiment (a
+  comparison with its bars set in advance), a build (something an experiment needs that has to be
+  made first) and a reading (a look at what already exists, which suggests and never confirms). An
+  experiment holds its runs and its results. Every id spells the path: `G1.Q2.3`, and a result is
+  `G1.Q2.3:attack-success`.
+- Decisions beside the tree. A decision is something discussed with the operator: what was seen, two
+  or three options, a recommendation, then what was decided and why, in the lab's words. Every goal
+  and question names the decision it came from.
+- Cards. Each of these is one small Markdown file: front matter, a description, and named slots with
+  word budgets. A card never holds an id, a state or an outcome; all three are worked out from the
+  record when asked for. Nothing computed is kept in a lab.
+- The files: `lab.toml`, `resources.toml`, `log.md`, `GLOSSARY.md`, `goals/`, `decisions/`, and
+  `runs/` outside git. Missions, protocols, attempts, budgets, ledgers and the folio documents that
+  held the record are gone.
+
+How a number counts
+
+- write the card, lock, run, result, review. Each step is a command that refuses when the one before
+  it is missing.
+- An experiment says what it compares, each arm, its cases, and its confirmed-if and refuted-if
+  lines, each a sentence and the one result it tests (`attack-success < 0.05`). The outcome
+  (confirmed, refuted, unclear) is worked out from those lines and the results, never written.
+- The lock holds what the experiment demands: the comparison, the arms, the cases, the lines, what
+  each outcome would mean, and the limits. That never changes. A changed demand, a failed results
+  review or a partial score is a new experiment that replaces the old one and says why. The lock
+  also records `plan/` as it was locked.
+- An experiment is run until one run finishes. Each run pins the `plan/` folder it ran (the
+  configuration and the code, as files and no links). When `plan/` is not what the run before ran,
+  or for the first run what was locked, the run says what changed and why: `lab run --changed`.
+  The first run that finishes is the only source of results, nothing more runs under that
+  experiment, and its `plan/` stays as it ran.
+- A run is detached, sealed when its command exits (every file's hash, and one over the record) and
+  moved into the store. A trial run comes before the lock and never gives a result.
+- Every run is listed in `runs.tsv`, in git beside the lock: a row when it starts, a row with its
+  seal when it ends. The store is outside git, so this list is what says a run existed: a run
+  removed from the store, or a record rewritten, fails `lab check`, and a clone without the store
+  still knows what ran. A run that started and whose folder is gone for good is declared lost,
+  with the reason: `lab runs lost`.
+- What git holds is tamper-evident from the commit that first holds it, not before: the lock is
+  committed when it is made and a run's row when it starts. `lab now` and `lab check` say what is
+  not committed yet.
+- A result is a row in `results.tsv`: a name, a plain label, a value, how it reads, what it is
+  compared with, and the command that prints it again from the sealed run. `lab check` runs every
+  command again. A card names a result (`{attack-success}`) and never types its number.
+- One review, after the results, by a session that did not do the work. A second, of the plan, only
+  before a run that uses a metered resource. A failed results review is final for that experiment.
+
+Who decides
+
+- The operator decides direction (the goals and the questions) and resources, in a discussion
+  recorded as a decision, not by approving requests. What a decision settles needs no further yes.
+  The agent decides everything else and records each choice in the log. A settled decision is
+  never reworded. A question is answered with `lab answer`, on a finished experiment.
+- Resources are set once for the lab in `resources.toml`: what each is, where its key is kept, for a
+  metered one its unit, grant and amount for one run, and its rules as plain sentences. `lab run`
+  refuses a run that would pass the amounts; an experiment may carry an override, which is a
+  resource and a cap. A metered resource names the settled decision that set its amounts (`from`),
+  which lists it under `about:`, and an amount changes only together with it. A resource is never
+  removed, only retired, and use outside a run is a list that only grows.
+
+The command, the method and the site
+
+- One command, `lab` (`lab-kit` still starts it), with fifteen commands: `now`, `show`, `brief`,
+  `since` and `define` to look; `new`, `log`, `decide` and `answer` to write; `lock`, `run`, `runs`,
+  `review` and `check` for evidence; `init` once.
+- One log, `log.md`, with five kinds of line: a decision recorded, a choice of the agent's, a
+  result, something stuck, and what the agent is starting on now (`doing`). The `doing` line is how
+  the operator sees that the lab is alive without asking.
+- `lab check` holds what can be held mechanically: ids and links, card budgets and front matter,
+  a test on every line, unchanged locks, listed and sealed runs, results that re-derive and were
+  reviewed, use inside the resources' amounts, a decision behind every goal, question and amount,
+  the installed method and skills, and a history that only grows. It runs the commands in
+  `results.tsv`, so it is for a lab you trust. `--strict` fails when history or the store could not
+  be checked, which is what CI wants.
+- A lab that is not written as the model says (a mistyped folder, a list written as one value, a
+  file that is not text) is reported by `lab check`, and stops no command and no page. Commands
+  validate everything before they write, and one writes at a time.
+- The method is seven rules in one file, `method/METHOD.md`. Four skills (lab-set-up, lab-work,
+  lab-review, lab-talk) and one role (the reviewer). `lab init` installs them into a lab.
+- The site is drawn by `lab_kit.site` inside folio, from the record, at each request. It needs
+  `folio-kb` 0.5.0 or later, as the optional extra `lab-kit-cli[site]`. The command itself depends
+  only on `pyyaml` (and `tomli` on Python 3.10), and needs Python 3.10 or later.
+
 ## 0.6.4
 
 - `lab-append-only` accepts a recorded correction. `.lab/corrections.tsv` lists `path<TAB>commit<TAB>reason` for a commit that edited a mission log, a budget or a lock record in place and was later put right. That commit's version is left out of the file's history, so the versions before and after it must still show the file only growing, and the file's current version is never a listed one. The list is committed, so every waiver keeps its reason on the record.
