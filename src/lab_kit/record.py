@@ -17,8 +17,8 @@ KINDS = ["decision", "agent", "result", "stuck", "doing"]  # a decision recorded
 CLOSES = ("agent", "result", "stuck")  # a later line of these kinds about the same card ends a `doing` line
 SLOTS = {  # every slot a card has, with its word budget
     "goal": (("Claim", 90), ("Example", 260), ("Approach", 340), ("Roles", 170), ("Vocabulary", 260)),
-    "question": (("How we would know", 150), ("Example", 380), ("We expect", 70), ("Wrong if", 70), ("So far", 120)),
-    "experiment": (("Compares", 80), ("Arms", 260), ("Cases", 100), ("Confirmed if", 150), ("Refuted if", 110), ("Outcomes", 200), ("Limits", 120), ("Found", 130), ("Means", 90)),
+    "question": (("How we would know", 150), ("Example", 380), ("We expect", 70), ("Wrong if", 70), ("So far", 180)),
+    "experiment": (("Compares", 80), ("Arms", 260), ("Cases", 100), ("Confirmed if", 150), ("Refuted if", 110), ("Outcomes", 200), ("Limits", 120), ("Found", 180), ("Means", 150)),
     "build": (("How it works", 200), ("Works when", 80)),
     "reading": (("Looks at", 110), ("Seen", 320), ("Suggests", 150)),
     "decision": (("Seen", 120), ("Options", 200), ("Recommendation", 80)),
@@ -143,6 +143,16 @@ def symlinks(folder):
     return sorted(out)
 
 
+def compiled(folder):
+    """Every `.pyc` file under a folder that is not inside a `__pycache__`. Python imports such a file as it would the
+    script of the same name, and no hash of the folder covers it."""
+    out = []
+    for top, dirs, files in os.walk(folder):
+        dirs[:] = [d for d in dirs if d != "__pycache__"]
+        out += [os.path.relpath(os.path.join(top, n), folder) for n in files if n.endswith(".pyc")]
+    return sorted(out)
+
+
 def sha(path):
     return hashlib.sha256(open(path, "rb").read()).hexdigest()
 
@@ -151,17 +161,18 @@ def text_hash(text):
     return hashlib.sha256(text.encode()).hexdigest()
 
 
-def tree_hash(folder, how=HASH):
+def tree_hash(folder, how=HASH, cache=False):
     """One hash over a folder: every file's path and bytes, each preceded by its length, so that no two folders give
     the same hash. The first way (`how` 1: the path, a newline, the bytes) is kept to verify what was made with it.
     What Python leaves when it imports a script is not part of the folder, in either way: a `__pycache__` folder with
-    everything under it, and a `*.pyc` file wherever it sits."""
+    everything under it, and a `*.pyc` file wherever it sits. With `cache` those are hashed too, which is what
+    lab-kit 1.0.0 did: kept only to verify a plan that 1.0.0 locked or ran while such files sat in it."""
     h, walked = hashlib.sha256(), []
     for root, dirs, files in os.walk(folder):
-        dirs[:] = [d for d in dirs if d != "__pycache__"]  # as the walk goes: sorting the walk first would read them all
+        dirs[:] = [d for d in dirs if cache or d != "__pycache__"]  # as the walk goes: sorting the walk first would read them all
         walked.append((root, files))
     for root, files in sorted(walked):
-        for name in sorted(f for f in files if not f.endswith(".pyc")):
+        for name in sorted(f for f in files if cache or not f.endswith(".pyc")):
             p = os.path.join(root, name)
             path, data = os.path.relpath(p, folder).encode(), open(p, "rb").read()
             h.update(path + b"\n" + data if how == 1 else len(path).to_bytes(8, "big") + path + len(data).to_bytes(8, "big") + data)
@@ -324,7 +335,8 @@ class Lab:
                 self.results[row["ref"]] = row
         for q in self.questions:
             q["state"] = self._question_state(q)
-        for x in self.items:  # needs look at earlier items, so builds and experiments are settled in tree order
+        self.reach = self._reach()
+        for x in self._in_order():  # a step after everything it needs, wherever that sits in the tree
             x["state"], x["next"], x["mine"] = {"build": self._build_state, "reading": self._reading_state, "experiment": self._experiment_state}[x["type"]](x)
         for row in self.results.values():  # a number may be used on a card once its experiment is reviewed, and until it is replaced
             x = self.nodes[row["experiment"]]
@@ -715,9 +727,22 @@ class Lab:
     def before_hash(self, x):
         return text_hash("\n".join(f"{k}\n{flat(x['slots'].get(k, ''))}" for k in BEFORE))
 
-    def plan_hash(self, x, how=HASH):
+    def plan_hash(self, x, how=HASH, cache=False):
         d = os.path.join(self.root, x["dir"], "plan")
-        return tree_hash(d, how) if os.path.isdir(d) else "-"
+        return tree_hash(d, how, cache) if os.path.isdir(d) else "-"
+
+    def plan_is(self, x, pinned, how=HASH):
+        """Whether a hash of plan/ that a lock or a run holds is plan/ as it is now. lab-kit 1.0.0 hashed what Python
+        leaves in a folder, and no later kit does: under a lock that 1.0.0 made, a hash that does not match is tried
+        once more the way 1.0.0 hashed, before a change is reported."""
+        if pinned == self.plan_hash(x, how):
+            return True
+        return (x.get("lock") or {}).get("kit") == "1.0.0" and pinned == self.plan_hash(x, how, cache=True)
+
+    def plans_differ(self, x, a, b, how=HASH):
+        """Whether two hashes of plan/, held by a lock and a run or by two runs, are of two different plans. Under a
+        lock that 1.0.0 made, one may count what Python left and the other not: both are then plan/ as it is now."""
+        return a != b and not (self.plan_is(x, a, how) and self.plan_is(x, b, how))
 
     def content(self, x, stage, how=HASH):
         """One hash of what a review of this stage reads: the lines and the plan, or the results and the run they come
@@ -776,6 +801,41 @@ class Lab:
             return q["answer"]
         return "open" if self.settled(q) else "under discussion"
 
+    def _reach(self):
+        """For each step, every step it needs, directly or through what it needs: {id: {ids}}. A step that is in its
+        own set needs itself, which `lab check` reports."""
+        needs = {x["id"]: [i for i in x["needs"] if self.nodes.get(i, {}).get("type") in STEPS] for x in self.items}
+        out = {}
+        for ident in needs:
+            seen, todo = set(), list(needs[ident])
+            while todo:
+                i = todo.pop()
+                if i not in seen:
+                    seen.add(i)
+                    todo += needs[i]
+            out[ident] = seen
+        return out
+
+    def _in_order(self):
+        """The steps in the order their states are worked out: each after every step it needs, earlier or later in the
+        tree, and otherwise in tree order. Steps that need each other in a circle have no such order: the walk does not
+        go round, and `_blocked` holds each of them whatever the others' states."""
+        by, out, met = {x["id"]: x for x in self.items}, [], set()
+        for first in self.items:
+            if first["id"] in met:
+                continue
+            met.add(first["id"])
+            path = [(first, iter(first["needs"]))]
+            while path:
+                x, needs = path[-1]
+                need = next((by[i] for i in needs if i in by and i not in met), None)
+                if need is None:
+                    out.append(path.pop()[0])
+                else:
+                    met.add(need["id"])
+                    path.append((need, iter(need["needs"])))
+        return out
+
     def _blocked(self, x):
         """Why nothing under this item may move yet, or None."""
         q, g = self.nodes[x["question"]], self.nodes[x["goal"]]
@@ -787,7 +847,13 @@ class Lab:
             return f"{q['id']} is {'answered ' + q['state'] if q['state'] in ('yes', 'no') else q['state']}"
         for need in x.get("needs") or []:
             n = self.nodes.get(need)
-            if n and n.get("state") not in ("done", "built", "yes", "no"):
+            if n and x["id"] in self.reach.get(need, {need} if need == x["id"] else ()):  # a circle of needs: nothing in it moves
+                return f"{need} {n['title']}, which needs {x['id']} in turn: no step in a circle of needs can move" if need != x["id"] else f"{need}, which is itself: a step cannot need itself"
+            if not n or n["type"] not in STEPS:  # held here as `lab check` reports it: a need names a step
+                return f"{need}, which {'is not an experiment, a build or a reading' if n else 'does not exist'}: correct the need or remove it"
+            if n.get("state") in ("dropped", "replaced"):  # it will never be done: waiting on it is waiting for ever
+                return f"{need} {n['title']}, which is {n['state']}: remove the need or replace it"
+            if n.get("state") not in ("done", "built"):
                 return f"{need} {n['title']}"
         return None
 

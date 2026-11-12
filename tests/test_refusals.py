@@ -90,7 +90,7 @@ def test_what_the_check_refuses(tmp_path):
     assert "the record is sound" in lab(root, "check")
 
     # a card stays short, and writes only what is its to write: never a state, never a key the model does not give it
-    broken(root, card, lambda t: t.replace("It converges as the theory says.", "word " * 91), "Means is 91 words, budget 90")
+    broken(root, card, lambda t: t.replace("It converges as the theory says.", "word " * 151), "Means is 151 words, budget 150")
     broken(root, card, lambda t: t.replace("Measures the error", "word " * 71 + "Measures the error"), "its description is ", "budget 70")
     broken(root, card, lambda t: t.replace("\n---\n", "\nstatus: done\n---\n", 1), "writes `status:`, which is worked out from the record")
     broken(root, card, lambda t: t.replace("\n---\n", "\nowner: someone\n---\n", 1), "`owner:` is not something a experiment card holds")

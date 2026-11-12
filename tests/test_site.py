@@ -17,6 +17,7 @@ from html.parser import HTMLParser  # noqa: E402
 
 from test_flow import describe, experiment, fill, front, lab, locked, results  # noqa: E402
 from test_integrity import mutated  # noqa: E402
+from test_needs import across  # noqa: E402
 
 
 def a_lab(tmp_path):
@@ -306,3 +307,23 @@ def test_a_lost_run_stays_on_its_experiments_page_with_the_reason(tmp_path):
     assert f"<code>{gone}</code>" in page and "Stopped with an error: declared lost: The machine was deleted with the run on it." in page
     lab(root, "run", ident, "--wait", "--", *command)
     assert "Finished on its second run" in Provider(root).get(ident).main
+
+
+def test_a_step_that_needs_a_later_one_reads_on_every_page_as_it_does_in_the_command(tmp_path):
+    root = str(tmp_path)
+    ident, d, later_card = across(root)  # a reading, a build and an experiment under Q1, each needing a done reading under Q2
+    site = Provider(root)
+    front_page = site.get("").main
+    assert front_page.count("<td>the agent</td>") == 3 and "<td>waits</td>" not in front_page
+    for step in ("G1.Q1.1", "G1.Q1.2", ident):
+        assert "Next, for the agent:" in site.get(step).main and "Waiting on" not in site.get(step).main, step
+    assert "Waiting on" not in site.get("G1.Q1").main and site.get("G1.Q1").main.count("Next: ") == 3
+    assert [i["status"] for r in site.rail() if "items" in r for i in r["items"]] == ["planned", "planned", "planned", "done"]
+
+    fill(later_card, Suggests="")  # the reading they need is not done: all three wait on it, on every page
+    site = Provider(root)
+    front_page = site.get("").main
+    assert front_page.count("<td>waits</td>") == 3 and front_page.count("<td>the agent</td>") == 1
+    for step in ("G1.Q1.1", "G1.Q1.2", ident):
+        assert "Waiting on" in site.get(step).main and "Every estimate that missed, by cause" in site.get(step).main, step
+    assert site.get("G1.Q1").main.count("Waiting on ") == 3

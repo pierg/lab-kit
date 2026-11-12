@@ -1,5 +1,48 @@
 # Changelog
 
+## 1.0.2
+
+One defect found while rehearsing a real lab, four follow-ups from 1.0.1, and three larger word
+budgets. The skill `lab-work` changed with the budgets: run `lab init` in a lab after upgrading, or
+`lab check` reports that the skill differs from the installed kit.
+
+- A step may need a step that sits later in the tree, such as a build under the second question
+  that needs a reading under the third. States used to be worked out in the order of the cards, so
+  the earlier step never saw that the later one was done: it stayed under "Not yours to move yet",
+  waiting on a step that was done, and `lab lock` and `lab run` refused it. Each step's state is now
+  worked out after everything it needs, wherever that sits. `lab now`, `lab show`, `lab brief` and
+  the site agree, since they read the same states.
+- Steps that need each other in a circle were already a problem in `lab check`. Now none of them
+  moves until the circle is broken, even when one of them is done, and each says which need leads
+  back to it.
+- Rows that a committed review passed stay. A reviewed `results.tsv` could be emptied together with
+  the card's Found and Means, committed, and later filled with other rows and reviewed again, with
+  `lab check` sound at every step. Once a results review that passed is committed with the rows it
+  read, those rows are held, whatever the card and the file say later. A draft row committed after
+  a review, which that review never read, may still be corrected.
+- A step that needs one that is dropped or replaced says so in what it waits on, with what to do:
+  remove the need or replace it. A need that names nothing in the lab, or something that is not a
+  step, now holds the step in `lab lock` and `lab run`, as `lab check` already reported it.
+- A `.pyc` file in `plan/` outside `__pycache__` is refused by `lab lock` and `lab run` and reported
+  by `lab check`, as a link is: Python would import it, and the plan's hash does not cover it.
+- `lab check` says in a note when the repository is a shallow clone, and fails with `--strict`: the
+  history check needs every commit, and CI should fetch all of the history (`fetch-depth: 0`). The
+  model also says that the history read is that of the record under the lab's root as it is now,
+  so moving the root inside the repository starts again what is held.
+- A plan that 1.0.0 locked or ran while a `__pycache__` sat in `plan/` verifies again. 1.0.0 counted
+  those files in the plan's hash and 1.0.1 does not, so such a record could never match. When a
+  hash of `plan/` does not match and the experiment's lock was made by 1.0.0, the folder is hashed
+  once more the way 1.0.0 did before a change is reported. It applies to no other lock, and only
+  while the cache files are still there as they were.
+- `lab show <experiment>` says of each run how many files it holds, how many at the top of its
+  folder and how many under each folder there. It used to list ten files and leave out `work/`, so
+  a run whose output was all in `work/` looked nearly empty.
+- Three word budgets are larger, because real cards were hitting them and ending in fragments: an
+  experiment's Found goes from 130 words to 180 and its Means from 90 to 150, and a question's So
+  far from 120 to 180. A budget is a ceiling against sprawl. If a card needs its last words cut
+  into fragments to fit, it is saying too much for one slot or the budget is wrong, and full
+  sentences win.
+
 ## 1.0.1
 
 Three defects found by moving a real repository to 1.0.0, and one message.

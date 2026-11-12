@@ -150,6 +150,9 @@ def run(lab, rederive=True):
         links = R.symlinks(os.path.join(d, "plan"))
         if links:
             bad("locks", p, f"plan/ holds a link, {links[0]}: what a link points at is not in plan/ and is not pinned")
+        stray = R.compiled(os.path.join(d, "plan")) if (x["lock"] or {}).get("kit") != "1.0.0" else []  # 1.0.0 hashed such a file with the plan
+        if stray:
+            bad("locks", p, f"plan/ holds a compiled file outside __pycache__, {stray[0]}: Python would import it, and a `.pyc` is not pinned")
         if x["lock"]:
             if lab.nodes[x["question"]]["state"] == "under discussion":
                 bad("locks", p, f"is locked under {x['question']}, whose decision is not settled")
@@ -162,13 +165,13 @@ def run(lab, rederive=True):
                 bad("locks", p, "is locked with no refuted-if line")
             if any(lab.metered(r) for r in x["uses"]) and not any(r.get("stage") == "plan" and r.get("verdict") == "pass" for r in x["reviews"]):
                 bad("locks", p, "uses a metered resource and was locked with no passed review of its plan")
-            if x["finished"] and x["finished"].get("plan") and x["finished"]["plan"] != lab.plan_hash(x, x["finished"]["how"]):
+            if x["finished"] and x["finished"].get("plan") and not lab.plan_is(x, x["finished"]["plan"], x["finished"]["how"]):
                 bad("locks", p, f"plan/ changed after {x['finished']['id']}, the run its results come from; the apparatus of a finished run stays as it ran")
             ran = [r for r in x["runs"] if not r["missing"]]
-            if ran and x["lock"].get("plan") and ran[0]["how"] == x["lock"]["hash"] and ran[0].get("plan") != x["lock"]["plan"] and not R.flat(ran[0].get("changed") or ""):
+            if ran and x["lock"].get("plan") and ran[0]["how"] == x["lock"]["hash"] and lab.plans_differ(x, ran[0].get("plan"), x["lock"]["plan"], ran[0]["how"]) and not R.flat(ran[0].get("changed") or ""):
                 bad("runs", ran[0]["dir"], "ran a plan/ that differs from the one that was locked and does not say what changed and why")
             for before, after in zip(ran, ran[1:]):
-                if before["how"] == after["how"] and before.get("plan") != after.get("plan") and not R.flat(after.get("changed") or ""):
+                if before["how"] == after["how"] and lab.plans_differ(x, before.get("plan"), after.get("plan"), after["how"]) and not R.flat(after.get("changed") or ""):
                     bad("runs", after["dir"], f"ran a plan/ that differs from {before['id']}'s and does not say what changed and why")
         finished = [r for r in x["runs"] if r["state"] == "finished"]
         if len(finished) > 1:

@@ -43,7 +43,9 @@ The operator reads every card on the site, usually days later and without you. W
 - Say what is measured and what is your reading of it, in so many words.
 - Use a list when the content is a list (arms, options, steps), and a second paragraph when one
   sentence is carrying too much. The word budgets are ceilings, not targets: short is good only
-  while nothing is missing.
+  while nothing is missing. A budget is there against sprawl. If a card needs its last words cut
+  into fragments to fit, the card is saying too much for one slot or the budget is wrong, and full
+  sentences win.
 - Read the card as someone who was not there. If a question comes to mind, the card answers it.
 
 ## When to open a decision
