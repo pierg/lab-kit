@@ -190,6 +190,7 @@ CSS = """
 .lv h3{margin:1.2em 0 .3em}
 .lv .crumbs{font:500 .8rem var(--sans);color:var(--ink-3)}
 .lv .crumbs a{color:var(--ink-3)}
+.lv .avoid{display:block;font:.78rem var(--sans);color:var(--ink-3)}
 .lv .lead{font-size:1.1rem;color:var(--ink-2);max-width:48rem}
 .lv .pill{display:inline-block;padding:.08rem .55rem;border-radius:999px;font:600 .72rem/1.5 var(--sans);white-space:nowrap;background:var(--sunk);color:var(--ink-2)}
 .lv .t-ok{background:var(--ok-soft);color:var(--ok)}
@@ -683,8 +684,10 @@ def goal_page(lab, T, g):
         body.append('<div class="slots">' + "".join(slot(*x) for x in extra) + "</div>")
     if pairs("Roles"):
         body.append('<h2>Who plays what</h2><table class="t roles"><tr><th>Role</th><th>Played by, and what it does</th></tr>' + "".join(f"<tr><td>{T(a)}</td><td>{T(b)}</td></tr>" for a, b in pairs("Roles")) + "</table>")
-    if pairs("Vocabulary"):
-        body.append('<h2>The words this lab uses</h2><table class="t roles"><tr><th>Word</th><th>What it means here, everywhere</th></tr>' + "".join(f"<tr><td>{T(a)}</td><td>{T(b)}</td></tr>" for a, b in pairs("Vocabulary")) + "</table>")
+    words = lab.vocabulary(g)
+    if words:  # the names are the card's; what each means is the glossary's, whatever the card says after a colon
+        rows = "".join(f'<tr><td>{e(w["entry"]["term"] if w["entry"] else w["name"])}</td><td>' + (e(w["entry"]["definition"]) + avoid_note(w["entry"]) if w["entry"] else '<span class="muted">not in the glossary</span>') + "</td></tr>" for w in words)
+        body.append('<h2>The words this lab uses</h2><table class="t roles"><tr><th>Word</th><th>What it means here, everywhere</th></tr>' + rows + "</table>")
     body.append("<h2>Questions</h2>" + "".join(qcard(lab, T, q) for q in lab.live(g["questions"])))
     gone = [q for q in g["questions"] if q["state"] == "dropped"]
     if gone:
@@ -954,6 +957,20 @@ def resources_page(lab, T):
     return frame(lab, "Resources", "".join(body))
 
 
+def avoid_note(g):
+    """The words not to use for a term, in small type; nothing when there are none."""
+    return f' <span class="avoid">Avoid: {e(", ".join(g["avoid"]))}</span>' if g["avoid"] else ""
+
+
+def see_link(lab, page):
+    """A link to the page that explains a term, a page of the lab's own library or of a library the charter names."""
+    page = str(page)
+    if ":" not in page:
+        return f'<a href="/docs/{e(page)}/">{e(pages(lab).get(page, page))}</a>'
+    url = outside(lab, page)
+    return f'<a href="{e(url)}">{e(page_title(lab, page))}</a>' if url else e(page)
+
+
 def glossary_page(lab, T):
     """Every term, by group, each group closed until it is opened or the filter finds something in it."""
     url = code_url(lab)
@@ -973,7 +990,8 @@ def glossary_page(lab, T):
         rows = []
         for g in terms:
             code = (f' · <a href="{url}/blob/main/src/{e(g["code"].split(":")[0].replace(".", "/"))}.py"><code>{e(g["code"])}</code></a>' if url else f' · <code>{e(g["code"])}</code>') if g["code"] else ""
-            rows.append(f'<dt id="{e(g["term"].lower().replace(" ", "-"))}">{e(g["term"])}</dt><dd>{e(g["definition"])}{code}</dd>')
+            more = f' · See: {see_link(lab, g["see"])}' if g["see"] else ""
+            rows.append(f'<dt id="{e(g["term"].lower().replace(" ", "-"))}">{e(g["term"])}</dt><dd>{e(g["definition"])}{code}{more}{avoid_note(g)}</dd>')
         body.append(f'<details class="ggroup"><summary>{e(name)}<span>{len(terms)} terms</span></summary><dl class="gloss">{"".join(rows)}</dl></details>')
     body.append("<script>(function(){var h=decodeURIComponent(location.hash.slice(1));var t=h&&document.getElementById(h);if(t){t.closest('details').open=true;t.scrollIntoView();}})();</script>")
     return frame(lab, "Glossary", "".join(body))

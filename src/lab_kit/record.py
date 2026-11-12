@@ -470,9 +470,20 @@ class Lab:
                 group = block[2:].strip()
             elif block.startswith("## "):
                 head, _, rest = block[3:].partition("\n")
-                code = re.search(r"^- code: (.+)$", rest, flags=re.M)
+                code, avoid, see = (re.search(rf"^- {key}: (.+)$", rest, flags=re.M) for key in ("code", "avoid", "see"))
                 definition = " ".join(l for l in rest.split("\n") if l.strip() and not l.startswith("- ")).strip()
-                out.append({"term": head.strip(), "group": group, "definition": definition, "code": code.group(1).strip("` ") if code else ""})
+                out.append({"term": head.strip(), "group": group, "definition": definition, "code": code.group(1).strip("` ") if code else "",
+                            "avoid": [w for w in (w.strip("` ") for w in re.split(r"[,;]", avoid.group(1))) if w] if avoid else [], "see": see.group(1).strip("` ") if see else ""})
+        return out
+
+    def vocabulary(self, goal):
+        """The names a goal's Vocabulary lists, each with its glossary entry (None when the glossary lacks it) and whether
+        it was written the old way, with a meaning after a colon. The meaning is never read: only the glossary defines."""
+        by = {g["term"].lower(): g for g in self.glossary}
+        out = []
+        for item in items(goal["slots"].get("Vocabulary", "")):
+            name, colon, _ = item.partition(":")
+            out.append({"name": name.strip(), "entry": by.get(name.strip().lower()), "old": bool(colon)})
         return out
 
     def _lines(self, text):
