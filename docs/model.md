@@ -32,7 +32,9 @@ leads to is complete: it never points at something it does not explain ("the sev
 reproduction's setting", "our loop") without saying what that is in the same place. An experiment
 names each arm and says what it is. A term is explained in the sentence that first uses it; the
 glossary is a second chance, not the explanation. A slot may hold paragraphs and a list when that
-is clearer than one long sentence. The word budgets are ceilings against sprawl, not targets.
+is clearer than one long sentence. The word budgets are ceilings against sprawl, not targets. If a
+card needs its last words cut into fragments to fit, the card is saying too much for one slot or
+the budget is wrong, and full sentences win.
 
 A run's id is `<date>-<time>_<experiment>_<four random characters>`, for example
 `20261110-1432_G1.Q2.3_k7f2`. It sorts by time, and two machines starting runs in the same minute cannot
@@ -149,6 +151,19 @@ Each arrow is a command that refuses when the step before it is missing. You see
   `lab now` and `lab check` say which locks and lists of runs are not committed yet. With no commit
   at all nothing is held, and `lab check` says that too; `--strict` turns each of these into a
   failure.
+  **Reviewed rows stay.** The rows of `results.tsv` may change until a review passes them. Once a
+  results review that passed is committed together with the rows it read, those rows stay, each as
+  it was, whatever happens to the card and to the reviews after it. Emptying the file or removing it
+  together with Found and Means, and filling it later with other rows for a new review, is a
+  problem `lab check` reports at every step: a different result is a new experiment. A review is
+  bound to the rows it read by its `of`, so only those are held: a draft row committed after a
+  review, which that review never read, may still be corrected before the next review reads it.
+  **The history that is read.** The check reads the history of the record under the lab's root as
+  that root is now. Moving the lab's root inside its repository, or to another repository, starts
+  again what is held: what was committed under the old root is not compared. And it needs the
+  repository's full history. A shallow clone holds only its last commits, so against it almost
+  nothing is held: `lab check` says so in a note, and fails with `--strict`. CI fetches all of the
+  history before it checks (`fetch-depth: 0` in `actions/checkout`).
   **Where the record is.** The check reads the history of the lab's own record and of nothing else:
   `log.md` and `resources.toml` at the lab's root, `decisions/D<n>-<name>.md`, and each experiment's
   `lock.json`, `runs.tsv`, `results.tsv` and `reviews.tsv` in its folder,
@@ -265,7 +280,10 @@ that resource, under `about:`.
 ## 5. What the agent uses
 
 - **To look:** `lab now`, `lab show <id or path>`, `lab brief <question>`, `lab since`, `lab define <term>`. Each shows one level,
-  so the agent reads a card before it opens a file.
+  so the agent reads a card before it opens a file. Of each run, `lab show <experiment>` says how
+  many files it holds and where: how many at the top of its folder, and how many under each folder
+  there, `work/` included. It lists none of them, so a run whose output is all in `work/` does not
+  look empty.
 - **To write:** `lab new` (a goal, a question, an experiment, a build, a reading, a decision),
   `lab log`, `lab decide`, `lab answer`.
 - **To be seen:** `lab log <id> doing "<what>" "<why now>"` whenever it starts on a card. It is the
@@ -317,7 +335,7 @@ file that is not text) is a problem it reports; no command stops on it.
 
 `lab check` runs the command of every row in every `results.tsv`, as a shell command, each for at
 most `rederive_timeout` seconds (`lab.toml`, 120 unless set). Run it only on a lab you trust, as
-you would its code; `--no-rederive` runs none of them. Where the lab has no commit, the store
+you would its code; `--no-rederive` runs none of them. Where the lab has no commit or its repository is a shallow clone, the store
 is not mounted, or another library that a card's `see:` points into is not on the machine, the check
 says in a note what it could not check and still passes; with `--strict` that is a failure, which is
 what CI wants.
@@ -432,8 +450,8 @@ the first two lines that are exactly `---`. A key that holds a list (`needs`, `u
 | Card | Front matter | Slots (word budget) |
 | --- | --- | --- |
 | `goal.md` | `title:`, `from:` (its decision); `reached: true`; `dropped: <why>` | description (70), Claim (90), Example: the idea in one case, from the reader's own domain (260), Approach: the design, how this lab approximates it, and where it knowingly differs (340), Roles: a list, `- <role>: <who plays it and what it does>` (170), Vocabulary: a list, `- <word>: <what it means>`, the few words every card uses the same way (260) |
-| `question.md` | `title:` (a short name), `asks:` (the question in full), `from:`, `needs:`; `dropped: <why>`; `answer:` and `answered:` are written by `lab answer` | description: why we ask (130), How we would know (150), Example: one case step by step, a numbered list (380), We expect (70), Wrong if (70), So far (120) |
-| `experiment.md` | `title:`, `needs:`, `uses:` (resources), `override: {resource: cap}`, `cost:`, `replaces:` with `because:` (one sentence), `waiting_on:`, `dropped: <why>` | description (70), Compares: the comparison in a sentence (80), Arms (260), Cases (100), Confirmed if (150), Refuted if (110), Outcomes (200), Limits (120), Found (130), Means (90) |
+| `question.md` | `title:` (a short name), `asks:` (the question in full), `from:`, `needs:`; `dropped: <why>`; `answer:` and `answered:` are written by `lab answer` | description: why we ask (130), How we would know (150), Example: one case step by step, a numbered list (380), We expect (70), Wrong if (70), So far (180) |
+| `experiment.md` | `title:`, `needs:`, `uses:` (resources), `override: {resource: cap}`, `cost:`, `replaces:` with `because:` (one sentence), `waiting_on:`, `dropped: <why>` | description (70), Compares: the comparison in a sentence (80), Arms (260), Cases (100), Confirmed if (150), Refuted if (110), Outcomes (200), Limits (120), Found (180), Means (150) |
 | `reading.md` | `title:`, `needs:`, `dropped: <why>` | description (70), Looks at: what, and where it is (110), Seen (320), Suggests (150) |
 | `build.md` | `title:`, `needs:`, `commits:`, `tests:`, `dropped: <why>` | description (60), How it works (200), Works when (80) |
 | `D<n>-<slug>.md` | `title:`, `about:` (the goals, questions, experiments or resources it concerns), `date:`, `holds:`; `decided: {date, with}` is written by `lab decide` | Seen (120), Options: a list, one option an item (200), Recommendation (80), Decided (120) |
@@ -518,6 +536,16 @@ it imports a script, which is no part of the plan: a folder named `__pycache__` 
 it, and any file whose name ends in `.pyc`, wherever it sits. Nothing else is left out; a hidden
 file is hashed like any other.
 
+One exception, for what lab-kit 1.0.0 made. That version did hash those files, so a plan locked or
+run while a `__pycache__` sat in `plan/` holds a hash that counts them. When a hash of `plan/` held
+by a lock or a run does not match and the experiment's lock says `"kit": "1.0.0"`, the folder is
+hashed once more the way 1.0.0 did, those files included, before a change is reported. It applies
+to no other lock, and it verifies only while those files are still there as they were.
+
+A `.pyc` file in `plan/` that is not inside a `__pycache__` is refused, as a link is: Python would
+import it in place of a script, and no hash covers it. `lab lock` and `lab run` refuse the plan and
+`lab check` reports it. Under a lock that 1.0.0 made, whose hash did count such a file, it stays.
+
 **`runs.tsv`**, beside the lock and in git, is written by `lab run` and by the run as it ends: `run`
 (its id), `kind` (run, trial), `what` (started, ended, lost), `at`, on the ended row `exit` and `seal`,
 and on a lost row `used` (`{"<resource>": <amount>}`, or empty) and `note` (why it is lost). When a
@@ -537,3 +565,17 @@ starting on and why now. A line written before the kit kept the time has none.
 open, then yes or no; a page calls an open question with nothing under it "not started". A build is in
 progress once the log has a line about it, and built once it names its commits. An experiment whose
 results review failed shows as review failed until it is replaced or dropped.
+
+**What a step needs.** `needs:` on an experiment, a build or a reading names other steps, anywhere in
+the tree: under its own question or another, before it or after it. A step is not the agent's to move
+while one it needs is neither done nor built, and `lab lock` and `lab run` refuse it until then. Each
+step's state is worked out after the state of everything it needs, wherever that sits, so the order
+of the cards changes nothing: a build under the second question that needs a reading under the third
+moves as soon as that reading is done. Every view says the same: `lab now`, `lab show`, `lab brief`,
+and the site's pages and rail. Steps that need each other in a circle are a problem `lab check`
+reports. Until the circle is broken none of them moves, whatever the others' states, and each says
+which of its needs leads back to it. A step that needs one that is dropped or replaced would wait
+for ever, so what it waits on says so, and says what to do: remove the need or replace it. A need
+that names nothing in the lab, or something that is not a step, holds the step in `lab lock` and
+`lab run` as `lab check` reports it. A question's `needs:` names the questions it builds on, for its
+briefing; it changes no state.

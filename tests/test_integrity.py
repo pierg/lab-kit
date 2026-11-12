@@ -360,6 +360,29 @@ def test_a_command_validates_everything_before_it_writes_and_quotes_what_it_writ
     assert "holds no other |" in lab(root, "check", "--no-rederive", ok=False)
 
 
+def test_a_run_is_shown_by_how_many_files_it_holds_and_where(tmp_path):
+    # a run whose output is nearly all under work/, more than any list would show
+    root = str(tmp_path)
+    open_question(root)
+    paths = [f"work/traces/{n}.json" for n in range(14)] + ["work/scores.csv", "logs/a.log"]
+    deep = (WRITES % "0.5" + "".join(f"os.makedirs(os.environ['LAB_RUN'] + '/{p}', exist_ok=True)\n" for p in ("work/traces", "logs"))
+            + "".join(f"open(os.environ['LAB_RUN'] + '/{p}', 'w').write('x')\n" for p in paths))
+    ident, d, command = experiment(root, command=deep)
+    lab(root, "lock", ident)
+    lab(root, "run", ident, "--wait", "--", *command)
+    run = glob.glob(f"{root}/runs/*")[0]
+    held = len(json.load(open(f"{run}/run.json"))["files"])
+    top = held - len(paths)
+    out = lab(root, "show", ident)
+    assert f"  {held} files: {top} at the top, 1 under logs/, 15 under work/" in out
+    assert "work/scores.csv" not in out and "ratio.txt" not in out  # a count and the folders, and no list that could be cut short
+
+    # a file the run sealed that is no longer there is said, not left out of the count in silence
+    os.chmod(f"{run}/work", 0o755)
+    os.remove(f"{run}/work/scores.csv")
+    assert f"  {held - 1} files: {top} at the top, 1 under logs/, 14 under work/. 1 file it sealed is not here" in lab(root, "show", ident)
+
+
 def test_commands_given_at_once_do_not_take_the_same_number_or_start_two_runs(tmp_path):
     root = str(tmp_path)
     open_question(root)

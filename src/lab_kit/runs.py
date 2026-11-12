@@ -111,6 +111,8 @@ def _start(lab, ident, command, trial, changed):
     plan = os.path.join(lab.root, x["dir"], "plan")
     if R.symlinks(plan):
         stop(f"{ident}: plan/ holds a link, {R.symlinks(plan)[0]}. A run pins what it executes, and what a link points at is not in plan/: copy it in")
+    if R.compiled(plan) and (x["lock"] or {}).get("kit") != "1.0.0":  # 1.0.0 hashed such a file with the plan; no later kit does
+        stop(f"{ident}: plan/ holds a compiled file outside __pycache__, {R.compiled(plan)[0]}. Python would import it, and a `.pyc` is not pinned: remove it, and keep the script")
     from . import history
     if any(lab.metered(r) for r in x["uses"]):  # before the hours are spent, not after
         against = history.resources(lab) + history.decisions(lab)
@@ -136,7 +138,7 @@ def _start(lab, ident, command, trial, changed):
         ran = [r for r in x["runs"] if not r["missing"]]  # a lost run pinned nothing that can be read
         before = ran[-1] if ran else None  # the first run is held against the plan/ that was locked
         was, how, since = (before.get("plan"), before["how"], f"what {before['id']} ran") if before else (x["lock"].get("plan"), x["lock"]["hash"], "what was locked")
-        if was and was != lab.plan_hash(x, how) and not R.flat(changed):
+        if was and not lab.plan_is(x, was, how) and not R.flat(changed):
             stop(f"{ident}: plan/ is not {since}. Say what changed and why, in a sentence the operator can read: "
                  f"lab run {ident} --changed \"<what changed since {'the last run' if before else 'the lock'}, and why>\" -- <command>")
     caps = {}

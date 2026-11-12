@@ -9,6 +9,10 @@ from test_integrity import WRITES, commit, done, under
 FIXED = {"a.py": b"print(1)\n", "b/c.txt": b"x\n", "a-b/d.cfg": b"k = 1\n", "b/e/f.json": b"{}\n", "Z.md": b"\xef\xbb\xbfcr\r\n", "b.py": b""}
 FIRST_WAY = "11376786fde57ae78bf9a099b1a8f1e4085e40640489f90acafac5f48654119f"
 AS_NOW = "9b4bebefd67a0699c57b4b5c2a431326b634f4d9a7a4d6f11a8087b34ee1d2fb"
+# The same folder with what Python left in it, as the released 1.0.0 hashed it: 1.0.0 counted those files.
+CACHE = {"__pycache__/a.cpython-312.pyc": b"\x00a", "b/__pycache__/c.cpython-310.pyc": b"\x00b", "b/stray.pyc": b"\x00c"}
+FIRST_WAY_WITH_CACHE = "1aa294c663120a3b5b5e4448f1bb0d1e5bce9790403fe434002aa8e02e13c3c1"
+AS_1_0_0_WITH_CACHE = "185df619bb23776ab90f0a0fb9a2be66882b7a7a73ee2a8d16c3c1f7009e381a"
 
 
 def put(folder, files):
@@ -183,12 +187,181 @@ def test_what_python_leaves_in_a_plan_is_not_the_plan(tmp_path):
     assert glob.glob(f"{d}/plan/__pycache__/sample.*.pyc")
     assert "finished" in lab(root, "run", ident, "--wait", "--", *command)  # no `--changed` is asked for: nothing changed
     done(root, ident, d)
-    shutil.copy(glob.glob(f"{d}/plan/__pycache__/sample.*.pyc")[0], f"{d}/plan/sample.pyc")
     put(d, {"plan/__pycache__/more.cpython-312.pyc": b"\x00"})
     out = lab(root, "check")
     assert "the record is sound" in out and "plan/ changed" not in out
+
+    # a compiled file outside __pycache__ is another matter: Python would import it, and no hash covers it
+    shutil.copy(glob.glob(f"{d}/plan/__pycache__/sample.*.pyc")[0], f"{d}/plan/sample.pyc")
+    out = lab(root, "check", "--no-rederive", ok=False)
+    assert "plan/ holds a compiled file outside __pycache__, sample.pyc" in out and "plan/ changed" not in out
+    os.remove(f"{d}/plan/sample.pyc")
+    assert "the record is sound" in lab(root, "check")
+    second, d2, command2 = experiment(root, title="Error at 1600 flips", command=WRITES % "0.5")
+    put(d2, {"plan/lib/helper.pyc": b"\x00compiled, with no script beside it"})
+    assert "plan/ holds a compiled file outside __pycache__, lib/helper.pyc" in lab(root, "lock", second, ok=False) and not os.path.exists(f"{d2}/lock.json")
+    assert "plan/ holds a compiled file outside __pycache__, lib/helper.pyc" in lab(root, "run", second, "--trial", "--wait", "--", *command2, ok=False)
+    os.remove(f"{d2}/plan/lib/helper.pyc")
+    lab(root, "lock", second)
+    put(d2, {"plan/lib/helper.pyc": b"\x00put there after the lock"})
+    assert "plan/ holds a compiled file outside __pycache__" in lab(root, "run", second, "--wait", "--", *command2, ok=False)
+    assert not glob.glob(f"{root}/runs/*{second}*") and not glob.glob(f"{root}/.lab/running/*{second}*")
+    os.remove(f"{d2}/plan/lib/helper.pyc")
+    assert "finished" in lab(root, "run", second, "--wait", "--", *command2)
     open(f"{d}/plan/sample.py", "a").write("# after the fact\n")
     assert "plan/ changed after" in lab(root, "check", "--no-rederive", ok=False)
+
+
+def test_a_plan_that_1_0_0_hashed_with_its_cache_files_still_verifies(tmp_path):
+    sys.path.insert(0, SRC)
+    from lab_kit import record as R
+
+    # the 1.0.0 way of hashing, kept: a fixed folder with cache files gives what the released 1.0.0 gave
+    plan = under(tmp_path, "fixed")
+    put(plan, {**FIXED, **CACHE})
+    assert (R.tree_hash(plan, 1, cache=True), R.tree_hash(plan, 2, cache=True)) == (FIRST_WAY_WITH_CACHE, AS_1_0_0_WITH_CACHE)
+    assert (R.tree_hash(plan, 1), R.tree_hash(plan, 2)) == (FIRST_WAY, AS_NOW)
+
+    # a lock as 1.0.0 wrote it while a __pycache__ sat in plan/: its hash of plan/ counts the cache file
+    root = under(tmp_path, "lab")
+    open_question(root)
+    ident, d, command = experiment(root, command=WRITES % "0.5")
+    put(d, {"plan/__pycache__/sample.cpython-312.pyc": b"\x00left by an import"})
+    lab(root, "lock", ident)
+    with_cache = R.tree_hash(f"{d}/plan", 2, cache=True)
+    lock = json.load(open(f"{d}/lock.json"))
+    assert lock["plan"] == R.tree_hash(f"{d}/plan") != with_cache
+
+    def relock(kit):
+        open(f"{d}/lock.json", "w").write(json.dumps({**lock, "kit": kit, "plan": with_cache}, indent=1) + "\n")
+
+    # only a lock that 1.0.0 made is read that way: the same hash under any other kit is a changed plan
+    relock("1.0.1")
+    assert "plan/ is not what was locked" in lab(root, "run", ident, "--wait", "--", *command, ok=False)
+    relock("1.0.0")
+    assert "finished" in lab(root, "run", ident, "--wait", "--", *command)  # no `--changed` is asked for: nothing changed
+    assert "the record is sound" in lab(root, "check", "--no-rederive")  # the run pins the plan as hashed now, the lock as 1.0.0 hashed it: one plan
+
+    # the run as 1.0.0 would have recorded it: its hash of plan/ counts the cache file too
+    rj = glob.glob(f"{root}/runs/*/run.json")[0]
+    record = json.load(open(rj))
+    old_seal = record["seal"]
+    record["plan"] = with_cache
+    record["seal"] = R.seal_of(record)
+    os.chmod(rj, 0o644)
+    open(rj, "w").write(json.dumps(record, indent=1) + "\n")
+    listed = open(f"{d}/runs.tsv").read()
+    open(f"{d}/runs.tsv", "w").write(listed.replace(old_seal, record["seal"]))
+    done(root, ident, d)
+    assert "the record is sound" in lab(root, "check")
+    relock("1.0.1")
+    assert "plan/ changed after" in lab(root, "check", "--no-rederive", ok=False)
+    relock("1.0.0")
+
+    # it verifies only what was hashed: a cache file that changed, or went, is a plan that cannot be verified, and a changed script still shows
+    cache = f"{d}/plan/__pycache__/sample.cpython-312.pyc"
+    open(cache, "wb").write(b"\x00written again by a later import")
+    assert "plan/ changed after" in lab(root, "check", "--no-rederive", ok=False)
+    os.remove(cache)
+    assert "plan/ changed after" in lab(root, "check", "--no-rederive", ok=False)
+    open(cache, "wb").write(b"\x00left by an import")
+    assert "the record is sound" in lab(root, "check")
+    open(f"{d}/plan/sample.py", "a").write("# after the fact\n")
+    assert "plan/ changed after" in lab(root, "check", "--no-rederive", ok=False)
+
+
+ROWS = "name\tlabel\tvalue\treads\tversus\tcommand\n"
+CLEARED = dict(Found="", Means="")
+
+
+def test_rows_that_a_committed_review_passed_stay_whatever_the_card_says_later(tmp_path):
+    kept = under(tmp_path, "kept")
+    ident, d = finished(kept)  # locked, run, its results reviewed and passed, and all of it committed
+    root = str(tmp_path / "lab")
+    shutil.copytree(kept, root, symlinks=True)
+    d = root + d[len(kept):]
+    card, rows, was = f"{d}/experiment.md", f"{d}/results.tsv", open(f"{d}/results.tsv").read()
+    written = open(card).read()
+    held = "a row that a review had passed in"
+
+    # the file emptied together with Found and Means: nothing on the card contradicts it, and git still holds the rows
+    fill(card, **CLEARED)
+    open(rows, "w").write(ROWS)
+    out = lab(root, "check", ok=False)
+    assert held in out and "Reviewed rows stay" in out and "ratio" in out
+    open(rows, "w").write("")
+    assert held in lab(root, "check", ok=False)
+    os.remove(rows)
+    assert "results.tsv: was committed and is gone" in lab(root, "check", ok=False)
+
+    # the emptied file committed, then filled with other rows, reviewed again and committed: still held, at every step
+    open(rows, "w").write(ROWS)
+    commit(root, "emptied")
+    assert held in lab(root, "check", ok=False)
+    open(rows, "w").write(was.replace("the error at 400 flips as a share", "the error at 400 flips, read again, as a share"))
+    assert held in lab(root, "check", ok=False)
+    lab(root, "review", ident, "results", "pass", "Read the new rows; the command prints the value.")
+    open(card, "w").write(written)
+    assert "(done, confirmed)" in lab(root, "show", ident)  # everything in the files agrees
+    assert held in lab(root, "check", ok=False)
+    commit(root, "filled with other rows")
+    out = lab(root, "check", ok=False)
+    assert held in out and "ratio\\tthe error at 400 flips as a share" in out
+
+    # in the lab as it was: a row added after the reviewed ones and read by a new review. Rows are only added
+    root, d = kept, kept + d[len(root):]
+    rows = f"{d}/results.tsv"
+    open(rows, "w").write(was + "ratio.high\tthe upper end of that share\t0.5\tpercent\tone half\tcat $RUN/ratio.txt\n")
+    lab(root, "review", ident, "results", "pass", "Read the added row.")
+    assert "the record is sound" in lab(root, "check")
+    commit(root, "a row added")
+    assert "the record is sound" in lab(root, "check", "--strict")
+
+    # a draft row committed after the review, which that review never read: it may be corrected, and then reviewed
+    root = under(tmp_path, "draft")
+    ident, d = finished(root)
+    rows, was = f"{d}/results.tsv", open(f"{d}/results.tsv").read()
+    open(rows, "w").write(was + "ratio.high\tthe uper end of taht share\t0.5\tpercent\tone half\tcat $RUN/ratio.txt\n")
+    assert "its results or its run changed after the review that passed them" in lab(root, "check", ok=False)
+    commit(root, "a draft row")
+    open(rows, "w").write(was + "ratio.high\tthe upper end of that share\t0.5\tpercent\tone half\tcat $RUN/ratio.txt\n")
+    lab(root, "review", ident, "results", "pass", "Read both rows; the label is corrected.")
+    commit(root, "the row corrected, and reviewed")
+    out = lab(root, "check", "--strict")
+    assert "the record is sound" in out and held not in out
+    open(rows, "w").write(was)  # the corrected row was read by a committed review: now it stays
+    assert held in lab(root, "check", ok=False)
+
+    # rows no review has passed yet may still change, committed or not
+    root = under(tmp_path, "unreviewed")
+    open_question(root)
+    ident, d, command = experiment(root, command=WRITES % "0.5")
+    lab(root, "lock", ident)
+    lab(root, "run", ident, "--wait", "--", *command)
+    open(f"{d}/results.tsv", "w").write(ROWS + "ratio\ta first wording\t0.5\tpercent\tone half\tcat $RUN/ratio.txt\n")
+    commit(root)
+    open(f"{d}/results.tsv", "w").write(ROWS + "ratio\ta second wording\t0.5\tpercent\tone half\tcat $RUN/ratio.txt\n")
+    assert "the record is sound" in lab(root, "check")
+    open(f"{d}/results.tsv", "w").write(ROWS)
+    assert "the record is sound" in lab(root, "check")
+
+
+def test_a_shallow_clone_holds_almost_nothing_and_the_check_says_so(tmp_path):
+    root = under(tmp_path, "lab")
+    ident, d = finished(root)
+    lab(root, "log", ident, "agent", "Read the result again.", "Nothing to add.")
+    commit(root, "a second commit")
+    shallow, full = str(tmp_path / "shallow"), str(tmp_path / "full")
+    subprocess.run(["git", "clone", "-q", "--depth", "1", f"file://{root}", shallow], check=True)
+    subprocess.run(["git", "clone", "-q", f"file://{root}", full], check=True)
+    for clone in (shallow, full):
+        shutil.copytree(f"{root}/runs", f"{clone}/runs")  # the store is there in both: only the history differs
+    out = lab(shallow, "check")
+    assert "this repository is a shallow clone" in out and "fetch-depth: 0" in out and "the record is sound" in out
+    assert "not everything could be checked" in lab(shallow, "check", "--strict", ok=False)
+    assert "shallow" not in lab(full, "check", "--strict")
+    subprocess.run(["git", "fetch", "-q", "--unshallow"], cwd=shallow, check=True)
+    assert "shallow" not in lab(shallow, "check", "--strict")
 
 
 def test_a_page_of_another_library_is_looked_for_where_that_library_is(tmp_path):

@@ -11,7 +11,9 @@ same place: what was committed under the old name is held under the new one.
 
 - A committed `lock.json` is byte for byte its first committed version.
 - `log.md`, `reviews.tsv` and `runs.tsv` only grow: no committed line is removed or changed.
-- A `results.tsv` that a review has passed keeps every committed row.
+- A `results.tsv` that a review has passed keeps every committed row. Once a results review that passed is committed
+  together with the rows it read, those rows stay, whatever the card and the file say later. Rows committed while
+  the last passed review was of other rows, such as a draft row added after it, were never reviewed and are not held.
 - A settled decision keeps its `decided:`, its `about:` and its Decided text as first committed.
 - A resource, once committed, is never removed. A metered resource's `granted`, `per_run` and `unit` change only together
   with `from`, which then names another settled decision that lists the resource. Its `other_use` rows only grow.
@@ -179,6 +181,10 @@ def check(lab):
     bad = lambda where, what: problems.append(f"history: {where}: {what}")
     if not committed(root):
         return [], ["this lab is not in git, or has no commit: permanence against history was not checked, and nothing recorded is held yet"]
+    notes = []
+    if (git(root, "rev-parse", "--is-shallow-repository") or "").strip() == "true":
+        notes.append("this repository is a shallow clone: the history check needs every commit, and compared the record with the few that are here. "
+                     "Fetch the full history (`git fetch --unshallow`; in CI, `fetch-depth: 0`)")
     versions, now = held(root, "log.md", "decisions", "goals"), present(root)
     reviewed = {os.path.join(x["dir"], "results.tsv") for x in lab.experiments if x["reviewed"]}
     for where, commits in sorted(versions.items()):
@@ -203,6 +209,34 @@ def check(lab):
                 bad(mine(path), f"a line committed in {c[:8]}{named(path)} is gone or changed: {lost[:70]!r}")
                 break
 
+    # A results review that passed, once committed with the rows it read, holds those rows: emptying the file with
+    # Found and Means leaves the experiment unreviewed now, and the rows are held all the same. The review is bound to
+    # what it read by its `of`, the hash `lab review` wrote: of results.tsv and of the seal of the finished run, both
+    # as that commit has them. Rows in a commit whose last passed review is of other rows were never reviewed.
+    for where, commits in sorted(versions.items()):
+        if os.path.basename(commits[-1][1]) != "reviews.tsv":
+            continue
+        rows, read = where.rsplit("/", 1)[0] + "/results.tsv", set()
+        if rows not in now:
+            continue  # never committed, so nothing is held; or committed and gone, which is said above
+        for c, path in reversed(commits + versions.get(rows, [])):  # every commit that touched the reviews or the rows
+            folder = os.path.dirname(path)
+            if c in read:
+                continue
+            read.add(c)
+            passed = [r for r in R.table(git(root, "show", f"{c}:./{folder}/reviews.tsv") or "", R.COLUMNS["reviews.tsv"]) if r.get("stage") == "results" and r.get("verdict") == "pass"]
+            was = git(root, "show", f"{c}:./{folder}/results.tsv") if passed else None
+            if was is None:
+                continue
+            listed = [l.split("\t") for l in (git(root, "show", f"{c}:./{folder}/runs.tsv") or "").split("\n")]
+            seals = [l[5] for l in listed if len(l) >= 6 and l[1] == "run" and l[2] == "ended" and l[4] == "0"]  # the finished run, as that commit lists it
+            if passed[-1].get("of") not in {R.text_hash(R.text_hash(was) + str(seal))[:16] for seal in seals}:
+                continue  # the last review that passed there read other rows than these
+            lost = subsequence(was.splitlines(), R.read(os.path.join(root, now[rows][0])).splitlines())
+            if lost is not None:
+                bad(now[rows][0], f"a row that a review had passed in {c[:8]} is gone or changed: {lost[:70]!r}. Reviewed rows stay; a different result is a new experiment")
+                break
+
     problems += decisions(lab, versions, now)
     problems += resources(lab)
-    return sorted(set(problems)), []
+    return sorted(set(problems)), notes

@@ -283,6 +283,8 @@ def lock(lab, ident):
         problems.append("plan/ is empty: it holds the configuration and the code the run executes")
     elif R.symlinks(plan):
         problems.append(f"plan/ holds a link, {R.symlinks(plan)[0]}: what a link points at is not in plan/ and is not pinned. Copy it in")
+    elif R.compiled(plan):
+        problems.append(f"plan/ holds a compiled file outside __pycache__, {R.compiled(plan)[0]}: Python would import it, and a `.pyc` is not pinned. Remove it, and keep the script")
     for r in x["uses"]:
         if r not in lab.resources:
             problems.append(f"uses {r}, which resources.toml does not list")

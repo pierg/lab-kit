@@ -97,6 +97,20 @@ def tick(l):
     return f"- {l['say']} [{l['test'] or 'NO TEST'}]: {mark}{value}"
 
 
+def held(r):
+    """What a run's folder holds, in one line: how many files, how many of them at the top, and how many under each
+    folder there. Nothing is listed, so no folder is hidden and no list is cut short."""
+    here, under = r["present"], {}
+    for p in here:
+        top = p.split("/", 1)[0] + "/" if "/" in p else ""
+        under[top] = under.get(top, 0) + 1
+    count = lambda n: f"{n:,} file{'' if n == 1 else 's'}"
+    parts = ([f"{under['']:,} at the top"] if under.get("") else []) + [f"{under[d]:,} under {d}" for d in sorted(under) if d]
+    gone = len(r["files"]) - len(here)
+    return (f"{count(len(here))}" + (": " + ", ".join(parts) if parts else "")
+            + (f". {count(gone)} it sealed {'is' if gone == 1 else 'are'} not here" if gone else ""))
+
+
 def _show(lab, ident):
     if ident not in lab.nodes:  # a path, as the site's pages give it, names the node it belongs to
         found = lab.at(ident) if ("/" in ident or "." in os.path.basename(ident)) else None
@@ -171,7 +185,7 @@ def _show(lab, ident):
         out += [f"  declared lost: {r['lost']}"] if r["lost"] else ["  listed in runs.tsv; its folder is not in the store here"] if r["missing"] else []
         out += [f"  closed by hand: {r['closed']}"] if r.get("closed") and not r["lost"] else []
         out += [f"  changed since {'the run before' if x['runs'] and r is not x['runs'][0] else 'the lock'}: {r['changed']}"] if r.get("changed") else []
-        out += [f"  {p}" for p in sorted(r["present"]) if not p.startswith("work/")][:10]
+        out += [f"  {held(r)}"] if r["files"] else []
     return "\n".join(out + decisions)
 
 
