@@ -1,233 +1,191 @@
-"""The `lab-kit` command line. Only skills call it, the way an agent calls git."""
-
+"""lab: the one interface to a lab, for the agent and for CI. See docs/model.md, section 5."""
 from __future__ import annotations
 
-import argparse
-import json
-import sys
-from pathlib import Path
+import os, sys
 
-from . import __version__, frozen, records
-from . import lab as lab_mod
-from . import rederive as rederive_mod
-from . import store as store_mod
-from .checks import run as checks_run
-from .commands import experiments, migrate, runs, setup, status
-from .errors import LabError
+from . import __version__, checks, runs, views, write
+from .record import Lab, amount, find_root
+
+USAGE = """To look
+  lab now                                   the lab on one screen: what waits on the operator, what is yours next
+  lab show <id or path>                     a goal, a question, an experiment, a build, a reading or a decision
+  lab brief <question>                      a question's briefing, as the operator's page gives it: say this in chat
+  lab since [<date>]                        what happened since the last decision was recorded
+  lab define <term>                         a glossary entry
+To write
+  lab new decision "<title>" [--about <id>]...           something to discuss with the operator; fill its card
+  lab decide <decision> --with <who> "<what was decided and why, in the lab's words>"
+  lab new goal "<title>" --from <decision>
+  lab new question <goal> "<short name>" --asks "<the question, in full>" --from <decision>
+  lab new experiment|build|reading <question> "<title>" [--replaces <experiment> --because "<why>"]
+  lab log <id> doing "<what you are starting on>" "<why now>"
+  lab log <id> agent|result|stuck "<what happened>" ["<so what>"]
+  lab answer <question> yes|no "<what the answer rests on>"
+For evidence
+  lab lock <experiment>
+  lab run <experiment> [--trial] [--wait] [--changed "<what changed since the last run, and why>"] -- <command>
+  lab runs                                  every run; also: lab runs publish [--keep] | fetch <run>
+  lab runs close <run> "<why>" [--used <resource>=<amount>]...   a run whose process died; --used for one that wrote no used.json
+  lab runs lost <run> "<why>" [--used <resource>=<amount>]...    a run that started and whose folder is gone for good
+  lab review <experiment> plan|results pass|fail "<note>" [--by <who>]
+  lab check [--no-rederive] [--strict]      runs every command in results.tsv: only on a lab you trust. --strict fails when
+                                            history or the store could not be checked, as in CI
+Once
+  lab init [<folder>]"""
 
 
-def _lab() -> lab_mod.Lab:
-    return lab_mod.load(Path.cwd())
+def main(argv=None):
+    args = list(sys.argv[1:] if argv is None else argv)
+    if not args or args[0] in ("-h", "--help", "help"):
+        print(USAGE)
+        return 0
+    cmd, rest = args[0], args[1:]
+    if cmd == "version":
+        print(__version__)
+        return 0
+    if cmd == "init":
+        root = rest[0] if rest else os.getcwd()
+        print("wrote " + ", ".join(write.init(root)))
+        return 0
+    command = None
+    if cmd == "run":  # everything after `--` is the command, untouched
+        if "--" not in rest:
+            raise SystemExit(USAGE)
+        i = rest.index("--")
+        rest, command = rest[:i], rest[i + 1:]
+    held = None
+    if cmd in ("new", "log", "decide", "answer", "lock", "review"):  # one writer at a time, on the lab as it then is
+        held = runs.exclusive(find_root())
+        held.__enter__()
+    lab = Lab()
 
+    def flag(name, many=False, switch=False):
+        """Take `--name value`, or the switch `--name`, out of the arguments."""
+        found = []
+        while name in rest:
+            i = rest.index(name)
+            if switch:
+                del rest[i]
+                return True
+            if i + 1 >= len(rest):
+                raise SystemExit(f"{name} needs a value")
+            found.append(rest[i + 1])
+            del rest[i:i + 2]
+        return False if switch else found if many else (found[-1] if found else "")
 
-def _print(lines: list[str]) -> None:
-    for line in lines:
-        print(line)
-
-
-def cmd_init(args: argparse.Namespace) -> int:
-    _print(setup.init(Path.cwd(), args.library))
-    return 0
-
-
-def cmd_check(args: argparse.Namespace) -> int:
-    lab = _lab()
-    problems = checks_run.run(lab, args.only)
-    errors = sum(1 for p in problems if p.severity == "error")
-    warnings = sum(1 for p in problems if p.severity == "warning")
-    if args.json:
-        print(json.dumps({"problems": [p.as_dict() for p in problems], "errors": errors, "warnings": warnings},
-                         indent=2, ensure_ascii=False))
+    if cmd == "now" and not rest:
+        print(views.now(lab))
+    elif cmd == "show" and len(rest) == 1:
+        print(views.show(lab, rest[0]))
+    elif cmd == "brief" and len(rest) == 1:
+        print(views.brief(lab, rest[0]))
+    elif cmd == "since" and len(rest) <= 1:
+        print(views.since(lab, rest[0] if rest else None))
+    elif cmd == "define" and rest:
+        print(views.define(lab, " ".join(rest)))
+    elif cmd == "new":
+        replaces, origin, about, because = flag("--replaces"), flag("--from"), flag("--about", many=True), flag("--because")
+        asks = flag("--asks")
+        if len(rest) == 2 and rest[0] in ("goal", "decision"):
+            ident, path = write.new(lab, rest[0], None, rest[1], origin=origin or None, about=about)
+        elif len(rest) == 3:
+            ident, path = write.new(lab, rest[0], rest[1], rest[2], replaces or None, origin=origin or None, because=because, asks=asks)
+        else:
+            raise SystemExit(USAGE)
+        print(f"made {ident}: {path}")
+    elif cmd == "log":
+        if not 3 <= len(rest) <= 4:
+            raise SystemExit(USAGE)
+        print(f"added to {write.log(lab, rest[0], rest[1], rest[2], rest[3] if len(rest) == 4 else '')}")
+    elif cmd == "decide":
+        with_ = flag("--with")
+        if len(rest) != 2:
+            raise SystemExit(USAGE)
+        print(f"decided: {write.decide(lab, rest[0], rest[1], with_)}")
+    elif cmd == "answer":
+        if len(rest) != 3:
+            raise SystemExit(USAGE)
+        print(f"answered: {write.answer(lab, rest[0], rest[1], rest[2])}")
+    elif cmd == "lock" and len(rest) == 1:
+        print(f"locked: {write.lock(lab, rest[0])}")
+    elif cmd == "run":
+        trial, wait, changed = flag("--trial", switch=True), flag("--wait", switch=True), flag("--changed")
+        if len(rest) != 1 or not command:
+            raise SystemExit(USAGE)
+        run_id = runs.start(lab, rest[0], command, trial=trial, wait=wait, changed=changed)
+        r = next((x for x in Lab(lab.root).runs if x["id"] == run_id), None)
+        if wait:
+            print(f"{run_id}: {r['state']}" + (f" (exit {r['exit']})" if r["state"] == "failed" else "") + f", {r['dir']}" + ("" if not r["local"] else "; not yet in the store"))
+        else:
+            print(f"started {run_id}: it runs on without this session. `lab runs` shows it; its output is in .lab/running/{run_id}/run.log until it ends")
+    elif cmd == "runs":
+        if not rest:
+            print("\n".join(runs.listing(lab)) or "no runs")
+        elif rest[0] in ("close", "lost"):
+            used = {}
+            for pair in flag("--used", many=True):
+                name, _, text = pair.partition("=")
+                try:
+                    used[name] = float(text) if "." in text or "e" in text.lower() else int(text)
+                except ValueError:
+                    raise SystemExit(f"--used {pair}: <resource>=<amount>")
+            if len(rest) != 3:
+                raise SystemExit(USAGE)
+            if rest[0] == "lost":
+                with runs.exclusive(lab.root):
+                    print(f"recorded as lost in {runs.lost(Lab(lab.root), rest[1], rest[2], used)}; commit it")
+            else:
+                print(f"closed: {runs.close(lab, rest[1], rest[2], used)}")
+        elif rest[0] == "publish":
+            keep = flag("--keep", switch=True)
+            for r in lab.runs:  # a run that ended where the lab could not be written gets its seal listed here
+                if not r["missing"] and not r["local"] and r["state"] != "running" and runs.record_end(lab, runs.read(os.path.join(lab.root, r["dir"]))) and not (lab.nodes.get(r["experiment"], {}).get("listed", {}).get(r["id"]) or {}).get("ended"):
+                    print(f"{r['id']}: its seal is now in runs.tsv")
+            ended = [r for r in lab.runs if r["local"] and r["state"] != "running"]
+            for r in ended:
+                where = runs.publish(lab, os.path.join(lab.root, r["dir"]), keep=keep)
+                print(f"{r['id']}: " + (f"in the store, {where}" if where else "not moved; the reason is beside it"))
+            if not ended:
+                print("nothing to move")
+        elif rest[0] == "fetch" and len(rest) == 2:
+            print(f"fetched and verified: {runs.fetch(lab, rest[1])}")
+        else:
+            raise SystemExit(USAGE)
+    elif cmd == "review":
+        by = flag("--by")
+        if len(rest) != 4:
+            raise SystemExit(USAGE)
+        print(f"recorded in {write.review(lab, rest[0], rest[1], rest[2], rest[3], by or None)}")
+    elif cmd == "check":
+        if set(rest) - {"--no-rederive", "--strict"}:
+            raise SystemExit(USAGE)
+        problems, notes, unchecked = checks.run(lab, rederive="--no-rederive" not in rest)
+        for n in notes:
+            print(f"note: {n}")
+        if problems:
+            print("\n".join(problems))
+            print(f"{len(problems)} problem(s)")
+            return 1
+        if unchecked and "--strict" in rest:
+            print("not everything could be checked here (see the notes): with --strict that is a failure")
+            return 1
+        print("the record is sound")
+        print(checks.summary(lab))
     else:
-        _print([p.line() for p in problems])
-        print(f"lab-kit check: {errors} errors, {warnings} warnings")
-    return 1 if errors else 0
-
-
-def cmd_experiment(args: argparse.Namespace) -> int:
-    _print(experiments.experiment(_lab(), args.slug))
+        raise SystemExit(USAGE)
     return 0
 
 
-def cmd_lock(args: argparse.Namespace) -> int:
-    _print(experiments.lock(_lab(), args.slug))
-    return 0
-
-
-def cmd_run(args: argparse.Namespace) -> int:
-    command = list(args.command or [])
-    changed, code = runs.start(_lab(), args.slug, command, mission=args.mission, spend=args.spend, wait=args.wait)
-    _print(changed)
-    return 0 if code == 0 else 1
-
-
-def cmd_runs(args: argparse.Namespace) -> int:
-    _print(runs.listing(_lab(), live=args.live))
-    return 0
-
-
-def cmd_publish(args: argparse.Namespace) -> int:
-    lab = _lab()
-    if args.pending == bool(args.runs):
-        raise LabError("name runs as <experiment>/<run id>, or pass --pending for every ended run still here")
-    store_mod.root(lab)  # a lab with no store says so once
-    targets = store_mod.pending(lab) if args.pending else [records.find_run(lab, r) for r in args.runs]
-    if not targets:
-        print("Nothing to publish.")
-        return 0
-    failed = 0
-    for run in targets:
-        try:
-            _print(store_mod.publish(lab, run, keep=args.keep))
-        except (LabError, OSError) as exc:
-            print(f"lab-kit: {run.base}: not moved to the store: {exc}", file=sys.stderr)
-            failed += 1
-    return 1 if failed else 0
-
-
-def cmd_fetch(args: argparse.Namespace) -> int:
-    lab = _lab()
-    _print(store_mod.fetch(lab, args.run))
-    return 0
-
-
-def cmd_verify(args: argparse.Namespace) -> int:
-    lab = _lab()
-    _print(store_mod.verify(lab, args.run))
-    return 0
-
-
-def cmd_migrate(args: argparse.Namespace) -> int:
-    _print(migrate.migrate(_lab(), apply=args.apply, orphaned=args.orphaned))
-    return 0
-
-
-def cmd_score(args: argparse.Namespace) -> int:
-    _print(experiments.score(_lab(), args.slug))
-    return 0
-
-
-def cmd_rederive(args: argparse.Namespace) -> int:
-    lab = _lab()
-    doc = rederive_mod.result_doc(lab, args.id)
-    outcome = rederive_mod.run(lab, doc)
-    if outcome.ok:
-        print(f"{doc.id}: re-derived `{outcome.printed}`, its number")
-        return 0
-    print(f"{doc.id}: does not re-derive: {outcome.detail}")
-    return 1
-
-
-def cmd_freeze(args: argparse.Namespace) -> int:
-    _print(frozen.freeze(_lab(), args.path))
-    return 0
-
-
-def cmd_status(args: argparse.Namespace) -> int:
-    _print(status.status(_lab()))
-    return 0
-
-
-def cmd_version(args: argparse.Namespace) -> int:
-    print(f"lab-kit {__version__}")
-    return 0
-
-
-def parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="lab-kit", description="A research lab's method and machinery on folio.")
-    sub = p.add_subparsers(dest="command_name")
-
-    s = sub.add_parser("init", help="Write lab.yaml, missions/, ops/, experiments/, runs/, .lab/, the skills and the roles. "
-                       "Before a library exists, only the method, the skills and the roles.")
-    s.add_argument("--library", help="the folder holding folio.yaml, from the lab root (default: the lab root)")
-    s.set_defaults(func=cmd_init)
-
-    s = sub.add_parser("check", help="The lab gate: folio check, then the lab checks. Changes nothing.")
-    s.add_argument("--only", action="append", metavar="ID", help="run only this check (repeatable); "
-                   "`folio` names folio's gate")
-    s.add_argument("--json", action="store_true")
-    s.set_defaults(func=cmd_check)
-
-    s = sub.add_parser("experiment", help="Create experiments/<YY-MM-DD>-e_<slug>/ with bin/.")
-    s.add_argument("slug")
-    s.set_defaults(func=cmd_experiment)
-
-    s = sub.add_parser("lock", help="Write lock.json for a locked protocol whose gate is green.")
-    s.add_argument("slug")
-    s.set_defaults(func=cmd_lock)
-
-    s = sub.add_parser("run", usage="lab-kit run <slug> [--mission <file>] [--spend] [--wait] -- <command>",
-                       help="Check the lock, write run.json, and run the command in the background.")
-    s.add_argument("slug")
-    s.add_argument("--mission", help="the mission file this run belongs to")
-    s.add_argument("--spend", action="store_true", help="the run spends tokens or money")
-    s.add_argument("--wait", action="store_true", help="wait for the command to end")
-    s.set_defaults(func=cmd_run)
-
-    s = sub.add_parser("runs", help="List runs and their state: running, finished, failed, orphaned.")
-    s.add_argument("--live", action="store_true", help="only running and orphaned runs")
-    s.set_defaults(func=cmd_runs)
-
-    s = sub.add_parser("publish", help="Move ended runs from this machine into the store named in lab.yaml, "
-                       "verified against their seal.")
-    s.add_argument("runs", nargs="*", metavar="EXPERIMENT/RUN_ID")
-    s.add_argument("--pending", action="store_true", help="every ended run still on this machine")
-    s.add_argument("--keep", action="store_true", help="keep the local copy")
-    s.set_defaults(func=cmd_publish)
-
-    s = sub.add_parser("fetch", help="Copy a run from the store into .lab/fetched/, verified, on a machine "
-                       "that does not mount it.")
-    s.add_argument("run", metavar="EXPERIMENT/RUN_ID")
-    s.set_defaults(func=cmd_fetch)
-
-    s = sub.add_parser("verify", help="Check a run's folder against the seal in its run.json.")
-    s.add_argument("run", metavar="EXPERIMENT/RUN_ID")
-    s.set_defaults(func=cmd_verify)
-    s = sub.add_parser("migrate", help="Move a lab from the layout before 0.6.0 to this one: dated ids, "
-                       "missions/, one folder per run in runs/, every citation rewritten. Dry run by default.")
-    s.add_argument("--apply", action="store_true", help="make the changes (default: print the plan)")
-    s.add_argument("--orphaned", action="append", metavar="PATH", help="an old run folder committed without an "
-                   "end that is known to be dead: it moves as it is (repeatable)")
-    s.set_defaults(func=cmd_migrate)
-
-    s = sub.add_parser("score", help="Create score.yaml from the lock's prediction and rule ids.")
-    s.add_argument("slug")
-    s.set_defaults(func=cmd_score)
-
-    s = sub.add_parser("rederive", help="Run one result's re-derive command against its number.")
-    s.add_argument("id")
-    s.set_defaults(func=cmd_rederive)
-
-    s = sub.add_parser("freeze", help="Record a frozen surface's hashes. Only the operator asks for this.")
-    s.add_argument("path")
-    s.set_defaults(func=cmd_freeze)
-
-    s = sub.add_parser("status", help="The state, the active mission, live runs, and protocols by status.")
-    s.set_defaults(func=cmd_status)
-
-    s = sub.add_parser("version", help="The lab-kit version.")
-    s.set_defaults(func=cmd_version)
-    return p
-
-
-def main(argv: list[str] | None = None) -> int:
-    p = parser()
-    argv = list(sys.argv[1:] if argv is None else argv)
-    command: list[str] | None = None
-    if "--" in argv:  # what follows `--` is the lab's own command, passed on untouched
-        cut = argv.index("--")
-        argv, command = argv[:cut], argv[cut + 1:]
-    args = p.parse_args(argv)
-    args.command = command
-    if args.command_name is None:
-        p.print_help()
-        return 2
+def run():
+    """What the `lab` command starts. A reader that closes the pipe (`lab now | head -1`) ends it quietly."""
     try:
-        return args.func(args)
-    except LabError as exc:
-        print(f"lab-kit: error: {exc}", file=sys.stderr)
-        return 2
+        code = main()
+        sys.stdout.flush()  # here, not when the interpreter exits, so a closed pipe is caught
+    except BrokenPipeError:
+        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())  # nothing is left to flush into the closed pipe
+        code = 0
+    sys.exit(code)
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    run()
