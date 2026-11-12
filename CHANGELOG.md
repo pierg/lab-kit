@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.0.3
+
+A word is now defined in one place, `GLOSSARY.md`. Before, the glossary and the goal's Vocabulary
+both said what a word means, and the two could drift. The skills `lab-work` and `lab-set-up` changed:
+run `lab init` in a lab after upgrading, or `lab check` reports that they differ from the installed
+kit. Change the goal's Vocabulary to names, too: see below.
+
+- A glossary entry may carry two more lines beside `- code:`. `- avoid: gate, filter, policy` lists
+  the words not to use for the thing; `- see: entries/kna-gate` (or a page of a library the charter
+  names, such as `pier-folio:/content/concepts/lora/`) names a page that explains the concept.
+  `lab define` prints both, and the glossary page shows the avoid words in small type and the page as a
+  link. The hover on a term stays the definition alone. `lab check` checks a `see` as it checks a
+  card's `see:`. It does not flag avoid words used in cards: a word to avoid for one thing is often right
+  for another.
+- The goal's Vocabulary is a list of names only (`- field`). The goal's page and `lab show` draw
+  each with its glossary definition. `lab check` reports a name that is not a glossary term. A goal
+  written the old way (`- word: meaning`) still shows the glossary's definition, never the card's, and
+  `lab check` reports it: list the name only, and add the term to the glossary if it is missing there.
+  An existing lab must change its goal's Vocabulary to names.
+
 ## 1.0.2
 
 One defect found while rehearsing a real lab, four follow-ups from 1.0.1, and three larger word

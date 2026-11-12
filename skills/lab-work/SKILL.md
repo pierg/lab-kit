@@ -36,8 +36,12 @@ The operator reads every card on the site, usually days later and without you. W
 - A paper, a method or a tool the reader may not know gets a few words saying what it is, and a
   link where it is first named: `[PISmith](pier-folio:/content/readings/...)` for a page of a
   library the charter names, or a web address. Put the same page under `see:`.
-- Use the goal's vocabulary. The goal's card pins the few words the lab uses for its own things;
-  use those words, the same way, on every card, and add a word there before you use a new one.
+- A word is defined once, in `GLOSSARY.md`, and nowhere else. Use the goal's vocabulary: the goal's
+  card lists, by name only (`- field`), the few words the lab uses for its own things; use those words,
+  the same way, on every card, and read a term's `avoid:` words as the ones not to use for it. When a
+  card needs a new word, add it to the glossary first, then list it on the goal if every card uses it.
+  A generic concept that is not this lab's own gets a one-line glossary entry and a `- see:` link to the
+  page that explains it, not a new explanation.
 - Say the design before the approximation: what the idea wants, then how this lab builds it and
   where it knowingly differs. A shortcut of the implementation is never the definition.
 - Say what is measured and what is your reading of it, in so many words.
@@ -208,7 +212,7 @@ what should come next: open a decision.
 - Never write that the operator decided something outside a decision recorded with `lab decide` (the
   lab-talk skill).
 - Open `plan/` and `runs/` only for the experiment you are working on.
-- A term an outsider would not know goes in `GLOSSARY.md`, once, and is used the same way everywhere.
+- A term an outsider would not know goes in `GLOSSARY.md`, once, and is used the same way everywhere. A card never defines a word itself, and the goal's Vocabulary holds names, not meanings.
 
 ## Before you stop
 

@@ -177,7 +177,8 @@ def test_a_readings_page_says_it_is_exploratory_and_what_was_dropped_leaves_the_
     describe(card, "Reads the estimates that fell outside the band.")
     fill(card, Looks_at="Twelve estimates.", Seen="1. Nine used the short sample.\n2. Three had the seed reset.", Suggests="Fix the seed.")
     goal = glob.glob(f"{root}/goals/G1-*/goal.md")[0]
-    fill(goal, Roles="- The sampler: our code. It draws every estimate.", Vocabulary="- estimate: one share of heads, from one sample.", Approach="**The design.** Flip, count, compare.")
+    fill(goal, Roles="- The sampler: our code. It draws every estimate.", Vocabulary="- tally: the card's own meaning, which is never shown", Approach="**The design.** Flip, count, compare.")
+    open(f"{root}/GLOSSARY.md", "w").write("# Terms\n\n## tally\nOne share of heads, from one sample.\n")
     question = glob.glob(f"{root}/goals/G1-*/Q1-*/question.md")[0]
     fill(question, Example="1. **The sampler** flips a coin 100 times.\n2. **The scorer** compares the share of heads with one half.")
     lab(root, "new", "question", "G1", "A side question", "--from", "D1")
@@ -187,7 +188,7 @@ def test_a_readings_page_says_it_is_exploratory_and_what_was_dropped_leaves_the_
     assert page.status == "done" and "This looked at data the lab already had." in page.main and "<ol><li>Nine used the short sample.</li>" in page.main and "What it suggests" in page.main
     q = site.get("G1.Q1").main
     assert '<span class="kind">reading</span>' in q and "<ol><li><b>The sampler</b> flips a coin 100 times.</li>" in q and "Fix the seed." in q
-    assert "The words this lab uses" in site.get("G1").main and "one share of heads" in site.get("G1").main and "<b>The design.</b> Flip, count, compare." in site.get("G1").main
+    assert "The words this lab uses" in site.get("G1").main and "One share of heads, from one sample." in site.get("G1").main and "never shown" not in site.get("G1").main and "<b>The design.</b> Flip, count, compare." in site.get("G1").main
     assert "Who plays what" in site.get("G1").main and "It draws every estimate." in site.get("G1").main and "Dropped questions (1)" in site.get("G1").main
     assert "A side question" not in site.get("").main and not any("A side question" in str(r) for r in site.rail()) and site.get("G1.Q2") is not None
 
@@ -249,7 +250,7 @@ def test_nothing_written_in_a_lab_reaches_a_page_as_markup(tmp_path):
     Q = json.dumps(P)
     root = a_lab(tmp_path)
     open(f"{root}/lab.toml", "a").write(f"code_url = {json.dumps('https://example.com/' + P)}\n")
-    open(f"{root}/GLOSSARY.md", "w").write(f"# {P}\n\n## sampler{P}\nWhat draws the estimates. {P}\n- code: {P}\n\n## estimate\nOne number from the sampler. {P}\n- code: sampler:{P}\n")
+    open(f"{root}/GLOSSARY.md", "w").write(f"# {P}\n\n## sampler{P}\nWhat draws the estimates. {P}\n- code: {P}\n\n## estimate\nOne number from the sampler. {P}\n- code: sampler:{P}\n- avoid: {P}, <b>x</b>\n- see: {P}\n")
     open(f"{root}/resources.toml", "a").write(f"other_use = [{{date = \"2026-01-01\", amount = 1, what = {Q}}}]\n\n[{Q}]\nwhat = {Q}\nkey = {Q}\nunit = {Q}\ngranted = 5\nfrom = \"D1\"\nrules = [{Q}]\n")
     goal = glob.glob(f"{root}/goals/G1-*/goal.md")[0]
     qdir = glob.glob(f"{root}/goals/G1-*/Q1-*")[0]

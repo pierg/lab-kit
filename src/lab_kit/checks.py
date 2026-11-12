@@ -27,6 +27,22 @@ def run(lab, rederive=True):
         unchecked = True
 
     absent = {}  # the libraries the charter names whose folder is not on this machine
+
+    def see(where, page, who=""):
+        """A page a card's `see:` or a glossary entry's `- see:` names is there."""
+        if ":" in str(page):  # a page of another library the charter names, such as background reading
+            from . import site
+            name, _, path = str(page).partition(":")
+            lib = site.libraries(lab).get(name)
+            if not lib:
+                bad("links", where, f"{who}see names {page}, which is not a page of a library the charter names")
+            elif not os.path.isdir(lib["path"]):  # the other library is not on this machine, as in CI: nothing to look in
+                absent.setdefault(name, lib["path"])
+            elif not os.path.exists(os.path.join(lib["path"], path.lstrip("/"))):
+                bad("links", where, f"{who}see names {page}, and the library {name} holds no such page")
+        elif not os.path.exists(os.path.join(library, str(page).split("#")[0], "index.html")):
+            bad("links", where, f"{who}see names the page {page}, which is not in the library")
+
     # cards: each has its slots, stays short, and writes only what is its to write
     for n in lab.goals + lab.questions + lab.items + lab.decisions:
         try:
@@ -51,20 +67,18 @@ def run(lab, rederive=True):
         if n["type"] in ("goal", "question") and nodes.get(str(n.get("from")), {}).get("type") != "decision":
             bad("links", n["path"], f"`from:` names the decision it came out of; {n.get('from')!r} is not one")
         for page in n.get("see") or []:
-            if ":" in str(page):  # a page of another library the charter names, such as background reading
-                from . import site
-                name, _, path = str(page).partition(":")
-                lib = site.libraries(lab).get(name)
-                if not lib:
-                    bad("links", n["path"], f"see names {page}, which is not a page of a library the charter names")
-                elif not os.path.isdir(lib["path"]):  # the other library is not on this machine, as in CI: nothing to look in
-                    absent.setdefault(name, lib["path"])
-                elif not os.path.exists(os.path.join(lib["path"], path.lstrip("/"))):
-                    bad("links", n["path"], f"see names {page}, and the library {name} holds no such page")
-            elif not os.path.exists(os.path.join(library, str(page).split("#")[0], "index.html")):
-                bad("links", n["path"], f"see names the page {page}, which is not in the library")
+            see(n["path"], page)
+        if n["type"] == "goal":  # the words a goal lists are names; GLOSSARY.md is the only place a word is defined
+            for w in lab.vocabulary(n):
+                if not w["entry"]:
+                    bad("cards", n["path"], f"Vocabulary lists {w['name']!r}, which is not a term in GLOSSARY.md: add it there first, and list the name only")
+                elif w["old"]:
+                    bad("cards", n["path"], f"Vocabulary lists {w['name']!r} with a meaning: list the name only, `- {w['name']}`; GLOSSARY.md defines it")
+    for g in lab.glossary:
+        if g["see"]:
+            see("GLOSSARY.md", g["see"], f"{g['term']}: ")
     for name, path in sorted(absent.items()):
-        notes.append(f"the library {name} is not here ({path}): the pages cards name in it under `see:` could not be checked here")
+        notes.append(f"the library {name} is not here ({path}): the pages cards and the glossary name in it under `see:` could not be checked here")
         unchecked = True
     for d in {os.path.dirname(x["path"]) for x in lab.items}:
         if sum(os.path.exists(os.path.join(root, d, f"{kind}.md")) for kind in R.STEPS) > 1:

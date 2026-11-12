@@ -325,7 +325,7 @@ Seven rules:
    Never record a decision that was not discussed with them.
 7. Say what you are on. When you start on a card, log what you are doing and why now.
 
-`lab check` holds what can be held mechanically: ids and links, a title and a description on every
+`lab check` holds what can be held mechanically: ids and links, the goal's vocabulary being terms of the glossary, a title and a description on every
 card, short cards that write only their own front matter, a test on every line, a reason on every
 replacement, unchanged locks, sealed runs, results that still re-derive and were reviewed, use inside
 the resources' amounts, a decision behind every goal, question and metered amount, an experiment
@@ -387,7 +387,8 @@ resource. Nothing on it is static text except one line per goal.
 **An example on every question.** A question's page carries one case, step by step, as a numbered
 list that says who does what: the user, the agent, the tools, the gate, the scorer. A real episode
 where one exists, and said to be only the flow where none does. The goal's page says once who plays
-each role, states the design before the approximation, and pins the vocabulary.
+each role, states the design before the approximation, and lists its vocabulary: the words every card
+uses the same way, each drawn with the glossary's definition.
 
 **What was dropped** stays in the record: a dropped goal or question keeps its card and its page,
 and leaves Now, the rail and the graph.
@@ -449,7 +450,7 @@ the first two lines that are exactly `---`. A key that holds a list (`needs`, `u
 
 | Card | Front matter | Slots (word budget) |
 | --- | --- | --- |
-| `goal.md` | `title:`, `from:` (its decision); `reached: true`; `dropped: <why>` | description (70), Claim (90), Example: the idea in one case, from the reader's own domain (260), Approach: the design, how this lab approximates it, and where it knowingly differs (340), Roles: a list, `- <role>: <who plays it and what it does>` (170), Vocabulary: a list, `- <word>: <what it means>`, the few words every card uses the same way (260) |
+| `goal.md` | `title:`, `from:` (its decision); `reached: true`; `dropped: <why>` | description (70), Claim (90), Example: the idea in one case, from the reader's own domain (260), Approach: the design, how this lab approximates it, and where it knowingly differs (340), Roles: a list, `- <role>: <who plays it and what it does>` (170), Vocabulary: a list of names only, `- <term>`, the few words every card uses the same way; each is a term of `GLOSSARY.md`, which defines it (260) |
 | `question.md` | `title:` (a short name), `asks:` (the question in full), `from:`, `needs:`; `dropped: <why>`; `answer:` and `answered:` are written by `lab answer` | description: why we ask (130), How we would know (150), Example: one case step by step, a numbered list (380), We expect (70), Wrong if (70), So far (180) |
 | `experiment.md` | `title:`, `needs:`, `uses:` (resources), `override: {resource: cap}`, `cost:`, `replaces:` with `because:` (one sentence), `waiting_on:`, `dropped: <why>` | description (70), Compares: the comparison in a sentence (80), Arms (260), Cases (100), Confirmed if (150), Refuted if (110), Outcomes (200), Limits (120), Found (180), Means (150) |
 | `reading.md` | `title:`, `needs:`, `dropped: <why>` | description (70), Looks at: what, and where it is (110), Seen (320), Suggests (150) |
@@ -467,6 +468,36 @@ that library's folder, where the charter says it is. When the folder itself is n
 as in CI, which checks out the lab alone, the page cannot be looked for: that is a note, and a
 failure only with `--strict`. When the folder is there and the page is not, or the charter names no
 such library, it is a problem.
+
+**The glossary** is `GLOSSARY.md`, the only place a word is defined. A group is a `# Group` heading
+and a term a `## Term` heading under it, followed by its definition as a paragraph and these optional
+lines, each `- key: value`:
+
+```
+## Guard
+The part that reads every call and refuses the ones the contract forbids.
+- code: kna.gate:Guard
+- avoid: gate, filter, policy
+- see: entries/kna-gate
+```
+
+`code:` is where the term is in the code. `avoid:` lists, separated by commas, the words not to use
+for this thing. `see:` names a page that explains the concept: a page of the lab's own library
+(`entries/kna-gate`) or of a library the charter names (`pier-folio:/content/concepts/lora/`), the
+same targets a card's `see:` takes. `lab define <term>` prints all of it. The glossary page shows the
+definition, the code, the page as a link and the avoid words in small type; the hover on a term in
+prose is the definition alone.
+
+A word is defined once, in the glossary. A card that needs a word adds it there first, then uses it;
+no card defines a word of its own. A concept that is not this lab's own (a method, a paper's idea) gets
+a one-line entry and a `see:` link to the page that explains it, not a new explanation. The goal's
+Vocabulary lists terms by name, and the goal's page and `lab show` draw each with the glossary's
+definition and avoid words. `lab check` holds this: a name in Vocabulary that is not a term of the
+glossary is a problem, and so is an item written with a meaning (`- word: what it means`): the part
+before the colon is taken as the name, the glossary's text is what is shown, and the card must list the
+name only. It checks an entry's `see:` as it checks a card's, including the note, and no failure, when
+the other library is not on the machine. It does not look for avoid words in cards: a word to avoid for
+one thing is often the right word for another, so `avoid:` is for the writer and the reviewer to read.
 
 **An arm** is a list item under Arms: its name, a colon, and what it is, so that a reader who has
 never seen it knows what was run.

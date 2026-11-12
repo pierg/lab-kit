@@ -125,6 +125,9 @@ def _show(lab, ident):
     if n["type"] == "goal":
         out = [f"{n['id']} ({n['state']}): {n['title']}", n["description"]] + came(n) + ["", f"Claim. {R.flat(n['slots'].get('Claim', '')) or 'not written yet'}", "", "Questions"]
         out += [f"- {q['id']} ({q['state']}): {q['title']}. {q['description']}" for q in n["questions"]]
+        words = lab.vocabulary(n)
+        if words:  # the names are the card's; each is drawn with the glossary's definition
+            out += ["", "Vocabulary (defined in GLOSSARY.md)"] + [entry_text(w["entry"], "- ") if w["entry"] else f"- {w['name']}: not in the glossary" for w in words]
         return "\n".join(out + ["", "More: lab show <question id>"])
     about = [l for l in lab.lines if l["about"] == ident or l["about"].startswith(ident + ".")]
     decisions = ["", "Decisions about it"] + [f"- {d['id']} ({d['state']}): {d['title']}" for d in raised] if raised else []
@@ -233,7 +236,13 @@ def define(lab, term):
     hits = [g for g in lab.glossary if g["term"].lower() == term.lower()] or [g for g in lab.glossary if term.lower() in g["term"].lower()]
     if not hits:
         raise SystemExit(f"{term!r} is not in the glossary")
-    return "\n\n".join(f"{g['term']}: {g['definition']}" + (f"\n  code: {g['code']}" if g["code"] else "") for g in hits)
+    return "\n\n".join(entry_text(g) for g in hits)
+
+
+def entry_text(g, lead=""):
+    """A glossary entry as the agent reads it: the definition, then the code, the words to avoid and the page that explains it."""
+    return (f"{lead}{g['term']}: {g['definition']}" + (f"\n  code: {g['code']}" if g["code"] else "") + (f"\n  avoid: {', '.join(g['avoid'])}" if g["avoid"] else "")
+            + (f"\n  see: {g['see']}" if g["see"] else ""))
 
 
 def now(lab):

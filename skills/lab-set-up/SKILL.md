@@ -37,7 +37,10 @@ You set the lab up in one discussion with the operator, so that everything it se
 9. Fill `lab.toml` (`code` for the code repository, `store` if the runs live elsewhere) and the
    local rules in `AGENTS.md`.
 10. Start `GLOSSARY.md`: each term the cards use that an outsider would not know, one sentence, with
-   its name in the code when it has one.
+   its name in the code when it has one (`- code: module:Name`), the words not to use for it
+   (`- avoid: a, b`) and a page that explains it (`- see: <page>`) when there is one. The glossary is the
+   only place a word is defined: the goal's Vocabulary lists names, and a card that needs a word adds it
+   here first.
 11. The site: the lab's `docs/` folder is a folio library whose charter lists `lab_kit.site` under
     `views:`. Set it up with folio's own skill if it is not there.
 
