@@ -3,21 +3,29 @@
 What is held is held from the commit that first holds it: the record is tamper-evident through git, not tamper-proof.
 Before that commit nothing is held, and `lab check` says so.
 
+Only the lab's own record is read, at its places under the lab's root: `log.md`, `resources.toml`,
+`decisions/D<n>-<name>.md`, and each experiment's `lock.json`, `runs.tsv`, `results.tsv` and `reviews.tsv` under
+`goals/G<n>-<name>/Q<n>-<name>/<n>-<name>/`. What the repository holds or once held anywhere else is not the lab's.
+A file is known by the numbers in its path and not by the words, so a folder renamed after a reworded title is the
+same place: what was committed under the old name is held under the new one.
+
 - A committed `lock.json` is byte for byte its first committed version.
 - `log.md`, `reviews.tsv` and `runs.tsv` only grow: no committed line is removed or changed.
 - A `results.tsv` that a review has passed keeps every committed row.
 - A settled decision keeps its `decided:`, its `about:` and its Decided text as first committed.
 - A resource, once committed, is never removed. A metered resource's `granted`, `per_run` and `unit` change only together
   with `from`, which then names another settled decision that lists the resource. Its `other_use` rows only grow.
-- None of these files is deleted.
+- None of these files is deleted, and none changes its number.
 """
 from __future__ import annotations
 
-import os, re, subprocess
+import glob, os, re, subprocess
 
 from . import record as R
 
 GROW = ("log.md", "reviews.tsv", "results.tsv", "runs.tsv")
+STEP = re.compile(r"goals/G(\d+)-[^/]+/Q(\d+)-[^/]+/(\d+)-[^/]+/(lock\.json|reviews\.tsv|results\.tsv|runs\.tsv)")
+DECISION = re.compile(r"decisions/D(\d+)-[^/]+\.md")
 
 
 def git(root, *args):
@@ -37,6 +45,45 @@ def subsequence(old, new):
         if not any(line == x for x in it):
             return line
     return None
+
+
+def place(path):
+    """Where a path, from the lab's root, sits in the lab's record: `log.md`, `D4`, `G1.Q2.3/lock.json`. None when it is
+    not a file of the record. The numbers place a file and the words do not, so a renamed folder is the same place."""
+    if path == "log.md":
+        return path
+    m = STEP.fullmatch(path)
+    if m:
+        return f"G{int(m.group(1))}.Q{int(m.group(2))}.{int(m.group(3))}/{m.group(4)}"
+    m = DECISION.fullmatch(path)
+    return f"D{int(m.group(1))}" if m else None
+
+
+def held(root, *where):
+    """Every committed version of the lab's record under these paths, by place: {place: [(commit, path)]}, oldest
+    first. A rename is read as what it is in git, the old path leaving and the new one arriving, so both names of
+    one place are in its list whether or not git would have paired them."""
+    out = git(root, "-c", "core.quotepath=off", "log", "--topo-order", "-m", "--no-renames", "--format=commit %H", "--name-status", "--relative", "--", *where) or ""
+    found, commit = {}, None
+    for line in out.split("\n"):
+        if line.startswith("commit "):
+            commit = line[7:].strip()
+        elif "\t" in line and not line.startswith("D"):  # a path that left in this commit has no version in it
+            path = line.split("\t", 1)[1]
+            if place(path) and (commit, path) not in found.setdefault(place(path), []):
+                found[place(path)].append((commit, path))
+    return {k: v[::-1] for k, v in found.items()}
+
+
+def present(root):
+    """The files of the record that are in the lab now, by place: {place: [path]}."""
+    found = {}
+    for pattern in ("log.md", "decisions/*", "goals/*/*/*/*"):
+        for full in sorted(glob.glob(os.path.join(glob.escape(root), pattern))):
+            path = os.path.relpath(full, root).replace(os.sep, "/")
+            if place(path) and os.path.isfile(full):
+                found.setdefault(place(path), []).append(path)
+    return found
 
 
 def tables(text):
@@ -74,14 +121,14 @@ def resources(lab):
     return sorted(set(problems))
 
 
-def decisions(lab, added=None):
+def decisions(lab, versions=None, now=None):
     """The settled decisions that are no longer as they were first committed settled."""
     root, problems = lab.root, []
     if not committed(root):
         return problems
     bad = lambda where, what: problems.append(f"history: {where}: {what}")
-    if added is None:
-        added = git(root, "log", "--format=", "--name-only", "--diff-filter=A", "--relative", "--", "decisions") or ""
+    versions = held(root, "decisions") if versions is None else versions
+    now = present(root) if now is None else now
 
     def settled(text):
         """What a decision's card says was decided, and about what, or None while it says nothing."""
@@ -94,16 +141,18 @@ def decisions(lab, added=None):
         about = fm.get("about")
         return str(fm.get("decided")), sorted(str(i) for i in (about if isinstance(about, list) else [about] if about is not None else [])), R.flat(slots.get("Decided", ""))
 
-    for path in sorted(p for p in added.split("\n") if re.fullmatch(r"decisions/D\d+-[^/]+\.md", p)):
-        full = os.path.join(root, path)
-        if not os.path.isfile(full):
-            bad(path, "was committed and is gone; nothing recorded is removed")
+    for where, commits in sorted(versions.items()):
+        if not DECISION.fullmatch(commits[-1][1]):
             continue
-        for c in reversed((git(root, "log", "--format=%H", "--relative", "--", path) or "").split()):  # oldest first
+        if where not in now:
+            bad(commits[-1][1], "was committed and is gone; nothing recorded is removed")
+            continue
+        for c, path in commits:  # oldest first, under whichever name it had then
             was = settled(git(root, "show", f"{c}:./{path}") or "")
             if was:
-                if settled(R.read(full)) != was:
-                    bad(path, f"was settled in {c[:8]}, and its `decided:`, its `about:` or its Decided text has changed since; a change of mind is a new decision")
+                mine = path if path in now[where] else now[where][0]
+                if settled(R.read(os.path.join(root, mine))) != was:
+                    bad(mine, f"was settled in {c[:8]}" + ("" if mine == path else f", as {path}") + ", and its `decided:`, its `about:` or its Decided text has changed since; a change of mind is a new decision")
                 break
     return problems
 
@@ -130,26 +179,30 @@ def check(lab):
     bad = lambda where, what: problems.append(f"history: {where}: {what}")
     if not committed(root):
         return [], ["this lab is not in git, or has no commit: permanence against history was not checked, and nothing recorded is held yet"]
-    added = git(root, "log", "--format=", "--name-only", "--diff-filter=A", "--relative", "--", ".") or ""
+    versions, now = held(root, "log.md", "decisions", "goals"), present(root)
     reviewed = {os.path.join(x["dir"], "results.tsv") for x in lab.experiments if x["reviewed"]}
-    for path in sorted({p for p in added.split("\n") if os.path.basename(p) in GROW + ("lock.json",)}):
-        name, full = os.path.basename(path), os.path.join(root, path)
-        commits = (git(root, "log", "--format=%H", "--relative", "--", path) or "").split()
-        if not os.path.isfile(full):
-            bad(path, "was committed and is gone; nothing recorded is removed")
+    for where, commits in sorted(versions.items()):
+        name = os.path.basename(commits[-1][1])
+        if name not in GROW + ("lock.json",):
+            continue  # a decision, held below
+        if where not in now:
+            bad(commits[-1][1], "was committed and is gone; nothing recorded is removed")
             continue
-        now = R.read(full)
+        mine = lambda path: path if path in now[where] else now[where][0]  # the same file, under the name it has now
+        named = lambda path: "" if mine(path) == path else f", as {path}"
         if name == "lock.json":
-            first = git(root, "show", f"{commits[-1]}:./{path}")
-            if first != now:
-                bad(path, f"differs from the lock first committed in {commits[-1][:8]}; a changed plan is a new experiment")
-        elif name != "results.tsv" or path in reviewed:
-            for c in commits[:1] if name == "results.tsv" else commits:  # rows may change until a review passes them
-                lost = subsequence((git(root, "show", f"{c}:./{path}") or "").splitlines(), now.splitlines())
-                if lost is not None:
-                    bad(path, f"a line committed in {c[:8]} is gone or changed: {lost[:70]!r}")
-                    break
+            c, path = commits[0]
+            if git(root, "show", f"{c}:./{path}") != R.read(os.path.join(root, mine(path))):
+                bad(mine(path), f"differs from the lock first committed in {c[:8]}{named(path)}; a changed plan is a new experiment")
+            continue
+        if name == "results.tsv":  # rows may change until a review passes them
+            commits = commits[-1:] if mine(commits[-1][1]) in reviewed else []
+        for c, path in reversed(commits):
+            lost = subsequence((git(root, "show", f"{c}:./{path}") or "").splitlines(), R.read(os.path.join(root, mine(path))).splitlines())
+            if lost is not None:
+                bad(mine(path), f"a line committed in {c[:8]}{named(path)} is gone or changed: {lost[:70]!r}")
+                break
 
-    problems += decisions(lab, added)
+    problems += decisions(lab, versions, now)
     problems += resources(lab)
     return sorted(set(problems)), []

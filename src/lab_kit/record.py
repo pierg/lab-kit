@@ -153,11 +153,15 @@ def text_hash(text):
 
 def tree_hash(folder, how=HASH):
     """One hash over a folder: every file's path and bytes, each preceded by its length, so that no two folders give
-    the same hash. The first way (`how` 1: the path, a newline, the bytes) is kept to verify what was made with it."""
-    h = hashlib.sha256()
-    for root, dirs, files in sorted(os.walk(folder)):
-        dirs[:] = sorted(d for d in dirs if d != "__pycache__")
-        for name in sorted(files):
+    the same hash. The first way (`how` 1: the path, a newline, the bytes) is kept to verify what was made with it.
+    What Python leaves when it imports a script is not part of the folder, in either way: a `__pycache__` folder with
+    everything under it, and a `*.pyc` file wherever it sits."""
+    h, walked = hashlib.sha256(), []
+    for root, dirs, files in os.walk(folder):
+        dirs[:] = [d for d in dirs if d != "__pycache__"]  # as the walk goes: sorting the walk first would read them all
+        walked.append((root, files))
+    for root, files in sorted(walked):
+        for name in sorted(f for f in files if not f.endswith(".pyc")):
             p = os.path.join(root, name)
             path, data = os.path.relpath(p, folder).encode(), open(p, "rb").read()
             h.update(path + b"\n" + data if how == 1 else len(path).to_bytes(8, "big") + path + len(data).to_bytes(8, "big") + data)

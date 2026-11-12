@@ -117,7 +117,9 @@ Each arrow is a command that refuses when the step before it is missing. You see
   one stays in the tree with its results, folded under the new one with that sentence, and off the
   Now page. The lock also records the hash of `plan/` as it was locked, which is the plan the
   reviewer read: the first run is held against it as every later run is held against the run before.
-  And it records the resources the experiment uses: `uses:` does not change after the lock.
+  And it records the resources the experiment uses: `uses:` does not change after the lock. `lab run`
+  refuses an experiment whose `uses:` is not what was locked, and says that it is the resources that
+  changed; `lab check` reports it.
 - **Run.** One try at producing what the experiment demands. An experiment is run until one run
   finishes. Each run pins the apparatus it ran, the configuration and the code in `plan/`, and is
   detached, so it outlives the session; its output is sealed and kept outside git. A run that fails
@@ -147,6 +149,21 @@ Each arrow is a command that refuses when the step before it is missing. You see
   `lab now` and `lab check` say which locks and lists of runs are not committed yet. With no commit
   at all nothing is held, and `lab check` says that too; `--strict` turns each of these into a
   failure.
+  **Where the record is.** The check reads the history of the lab's own record and of nothing else:
+  `log.md` and `resources.toml` at the lab's root, `decisions/D<n>-<name>.md`, and each experiment's
+  `lock.json`, `runs.tsv`, `results.tsv` and `reviews.tsv` in its folder,
+  `goals/G<n>-<name>/Q<n>-<name>/<n>-<name>/`. The lab's root may be a folder inside a larger
+  repository. What that repository holds or once held anywhere else, such as the folders of a lab
+  kept with an earlier kit, or a file with one of these names inside `plan/`, is not the lab's
+  record: its history is not read, and removing it is not a problem.
+  **A rename.** A file of the record is known by the numbers in its path and not by the words:
+  `goals/G1-<any name>/Q2-<any name>/3-<any name>/lock.json` is the lock of `G1.Q2.3`, and
+  `decisions/D4-<any name>.md` is `D4`. When a title is reworded, the folder or the file named after
+  it may be renamed to match. That is a rename and nothing else: what was committed under the old
+  name is held under the new one, so the lock is still the lock first committed, every committed
+  row is still there, and a settled decision still says what it said. A number never changes. A file
+  that is under another number, or outside these places, is not that file: the one that was
+  committed is gone, and `lab check` says so, as it does for a file deleted outright.
   Two things keep this honest. The first run that finishes is the only source of results, and
   nothing more runs under that experiment, so nobody chooses which numbers count; a different try
   after that is a new experiment, because the numbers have been seen. And the apparatus of the run
@@ -300,9 +317,10 @@ file that is not text) is a problem it reports; no command stops on it.
 
 `lab check` runs the command of every row in every `results.tsv`, as a shell command, each for at
 most `rederive_timeout` seconds (`lab.toml`, 120 unless set). Run it only on a lab you trust, as
-you would its code; `--no-rederive` runs none of them. Where the lab has no commit, or the store
-is not mounted, the check says in a note what it could not check and still passes; with `--strict`
-that is a failure, which is what CI wants.
+you would its code; `--no-rederive` runs none of them. Where the lab has no commit, the store
+is not mounted, or another library that a card's `see:` points into is not on the machine, the check
+says in a note what it could not check and still passes; with `--strict` that is a failure, which is
+what CI wants.
 
 Every command that writes validates everything first, so that a refusal leaves nothing half
 written, and only one of them writes at a time.
@@ -426,6 +444,12 @@ for background the lab rests on and did not write. A card's prose may link the s
 `[the words](target)`: a name the reader may not know, such as a paper or a method, is linked where
 it is first used.
 
+`lab check` asks that every page under `see:` is there. A page of another library is looked for in
+that library's folder, where the charter says it is. When the folder itself is not on the machine,
+as in CI, which checks out the lab alone, the page cannot be looked for: that is a note, and a
+failure only with `--strict`. When the folder is there and the page is not, or the charter names no
+such library, it is a problem.
+
 **An arm** is a list item under Arms: its name, a colon, and what it is, so that a reader who has
 never seen it knows what was run.
 
@@ -489,7 +513,10 @@ existed. A lock that names its kit and lacks one of these is not a lock the kit 
 **How a folder is hashed.** `plan/` is hashed file by file: the length of its path, the path, the
 length of its content, the content. A lock or a run made this way says `"hash": 2`. One with no such
 marker was made by an earlier kit, which wrote the path, a newline and the content; it is verified
-the way it was made, and never hashed again.
+the way it was made, and never hashed again. Either way the hash leaves out what Python writes when
+it imports a script, which is no part of the plan: a folder named `__pycache__` with everything in
+it, and any file whose name ends in `.pyc`, wherever it sits. Nothing else is left out; a hidden
+file is hashed like any other.
 
 **`runs.tsv`**, beside the lock and in git, is written by `lab run` and by the run as it ends: `run`
 (its id), `kind` (run, trial), `what` (started, ended, lost), `at`, on the ended row `exit` and `seal`,

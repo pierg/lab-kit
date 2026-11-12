@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.0.1
+
+Three defects found by moving a real repository to 1.0.0, and one message.
+
+- `lab check` reads the history of the lab's own record only: `log.md`, `resources.toml`,
+  `decisions/`, and each experiment's lock, runs, results and reviews under `goals/`. It used to
+  read every file with one of those names anywhere in the repository, so a repository that once held
+  an older layout, since removed, failed for ever with "was committed and is gone".
+- A file of the record is known by the numbers in its path. A folder or a decision renamed after a
+  reworded title is the same record: the rename is no longer reported as a removal, and what was
+  committed under the old name is still held under the new one. A file moved to another number, or
+  out of the record's places, is reported as gone.
+- The hash of `plan/` leaves out `__pycache__` folders and `*.pyc` files, as it always meant to.
+  Importing a script from `plan/` no longer makes `lab check` say the plan changed after the run.
+  The hash of a folder that holds neither is what it was, in both formats, so every existing lock,
+  run and review still verifies.
+- A card's `see:` that names a page of another library is a note, not a problem, when that
+  library's folder is not on the machine, as in CI. With `--strict` it is a failure. When the folder
+  is there and the page is not, it is still a problem.
+- `lab run` says that the resources changed when `uses:` is not what was locked. It used to say the
+  demand had changed.
+
 ## 1.0.0
 
 A rewrite from first principles. Nothing of 0.6 carries over: a lab kept with 0.6 is not read by 1.0,

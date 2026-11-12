@@ -126,6 +126,9 @@ def _start(lab, ident, command, trial, changed):
         if not x["lock"]:
             stop(f"{ident} is not locked")
         if not lab.lock_holds(x):
+            if x["lock"].get("card") == lab.before_hash(x):  # the demand is as locked, so it is `uses:` that moved
+                stop(f"{ident}: the resources it uses changed after the lock: it was locked on {', '.join(sorted(map(str, x['lock']['uses']))) or 'none'}, and `uses:` now names "
+                     f"{', '.join(sorted(map(str, x['uses']))) or 'none'}. That never changes: replace the experiment")
             stop(f"{ident}: what it demands (its comparison, arms, cases, bars, outcomes or limits) changed after the lock. That never changes: replace the experiment")
         if x["finished"]:
             stop(f"{ident} has a finished run, {x['finished']['id']}, and takes no more: it is the only source of its results. A repeat is a new experiment")

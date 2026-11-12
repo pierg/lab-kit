@@ -483,7 +483,8 @@ def test_there_is_no_way_around_a_decision_to_a_larger_amount(tmp_path):
     assert json.load(open(f"{d}/lock.json"))["uses"] == ["gpu"]
     open(f"{root}/resources.toml", "w").write(spent + second)
     front(f"{d}/experiment.md", uses="[gpu-b]")
-    assert "changed after the lock" in lab(root, "run", ident, "--wait", "--", "env", "RES=gpu-b", *command, ok=False)  # the lock holds the resources it uses
+    refused = lab(root, "run", ident, "--wait", "--", "env", "RES=gpu-b", *command, ok=False)  # the lock holds the resources it uses, and the refusal says so
+    assert "the resources it uses changed after the lock: it was locked on gpu, and `uses:` now names gpu-b" in refused and "what it demands" not in refused
     out = lab(root, "check", "--no-rederive", ok=False)
     assert "gpu-b: its amounts come out of a decision" in out and "or the resources it uses changed after the lock" in out
     front(f"{d}/experiment.md", uses="[gpu]")

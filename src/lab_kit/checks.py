@@ -26,6 +26,7 @@ def run(lab, rederive=True):
         notes.append("the store is not here: runs and re-derivation were not checked")
         unchecked = True
 
+    absent = {}  # the libraries the charter names whose folder is not on this machine
     # cards: each has its slots, stays short, and writes only what is its to write
     for n in lab.goals + lab.questions + lab.items + lab.decisions:
         try:
@@ -54,10 +55,17 @@ def run(lab, rederive=True):
                 from . import site
                 name, _, path = str(page).partition(":")
                 lib = site.libraries(lab).get(name)
-                if not lib or not os.path.exists(os.path.join(lib["path"], path.lstrip("/"))):
+                if not lib:
                     bad("links", n["path"], f"see names {page}, which is not a page of a library the charter names")
+                elif not os.path.isdir(lib["path"]):  # the other library is not on this machine, as in CI: nothing to look in
+                    absent.setdefault(name, lib["path"])
+                elif not os.path.exists(os.path.join(lib["path"], path.lstrip("/"))):
+                    bad("links", n["path"], f"see names {page}, and the library {name} holds no such page")
             elif not os.path.exists(os.path.join(library, str(page).split("#")[0], "index.html")):
                 bad("links", n["path"], f"see names the page {page}, which is not in the library")
+    for name, path in sorted(absent.items()):
+        notes.append(f"the library {name} is not here ({path}): the pages cards name in it under `see:` could not be checked here")
+        unchecked = True
     for d in {os.path.dirname(x["path"]) for x in lab.items}:
         if sum(os.path.exists(os.path.join(root, d, f"{kind}.md")) for kind in R.STEPS) > 1:
             bad("tree", d, "holds more than one of an experiment, a build and a reading; a folder is one of them")
