@@ -1324,7 +1324,8 @@ def experiment_page(lab, T, x):
     after = ""
     if x["state"] == "done":
         after += boxed(T, "What it means", s.get("Means", ""), "full key", x["id"]) + boxed(T, "What was found", s.get("Found", ""), "full key", x["id"])
-    after += boxed(T, "Since the plan was locked", s.get("Since the lock", ""), "full key", x["id"], "" if L.flat(s.get("Since the lock", "")) else decided_notes(lab, T, x))
+    sofar = s.get("So far", "") or s.get("Since the lock", "")
+    after += boxed(T, "What we know so far", sofar, "full key", x["id"], "" if L.flat(sofar) else decided_notes(lab, T, x))
     if after:
         body.append('<div class="slots">' + after + "</div>")
     # the plan, as locked
