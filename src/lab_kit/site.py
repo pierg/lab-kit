@@ -9,7 +9,7 @@ import datetime, glob, hashlib, html, os, re
 
 from . import record as L
 
-GENERIC = {"model", "field", "source", "group", "stop", "case", "score", "port", "step", "pass", "check", "run", "result"}
+GENERIC = {"model", "field", "source", "group", "stop", "case", "score", "port", "step", "pass", "run", "result"}
 e = html.escape
 TONES = {"active": "info", "reached": "ok", "under discussion": "warn", "open": "info", "yes": "ok", "no": "warn", "decided": "ok",
          "confirmed": "ok", "refuted": "bad", "unclear": "warn", "running": "info", "waiting": "warn", "in progress": "info", "built": "ok",
