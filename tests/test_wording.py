@@ -31,6 +31,7 @@ def test_the_words_of_a_locked_plan_may_be_made_clearer_and_what_it_demands_may_
                          ("a bar's result", lambda t: t.replace("`ratio > 0.4`", "`share > 0.4`")),
                          ("a bar removed", lambda t: t.replace("- and more than 0.4 of it (`ratio > 0.4`)\n", "")),
                          ("a bar's test removed", lambda t: t.replace(" (`ratio > 0.9`)", "")),
+                         ("a bar given a role", lambda t: t.replace("- and more than 0.4 of it", "- readable: and more than 0.4 of it")),
                          ("an arm renamed", lambda t: t.replace("- 400 flips:", "- four hundred flips:")),
                          ("an arm added", lambda t: t.replace("- 400 flips:", "- 1600 flips: more\n- 400 flips:")),
                          ("the resources", lambda t: re.sub(r"^uses: .*$", "uses: [laptop, gpu]", t, flags=re.M))):
@@ -83,3 +84,17 @@ def test_a_lab_inside_a_larger_repository_reads_its_old_locks_from_git_too(tmp_p
     assert "the record is sound" in lab(root, "check", "--no-rederive")
     front(f"{d}/experiment.md", uses="[gpu]")
     assert "changed after the lock" in lab(root, "check", "--no-rederive", ok=False)
+
+
+def test_swapping_what_bars_are_for_changes_what_the_plan_demands(tmp_path):
+    root = str(tmp_path)
+    open_question(root)
+    ident, d, command = experiment(root)
+    card = f"{d}/experiment.md"
+    fill(card, Confirmed_if="- answer: the error at 400 flips is under 0.6 of the error at 100 (`ratio < 0.6`)\n- readable: and over 0.4 of it (`ratio > 0.4`)")
+    lab(root, "lock", ident)
+    fill(card, Confirmed_if="- answer: at 400 flips, the error is below 0.6 of the error at 100 (`ratio < 0.6`)\n- readable: and above 0.4 of it (`ratio > 0.4`)")
+    assert "the record is sound" in lab(root, "check", "--no-rederive")  # the same roles, in other words
+    fill(card, Confirmed_if="- readable: the error at 400 flips is under 0.6 of the error at 100 (`ratio < 0.6`)\n- answer: and over 0.4 of it (`ratio > 0.4`)")
+    assert "changed after the lock" in lab(root, "check", "--no-rederive", ok=False)  # which bar is the answer is part of what was locked
+    assert "changed after the lock" in lab(root, "run", ident, "--wait", "--", *command, ok=False)

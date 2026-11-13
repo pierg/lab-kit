@@ -806,11 +806,12 @@ class Lab:
         return rows[-1].get("verdict"), rows[-1].get("of") in (self.content(x, stage), self.content(x, stage, 1))  # a review made before folders were hashed as now still stands
 
     def terms(self, slots):
-        """What a card demands in machine terms: each bar's result name, comparison and number, on its side, and each
-        arm's name. The words around them are not in it: they may be made clearer after the lock."""
+        """What a card demands in machine terms: each bar's role (answer, readable, counts, or none), result name,
+        comparison and number, on its side, and each arm's name. The words around them are not in it: they may be made
+        clearer after the lock."""
         sides = {}
         for side, slot in (("confirmed", "Confirmed if"), ("refuted", "Refuted if")):
-            sides[side] = sorted([l["name"], l["op"], repr(l["num"])] if l["test"] else ["no test"] for l in self._lines(slots.get(slot, "")))
+            sides[side] = sorted([l["role"] or "", l["name"], l["op"], repr(l["num"])] if l["test"] else [l["role"] or "", "no test"] for l in self._lines(slots.get(slot, "")))
         arms = sorted(tuple(p.strip() for p in (i.split(": ", 1) + [""])[:2])[0] for i in items(slots.get("Arms", "")))
         return {**sides, "arms": arms}
 

@@ -14,7 +14,7 @@ judgement. The lab's own `AGENTS.md` adds only what is local.
 3. **A miss is recorded like a hit, and nothing recorded is edited. What a locked plan demands is never
    changed; its words may be made clearer.** A failed run is kept. A refuted line is an outcome like
    any other. A changed plan, a failed review or a partial score is a new experiment that replaces the
-   old one and says why in a sentence. What an experiment demands (each bar's result, comparison and
+   old one and says why in a sentence. What an experiment demands (each bar's role, result, comparison and
    number, each arm's name, the resources it uses) is locked once; a clearer word keeps its meaning,
    and a reviewer who did not write it reads it. It is run until one run finishes, and a run after a fix says what changed. Once a
    run has finished, nothing more runs under it. Every run is listed in the experiment's `runs.tsv`,

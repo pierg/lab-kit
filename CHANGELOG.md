@@ -14,7 +14,9 @@ could not be made clearer by one word without becoming a new experiment. The met
   the cost and the results, and the record (runs, reviews, earlier plans, files, log) folded at the bottom. A
   done experiment shows What it means and What was found above the plan.
 - **A picture.** A `picture.svg` beside a card is drawn inline at the top of its page, in the site's colours,
-  scrolling sideways on a narrow screen. A script, an event handler or a `javascript:` link in it is dropped.
+  scrolling sideways on a narrow screen. It is parsed and written again from an allowlist of drawing elements and
+  attributes, with links only inside the picture and its style sheet kept to it; a file that does not parse as
+  one `<svg>` is not drawn, and the page says so.
 - **So far on an experiment.** An experiment card may carry `## So far`, outside the plan: it may change after
   the lock. `lab new experiment` writes it. When it is empty, the Notes of settled decisions about the node
   are shown there; a decision may carry `## Note`.
@@ -24,8 +26,8 @@ could not be made clearer by one word without becoming a new experiment. The met
   lines; a heading the card starts a slot with is dropped, since the label is the heading.
 - **The glossary** takes `- example:` (one concrete case, nothing observed) and `- also:` (other names that
   link to the same entry). Its page shows every group open, each entry with its example and its other names.
-- **The lock holds machine terms.** `lab lock` writes `terms` in `lock.json`: a hash of each bar's result,
-  comparison and number, by side, and each arm's name. The lock holds while those and `uses:` are as locked;
+- **The lock holds machine terms.** `lab lock` writes `terms` in `lock.json`: a hash of each bar's role,
+  result, comparison and number, by side, and each arm's name. The lock holds while those and `uses:` are as locked;
   the words around them may be made clearer, and a reviewer reads that. A lock made before 1.3.0 reads its
   terms from the version of the card that git holds with the locked hash; where git has none, the whole plan
   is held word for word as before. `lock.json` is never written again, so every run stays under its lock.

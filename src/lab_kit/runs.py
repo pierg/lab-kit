@@ -131,7 +131,7 @@ def _start(lab, ident, command, trial, changed):
             if x["lock"].get("uses") is not None and sorted(x["lock"]["uses"]) != sorted(x["uses"]):
                 stop(f"{ident}: the resources it uses changed after the lock: it was locked on {', '.join(sorted(map(str, x['lock']['uses']))) or 'none'}, and `uses:` now names "
                      f"{', '.join(sorted(map(str, x['uses']))) or 'none'}. That never changes: replace the experiment")
-            stop(f"{ident}: what it demands changed after the lock: a bar's result, comparison or number, or an arm's name. The words may be made clearer; what they demand never changes: replace the experiment")
+            stop(f"{ident}: what it demands changed after the lock: a bar's role, result, comparison or number, or an arm's name. The words may be made clearer; what they demand never changes: replace the experiment")
         if x["finished"]:
             stop(f"{ident} has a finished run, {x['finished']['id']}, and takes no more: it is the only source of its results. A repeat is a new experiment")
         lock = {"card": x["lock"]["card"]}

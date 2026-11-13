@@ -161,7 +161,7 @@ class Text:
         ident = r"(?:G\d+(?:\.Q\d+(?:\.\d+)?)?|D\d+)"
         self.rx = re.compile(
             r"(?P<link>\[[^\]\n]+\]\([^)\s]+\))|(?P<code>`[^`]+`)|(?P<strong>\*\*[^*\n]+\*\*)|(?P<em>\*[^*\n]+\*)|(?P<named>\{(?:G\d+\.Q\d+\.\d+:)?[A-Za-z][\w.-]*?\})"
-            r"|(?P<title>(?i:\b(?:" + either(self.titles) + r")\b)(?: \(" + ident + r"\))?)"
+            r"|(?P<title>(?i:(?<!\w)(?:" + either(self.titles) + r")(?!\w))(?: \(" + ident + r"\))?)"
             r"|(?P<id>\b" + ident + r"\b)"
             r"|(?P<term>(?i:\b(?:" + either(self.defs) + r")s?\b))")
 
@@ -421,6 +421,8 @@ def table_html(T, lines, home=None):
     """A pipe table as the card writes it: the first row is the header, a row of dashes under it is skipped."""
     rows = [[c.strip() for c in l.strip().strip("|").split("|")] for l in lines]
     rows = [r for r in rows if not all(re.fullmatch(r":?-{2,}:?", c) for c in r if c)]
+    if not rows:  # only a rule, or a bare pipe: there is no table, so the text is shown as written
+        return f"<p>{T(' '.join(lines), home)}</p>"
     head, body = rows[0], rows[1:]
     return ('<div class="tw"><table class="t card">' + "<tr>" + "".join(f"<th>{T(c, home)}</th>" for c in head) + "</tr>"
             + "".join("<tr>" + "".join(f"<td>{T(c, home)}</td>" for c in r) + "</tr>" for r in body) + "</table></div>")
@@ -470,20 +472,99 @@ def slots(*boxes):
     return f'<div class="slots">{inner}</div>' if inner else ""
 
 
+SVG_TAGS = {"svg", "g", "defs", "marker", "rect", "circle", "ellipse", "line", "path", "polygon", "polyline", "text", "tspan", "title", "desc", "style"}
+SVG_ATTRS = {"id", "class", "style", "viewBox", "xmlns", "role", "aria-label", "aria-hidden", "width", "height", "x", "y", "x1", "y1", "x2", "y2",
+             "cx", "cy", "r", "rx", "ry", "dx", "dy", "d", "points", "transform", "opacity", "refX", "refY", "markerWidth", "markerHeight",
+             "markerUnits", "orient", "text-anchor", "dominant-baseline", "alignment-baseline", "letter-spacing", "word-spacing",
+             "preserveAspectRatio", "vector-effect", "visibility", "display", "clip-rule", "pathLength", "textLength", "lengthAdjust",
+             "href", "xlink:href"}
+SVG_PREFIXES = ("font-", "fill", "stroke", "marker-")
+
+
+def safe_css(css):
+    """CSS that cannot reach outside a picture or fetch anything: no at-rule, no url() but a reference inside the
+    picture, no markup, no expression, no script."""
+    flat = re.sub(r"\s+", "", html.unescape(css)).lower()
+    if "@" in flat or "<" in flat or "expression" in flat or "javascript:" in flat or "\\" in flat:
+        return False
+    return all(u.startswith("#") for u in re.findall(r"url\(['\"]?([^)]*)", flat))
+
+
+def scoped_style(css):
+    """A picture's own style sheet, every rule kept to the picture: each selector is a class selector, and is
+    prefixed with `figure.pic`, so no rule restyles the site. None when it is anything else."""
+    if not safe_css(css):
+        return None
+    out = []
+    for sel, body in re.findall(r"([^{}]*)\{([^{}]*)\}", css):
+        sels = [s.strip() for s in sel.split(",")]
+        if not all(re.fullmatch(r"\.[A-Za-z_][\w-]*(?:[\s>]*\.?[A-Za-z_][\w-]*)*", s) for s in sels):
+            return None
+        out.append(",".join(f"figure.pic {s}" for s in sels) + "{" + body.strip() + "}")
+    if re.sub(r"[^{}]*\{[^{}]*\}", "", css).strip():  # text outside any rule
+        return None
+    return "".join(out)
+
+
+def safe_svg(text):
+    """A picture.svg parsed as XML and written again from what it holds that is allowed: drawing elements only, their
+    geometry and presentation attributes only, links only inside the picture. None when it does not parse as one
+    svg element, or carries a document type, whose entities could be anything."""
+    import xml.etree.ElementTree as ET
+    if re.search(r"<!DOCTYPE|<!ENTITY", text, flags=re.I):
+        return None
+    try:
+        root = ET.fromstring(text.encode("utf-8"))
+    except ET.ParseError:
+        return None
+    local = lambda name: name.rsplit("}", 1)[-1]
+
+    def attr_name(name):
+        if name.startswith("{http://www.w3.org/1999/xlink}"):
+            return "xlink:" + local(name)
+        return None if name.startswith("{") else name
+
+    def ok(name, value):
+        if name is None or not (name in SVG_ATTRS or name.startswith(SVG_PREFIXES)) or name.lower().startswith("on"):
+            return False
+        flat = re.sub(r"[\s\x00-\x1f]+", "", html.unescape(value)).lower()
+        if "javascript:" in flat or "data:" in flat or "vbscript:" in flat:
+            return False
+        if name in ("href", "xlink:href"):
+            return flat.startswith("#")
+        if name == "style":
+            return safe_css(value)
+        return all(u.startswith("#") for u in re.findall(r"url\(['\"]?([^)]*)", flat))
+
+    def write(el):
+        tag = local(el.tag)
+        if tag not in SVG_TAGS:
+            return ""
+        if tag == "style":
+            css = scoped_style(el.text or "")
+            return f"<style>{css}</style>" if css else ""
+        attrs = "".join(f' {n}="{e(v)}"' for n, v in ((attr_name(k), v) for k, v in el.attrib.items()) if ok(n, v))
+        if tag == "svg":
+            attrs = ' xmlns="http://www.w3.org/2000/svg"' + attrs.replace(' xmlns="http://www.w3.org/2000/svg"', "")
+        inner = e(el.text or "", quote=False) + "".join(write(c) + e(c.tail or "", quote=False) for c in el)
+        return f"<{tag}{attrs}>{inner}</{tag}>"
+
+    return write(root) if local(root.tag) == "svg" else None
+
+
 def picture(lab, n):
-    """The picture beside a card (`picture.svg`), drawn inline at the top of its page. It is the lab's own drawing, so
-    it may use the site's colours; what could run in a page (a script, an event handler, a javascript: link) is left out."""
+    """The picture beside a card (`picture.svg`), drawn inline at the top of its page. It is the lab's own drawing, so it
+    may use the site's colours. It is parsed and written again from an allowlist, so nothing in it can run or reach
+    outside it; a file that does not parse as an SVG is not drawn, and the page says so."""
     if n["type"] == "decision":
         return ""
     p = os.path.join(lab.root, n["dir"], "picture.svg")
     if not os.path.isfile(p):
         return ""
-    svg = re.sub(r"<\?xml[^>]*>|<!DOCTYPE[^>]*>", "", L.read(p))
-    svg = re.sub(r"<script\b.*?(</script\s*>|$)", "", svg, flags=re.S | re.I)
-    svg = re.sub(r"<foreignObject\b.*?(</foreignObject\s*>|$)", "", svg, flags=re.S | re.I)
-    svg = re.sub(r"<[^<>]*>", lambda m: re.sub(r"""\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)""", "", m.group(0), flags=re.I), svg)
-    svg = re.sub(r"""(href\s*=\s*["']?)\s*javascript:""", r"\1#", svg, flags=re.I)
-    return f'<figure class="pic">{svg.strip()}</figure>' if svg.lstrip().startswith("<svg") else ""
+    svg = safe_svg(L.read(p))
+    if svg is None:
+        return '<p class="muted pic-note">The picture beside this card (picture.svg) is not an SVG drawing that can be shown here, and is not drawn.</p>'
+    return f'<figure class="pic">{svg}</figure>'
 
 
 def decided_notes(lab, T, n):

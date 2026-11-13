@@ -339,7 +339,7 @@ def test_a_page_draws_its_picture_what_we_know_apart_from_the_plan_and_links_tit
     third = glob.glob(f"{qdir}/3-*")[0]
     open(f"{root}/GLOSSARY.md", "w").write("# Terms\n\n## estimate\nOne share of heads, from one sample.\n- example: 0.52 from 100 flips.\n- also: guess\n\n## flip\nOne toss of the coin.\n")
     open(f"{third}/picture.svg", "w").write('<?xml version="1.0"?><svg viewBox="0 0 10 10" onload="alert(1)"><script>alert(1)</script>'
-                                          '<a href="javascript:alert(1)"><text fill="var(--ink)">1. Flip</text></a></svg>')
+                                          '<a href="javascript:alert(1)"><text>hidden</text></a><text fill="var(--ink)">1. Flip</text></svg>')
     fill(f"{third}/experiment.md", So_far="### Where it stands\n\nNothing has run. It waits on A third size, on the GPU (D2), as Error at 100 and at 400 flips did not.\n\n"
                                           "### The sizes\n| Size | Estimates |\n|---|---|\n| 1600 flips | 200 |",
          Compares="### Two sizes\n\nEach estimate, and each **estimate** again, and a guess; *one more estimate*.")
@@ -366,3 +366,54 @@ def test_a_page_draws_its_picture_what_we_know_apart_from_the_plan_and_links_tit
     gloss = Provider(root).get("glossary").main
     assert '<details class="ggroup" open>' in gloss and "0.52 from 100 <a class=\"term\"" in gloss and "Also: guess" in gloss and 'id="estimate"' in gloss
     assert "What we know so far" in Provider(root).get("G1.Q1").main and '<details class="record">' in Provider(root).get("G1.Q1").main
+
+
+ATTACKS = {
+    "a handler written without a space": '<svg/onload="alert(1)"><text>x</text></svg>',
+    "markup after the drawing": '<svg xmlns="http://www.w3.org/2000/svg"><text>x</text></svg><img/src=x/onerror=alert(1)>',
+    "a script split around another": '<svg xmlns="http://www.w3.org/2000/svg"><scr<script></script>ipt>alert(1)</script></svg>',
+    "a way out of the figure": '<svg xmlns="http://www.w3.org/2000/svg"></svg></figure><iframe src="https://example.org"></iframe>',
+    "a document type with entities": '<!DOCTYPE svg [<!ENTITY a "alert(1)">]><svg xmlns="http://www.w3.org/2000/svg"><text>&a;</text></svg>',
+    "not XML at all": "<svg><text>x</svg>",
+}
+KEPT = ('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 10 10" onclick="alert(1)">'
+        '<animate attributeName="href" values="javascript:alert(1)"/><set attributeName="onmouseover" to="alert(1)"/>'
+        '<a href="javascript:alert(1)"><text>inside a link</text></a><foreignObject><div>html</div></foreignObject><use href="#m"/>'
+        '<rect id="m" class="box" x="1" y="1" width="8" height="8" href="java&#x09;script:alert(1)" fill="url(https://example.org/x)" stroke="url(#g)"'
+        ' style="fill:var(--ink)" onmouseover="alert(1)"/><path d="M0 0" xlink:href="javascript:alert(1)" marker-end="url(#m)"/>'
+        '<style>.box{fill:var(--accent)} .lv .crumbs{display:none}</style><style>body{display:none}</style><style>@import url(https://example.org/x.css);</style>'
+        '<style>.a{background:url(https://example.org/x)}</style><text class="box">1. Flip</text></svg>')
+
+
+def test_a_picture_is_drawn_from_an_allowlist_and_nothing_in_it_runs_or_reaches_the_page(tmp_path):
+    from lab_kit.site import safe_svg
+    for name, svg in ATTACKS.items():
+        assert safe_svg(svg) is None, name  # refused: not drawn at all
+    out = safe_svg(KEPT)
+    assert out.startswith('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">') and out.endswith("</svg>") and "1. Flip" in out
+    for gone in ("alert", "javascript", "animate", "<set", "<a ", "foreignObject", "<use", "example.org", "onclick", "onmouseover", "body{", "@import"):
+        assert gone not in out, gone
+    assert 'stroke="url(#g)"' in out and 'marker-end="url(#m)"' in out and 'style="fill:var(--ink)"' in out and 'class="box"' in out
+    assert "<style>figure.pic .box{fill:var(--accent)},figure.pic .lv .crumbs" not in out  # a sheet that names the site's own classes still only reaches inside the figure
+    assert "figure.pic .box{fill:var(--accent)}" in out and "figure.pic .lv .crumbs{display:none}" in out and out.count("<style>") == 1
+
+    root = a_lab(tmp_path)
+    third = glob.glob(f"{root}/goals/G1-*/Q1-*/3-*")[0]
+    for name, svg in ATTACKS.items():
+        open(f"{third}/picture.svg", "w").write(svg)
+        page = Provider(root).get("G1.Q1.3").main
+        tags = Tags()
+        tags.feed(page)
+        assert '<figure class="pic">' not in page and "is not an SVG drawing that can be shown here" in page and "alert(1)" not in page and "<iframe" not in page, name
+
+
+def test_a_table_with_no_rows_and_a_title_that_ends_in_a_mark_are_drawn(tmp_path):
+    root = a_lab(tmp_path)
+    qdir = glob.glob(f"{root}/goals/G1-*/Q1-*")[0]
+    fill(f"{qdir}/question.md", So_far="|\n\n|---|\n\nAsked in Does the error halve when the sample quadruples? (G1.Q1), and again.")
+    third = glob.glob(f"{qdir}/3-*")[0]
+    fill(f"{third}/experiment.md", So_far="It answers Does the error halve when the sample quadruples? in part.")
+    page = Provider(root).get("G1.Q1").main
+    assert "What we know so far" in page
+    other = Provider(root).get("G1.Q1.3").main
+    assert '<a class="page" href="/lab/G1.Q1/"' in other and ">Does the error halve when the sample quadruples?</a>" in other

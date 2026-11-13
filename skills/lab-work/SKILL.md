@@ -73,7 +73,7 @@ the plan in fixed boxes, then the steps and the record. Write the card for that 
   far is empty shows it there.
 - **The plan holds nothing observed, and what it demands is not changed after the lock.** No status,
   no result, no "since then" in Compares, Arms, Cases, the lines, Outcomes or Limits. After the lock
-  you may make their words clearer, slot by slot, keeping the meaning; never a bar's result,
+  you may make their words clearer, slot by slot, keeping the meaning; never a bar's role, result,
   comparison or number, an arm's name or `uses:` (`lab check` holds those). Have a reviewer read
   every such rewording (the lab-review skill).
 - **Fixed boxed sections.** Each slot is drawn in its box under a fixed label: on an experiment *What

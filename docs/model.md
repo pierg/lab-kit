@@ -114,8 +114,8 @@ Each arrow is a command that refuses when the step before it is missing. You see
 - **Trial run.** A run before the lock, to test that the apparatus works. It is sealed like any run,
   listed when the plan is locked, and never gives a result. On a metered resource it comes after the
   review of the plan, like the run itself.
-- **Lock.** What the experiment demands is held in machine terms: each bar's result, its comparison and
-  its number, on its side; the name of each arm; and the resources it uses. That never changes. The
+- **Lock.** What the experiment demands is held in machine terms: each bar's role, its result, its
+  comparison and its number, on its side; the name of each arm; and the resources it uses. That never changes. The
   words of the plan around them (what it compares, what each arm is, the cases, what each outcome
   would mean, its limits, each bar's sentence) may be made clearer after the lock, and must keep
   their meaning: that is the review's to judge, not a command's. To change what it demands, the agent
@@ -530,8 +530,16 @@ says nothing, its page shows there the Notes of the settled decisions about it.
 card. It is drawn inline at the top of its page, after the title and the lead. It shows the whole
 work as numbered steps: what goes in, who does what, the checks, the tools, how it is counted, the
 reference. It shows only what the card states, and no result. It uses the site's colours (`var(--ink)`,
-`var(--accent)`, `var(--surface)`, `var(--rule)`), so it reads in light and dark. A script, an event
-handler or a `javascript:` link in it is left out when it is drawn.
+`var(--accent)`, `var(--surface)`, `var(--rule)`), so it reads in light and dark. It is parsed as XML
+and written again from an allowlist, so nothing outside its one `<svg>` element reaches the page:
+the drawing elements (`svg`, `g`, `defs`, `marker`, `rect`, `circle`, `ellipse`, `line`, `path`,
+`polygon`, `polyline`, `text`, `tspan`, `title`, `desc`, `style`), each with its geometry and
+presentation attributes; no event handler, a link only to `#` inside the picture, no `url(` but
+`url(#id)`, and no value that reads `javascript:` once its entities and spaces are taken out. An
+element that is not allowed is left out with everything inside it. A `<style>` is kept only when it
+has no at-rule, no `url(` to anything outside, no markup and no `expression`, and every selector is a
+class selector; each rule is then kept to the picture (`figure.pic .name`). A file that does not
+parse, that is not one `<svg>`, or that declares a document type is not drawn, and the page says so.
 
 Any card may carry `see:`, a list of pages that explain it: pages of the lab's own library, and pages
 of another library its charter names, written as folio writes them (`pier-folio:/content/readings/...`),
@@ -588,7 +596,7 @@ never seen it knows what was run.
 ```
 
 `lab lock` refuses an experiment with no arm or no cases. What it then holds is in section 3: the
-result, comparison and number of each line, the name of each arm and `uses:`; the words may be made
+role, result, comparison and number of each line, the name of each arm and `uses:`; the words may be made
 clearer later.
 
 **What a bar is for.** A confirmed-if line may open with its role: `answer:` for the one comparison
@@ -638,7 +646,8 @@ hash of the whole plan as it was locked (`card`: Compares, Arms, Cases, the line
 Limits), a lock made by 1.3.0 or later holds `terms`: one hash of the plan's machine terms, which are
 the result, comparison and number of every confirmed-if and refuted-if line, by side, and the name
 of every arm, each list sorted, so that putting the lines or the arms in another order changes
-nothing. A line with no test counts as one. The lock holds when `uses:` is what was locked and the
+nothing. A line's role (`answer:`, `readable:`, `counts:`, or none) is part of it: which bar is
+the answer is part of what the plan demands. A line with no test counts as one. The lock holds when `uses:` is what was locked and the
 terms of the card now hash to `terms`. A lock made before 1.3.0 has only `card`. Its terms are read
 from git: of the versions of the card that git holds, the one whose whole plan hashes to `card` is
 the card as it was locked, and its terms are the locked terms. No commit has to be trusted for it:

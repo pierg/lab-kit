@@ -184,7 +184,7 @@ def run(lab, rederive=True):
             if lab.nodes[x["question"]]["state"] == "under discussion":
                 bad("locks", p, f"is locked under {x['question']}, whose decision is not settled")
             if not x["lock"].get("unreadable") and not lab.lock_holds(x):
-                bad("locks", p, "what it demands (a bar's result, comparison or number, an arm's name) or the resources it uses changed after the lock; that is a new experiment")
+                bad("locks", p, "what it demands (a bar's role, result, comparison or number, an arm's name) or the resources it uses changed after the lock; that is a new experiment")
             for l in x["lines"]["confirmed"] + x["lines"]["refuted"]:
                 if not l["test"]:
                     bad("locks", p, f"the line {l['say']!r} has no test")

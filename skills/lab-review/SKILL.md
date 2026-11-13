@@ -53,7 +53,7 @@ review, and the author fixes it before the lock.
 ## A rewording of a locked card
 
 After the lock, the words of a plan may be made clearer; what it demands may not. `lab check` holds
-the machine terms (each bar's result, comparison and number, each arm's name, `uses:`). You read the
+the machine terms (each bar's role, result, comparison and number, each arm's name, `uses:`). You read the
 rest. Compare the card as it was locked (`git log -p -- <card>`, from the commit that holds its lock)
 with the card now:
 
