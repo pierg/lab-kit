@@ -43,7 +43,7 @@ COLUMNS = {"results.tsv": ("name", "label", "value", "reads", "versus", "command
 HASH = 2  # how a folder is hashed in the locks and runs made now; one without the marker was made with the first way
 NUMBER = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?")
 LISTS = {"goal": ("see",), "question": ("needs", "see"), "experiment": ("needs", "uses", "see"), "build": ("needs", "commits", "tests", "see"),
-         "reading": ("needs", "see"), "decision": ("about", "holds", "parks", "unparks", "see")}  # the front matter keys that hold a list
+         "reading": ("needs", "see"), "decision": ("about", "holds", "parks", "unparks", "order", "see")}  # the front matter keys that hold a list
 TEXTS = ("title", "asks", "from", "replaces", "because", "cost", "waiting_on", "dropped", "answered")  # and those that hold one value
 
 
@@ -627,7 +627,7 @@ class Lab:
         out = []
         for n, path in self._numbered(f"{self.root}/decisions/D*.md", r"/D(\d+)-[^/]+\.md$", {}, "D<n>-<name>.md"):
             fm, slots = self._card(path, "decision")
-            d = {"title": f"D{n}", "about": [], "holds": [], "parks": [], "unparks": [], "decided": None, "date": "", "see": [], **fm, "id": f"D{n}", "type": "decision", "slots": slots,
+            d = {"title": f"D{n}", "about": [], "holds": [], "parks": [], "unparks": [], "order": [], "decided": None, "date": "", "see": [], **fm, "id": f"D{n}", "type": "decision", "slots": slots,
                  "path": self.rel(path), "dir": self.rel(os.path.dirname(path))}
             d["state"] = "decided" if d["decided"] else "open"
             out.append(d)
@@ -686,7 +686,25 @@ class Lab:
         """The steps still pursued: under a question that is neither parked nor dropped, of a goal still active. What was
         set aside waits on a decision, not on the work, and is listed apart."""
         keep = {q["id"] for q in self.live(self.questions) if self.nodes[q["goal"]]["state"] == "active"}
-        return [x for x in self.items if x["question"] in keep]
+        return self.in_order([x for x in self.items if x["question"] in keep])
+
+    def ordered_by(self):
+        """The settled decision that sets the order of the work, or None: the last settled decision, by number, that
+        carries an `order:`. The order is agreed with the operator, so it comes only out of a decision."""
+        return next((d for d in reversed(self.decisions) if d["state"] == "decided" and d["order"]), None)
+
+    def in_order(self, steps):
+        """Steps in the agreed order of the work: each takes the place of its own id in the order, else of its question's,
+        else of its goal's; steps that share a place, and those the order does not name, keep the order of the tree,
+        the unnamed after the named."""
+        d = self.ordered_by()
+        if not d:
+            return list(steps)
+        place = {}
+        for i, ident in enumerate(d["order"]):
+            place.setdefault(ident, i)
+        rank = lambda x: next((place[i] for i in (x["id"], x["question"], x["goal"]) if i in place), len(d["order"]))
+        return sorted(steps, key=rank)  # a stable sort: what shares a place keeps the order of the tree
 
     def set_aside(self):
         """What was set aside, for the page and the view that list it: parked and dropped questions, and goals that
@@ -1008,7 +1026,7 @@ class Lab:
 
     def yours(self):
         """Every experiment and build the agent can move now, with what is next on each."""
-        return [x for x in self.items if x["mine"]]
+        return self.in_order([x for x in self.items if x["mine"]])
 
     def since(self, day=None):
         """What happened since the last decision was recorded, or since a day."""
