@@ -470,10 +470,10 @@ class Lab:
                 group = block[2:].strip()
             elif block.startswith("## "):
                 head, _, rest = block[3:].partition("\n")
-                code, avoid, see, example = (re.search(rf"^- {key}: (.+)$", rest, flags=re.M) for key in ("code", "avoid", "see", "example"))
+                code, avoid, see, example, also = (re.search(rf"^- {key}: (.+)$", rest, flags=re.M) for key in ("code", "avoid", "see", "example", "also"))
                 definition = " ".join(l for l in rest.split("\n") if l.strip() and not l.startswith("- ")).strip()
                 out.append({"term": head.strip(), "group": group, "definition": definition, "code": code.group(1).strip("` ") if code else "",
-                            "avoid": [w for w in (w.strip("` ") for w in re.split(r"[,;]", avoid.group(1))) if w] if avoid else [], "see": see.group(1).strip("` ") if see else "", "example": example.group(1).strip() if example else ""})
+                            "avoid": [w for w in (w.strip("` ") for w in re.split(r"[,;]", avoid.group(1))) if w] if avoid else [], "see": see.group(1).strip("` ") if see else "", "example": example.group(1).strip() if example else "", "also": [w.strip("` ") for w in also.group(1).split(",") if w.strip()] if also else []})
         return out
 
     def vocabulary(self, goal):

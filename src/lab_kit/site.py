@@ -147,11 +147,23 @@ class Text:
         self.lab = lab
         terms = [g for g in lab.glossary if g["term"].lower() not in GENERIC]
         self.defs = {g["term"].lower(): g for g in terms}
-        alt = "|".join(re.escape(g["term"]) for g in sorted(terms, key=lambda g: -len(g["term"]))) or r"(?!x)x"
+        for g in terms:  # a term's other names (- also: ...) point at the same entry
+            for other in g.get("also") or []:
+                self.defs.setdefault(other.lower(), g)
+        names = sorted(self.defs, key=len, reverse=True)
+        alt = "|".join(re.escape(n) for n in names) or r"(?!x)x"
+        # a page's own title, written in prose, links to that page before any glossary term inside it
+        self.titles = {}
+        for n in lab.nodes.values():
+            t = str(n.get("title") or "")
+            if len(t.split()) >= 2 and t.lower() not in self.defs:
+                self.titles.setdefault(e(t, quote=False).lower(), n["id"])
+        talt = "|".join(re.escape(t) for t in sorted(self.titles, key=len, reverse=True)) or r"(?!x)x"
         self.seen = set()
         self.rx = re.compile(
             r"(?P<link>\[[^\]\n]+\]\([^)\s]+\))|(?P<code>`[^`]+`)|(?P<strong>\*\*[^*\n]+\*\*)|(?P<em>\*[^*\n]+\*)|(?P<named>\{(?:G\d+\.Q\d+\.\d+:)?[A-Za-z][\w.-]*?\})|(?P<id>\b(?:G\d+(?:\.Q\d+(?:\.\d+)?)?|D\d+)\b)"
             r"|(?P<term>(?i:\b(?:" + alt + r")s?\b))")
+        self.rx = re.compile(self.rx.pattern.replace("|(?P<id>", r"|(?P<title>(?i:\b(?:" + talt + r")\b)(?: \((?:G\d+(?:\.Q\d+(?:\.\d+)?)?|D\d+)\))?)|(?P<id>", 1))
 
     def __call__(self, text, home=None):
         lab, seen = self.lab, self.seen
@@ -164,9 +176,16 @@ class Text:
                 url = outside(lab, target)
                 return f'<a href="{e(url)}">{text}</a>' if url else text
             if m.group("strong"):
-                return f"<b>{m.group('strong')[2:-2]}</b>"
+                return f"<b>{self.rx.sub(one, m.group('strong')[2:-2])}</b>"
             if m.group("em"):
-                return f"<em>{m.group('em')[1:-1]}</em>"
+                return f"<em>{self.rx.sub(one, m.group('em')[1:-1])}</em>"
+            if m.group("title"):
+                written = m.group("title")
+                said = re.sub(r" \([GD][\d.Q]+\)$", "", written)
+                nid = self.titles.get(said.lower())
+                if nid:
+                    return f'<a class="page" href="/{nid}" data-tip="{e(nid)}: {e(lab.nodes[nid]["title"])}">{said}</a>'
+                return written
             if m.group("named"):
                 (written, row), = lab.named(m.group("named"), home)
                 if not row or not row["usable"]:
@@ -259,6 +278,7 @@ CSS = """
 .lv [data-tip]{position:relative}
 .lv [data-tip]:hover::after{content:attr(data-tip);position:absolute;left:0;top:1.5em;z-index:40;width:max-content;max-width:23rem;padding:.5rem .7rem;border-radius:6px;background:var(--ink);color:var(--paper);font:400 .8rem/1.4 var(--sans);white-space:normal;box-shadow:var(--shadow)}
 .lv a.term{color:inherit;text-decoration:none;border-bottom:1px dotted var(--ink-3)}
+.lv a.page{color:var(--link,var(--accent));text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
 .lv a.term:hover{color:var(--accent);border-bottom-color:var(--accent)}
 .lv a.num{font-variant-numeric:tabular-nums;font-family:var(--sans);font-size:.92em;padding:0 .22em;margin:0 -.05em;border-radius:4px;background:var(--info-soft);color:var(--info);text-decoration:none}
 .lv a.ref{font:500 .88em var(--sans);text-decoration:none;white-space:nowrap}
@@ -1376,7 +1396,8 @@ def glossary_page(lab, T):
         for g in terms:
             ex = f'<span class="gex">{T(g["example"])}</span>' if g.get("example") else ""
             more = f' <span class="gsee">See: {see_link(lab, g["see"])}</span>' if g["see"] else ""
-            rows.append(f'<dt id="{e(g["term"].lower().replace(" ", "-"))}">{e(g["term"])}</dt><dd>{e(g["definition"])}{ex}{more}{avoid_note(g)}</dd>')
+            aka = f' <span class="avoid">Also: {e(", ".join(g["also"]))}</span>' if g.get("also") else ""
+            rows.append(f'<dt id="{e(g["term"].lower().replace(" ", "-"))}">{e(g["term"])}</dt><dd>{e(g["definition"])}{ex}{more}{aka}{avoid_note(g)}</dd>')
         body.append(f'<details class="ggroup" open><summary>{e(name)}<span>{len(terms)} terms</span></summary><dl class="gloss">{"".join(rows)}</dl></details>')
     body.append("<style>.lv .gex{display:block;margin-top:.3rem;font-size:.93rem;color:var(--ink-2)}.lv .gex::before{content:'For example: ';font-weight:600}.lv .gsee{display:block;font:.82rem var(--sans);margin-top:.2rem}.lv .why{max-width:48rem}</style>")
     body.append("<script>(function(){var h=decodeURIComponent(location.hash.slice(1));var t=h&&document.getElementById(h);if(t){t.scrollIntoView();}})();</script>")
