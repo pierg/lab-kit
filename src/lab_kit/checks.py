@@ -11,7 +11,7 @@ KEYS = {  # what a card's front matter may hold; a state is never among them
     "experiment": {"title", "needs", "uses", "override", "replaces", "because", "cost", "waiting_on", "dropped", "see"},
     "build": {"title", "needs", "commits", "tests", "dropped", "see"},
     "reading": {"title", "needs", "dropped", "see"},
-    "decision": {"title", "about", "date", "holds", "parks", "unparks", "decided", "see"},
+    "decision": {"title", "about", "date", "holds", "parks", "unparks", "order", "decided", "see"},
 }
 
 
@@ -131,6 +131,11 @@ def run(lab, rederive=True):
                     bad("links", d["path"], f"{key} names {i}, which is not under `about:`: a decision that parks a question or brings it back is about it")
         for i in sorted(set(d["parks"]) & set(d["unparks"])):
             bad("links", d["path"], f"both parks and unparks {i}")
+        for i in d["order"]:  # the order of the work names what it orders: goals, questions and steps, each once
+            if nodes.get(i, {}).get("type") not in ("goal", "question") + R.STEPS:
+                bad("links", d["path"], f"order names {i!r}, which is not a goal, a question or a step of the lab")
+        for i in sorted({i for i in d["order"] if d["order"].count(i) > 1}):
+            bad("links", d["path"], f"order names {i} more than once: each has one place")
         done = d["decided"]
         if done and not ({"date", "with"} <= set(done) and R.flat(d["slots"].get("Decided", ""))):
             bad("cards", d["path"], "a settled decision holds when, with whom, and what was decided and why under Decided")

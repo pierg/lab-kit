@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.2.0
+
+The order of the work can be agreed with the operator and recorded by a decision. Before, `lab now` and the
+site listed next steps in the order of the tree, and an agreed order lived only as prose in a lab's
+`AGENTS.md`, where a new session could miss it. The skills `lab-work` and `lab-talk` changed: run `lab init` in
+a lab after upgrading, or `lab check` reports that they differ from the installed kit.
+
+- A decision card may carry `order: [<ids>]`: goals, questions and steps, first to last. Once the decision is
+  settled, "Yours next" and "Not yours to move yet" in `lab now`, and Next and the idle line on the site's Now
+  page, list steps in that order. A step takes its own place if the order names it, else its question's, else
+  its goal's; steps sharing a place, and steps not named, keep the tree's order, the unnamed after the named.
+  The last settled decision, by number, that carries an `order:` has the say. An open decision orders nothing.
+- `lab now` says which decision set the order; `lab show <decision>` and the decision's page list the order.
+- `lab check` reports an `order:` that names something other than a goal, a question or a step, or names one
+  twice. A settled decision's `order:` is held against the lab's history, like its `about:`.
+
 ## 1.1.0
 
 A question can be parked: set aside by a decision, not dropped, and brought back only by another. Before, a

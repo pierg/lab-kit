@@ -17,6 +17,8 @@ discussion, recorded as a decision. What a decision settled needs no further yes
 
 `lab now`. If something is under **To discuss with the operator** and they are here, bring it to them
 first (the lab-talk skill). Otherwise take the first line under **Yours next**: it says what to do.
+When a decision has set the order of the work, **Yours next** is already in that order and says which
+decision set it; follow it, and bring a change of order to the operator rather than skipping ahead.
 `lab show <id>` before you touch anything.
 
 Then say what you are on, before the first edit: `lab log <id> doing "<what you are starting on>"

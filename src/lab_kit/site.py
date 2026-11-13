@@ -434,6 +434,8 @@ def decision_box(lab, T, d, link=True, title=True):
     if done:
         rows.append((f'Decided {nice(d["decided"].get("date"))}', block(T, d["slots"].get("Decided", ""))))
     rows += [(verb if done else f"Would {verb.lower()}", "<br>".join(named(lab, i) if i in lab.nodes else e(i) for i in d[key])) for key, verb in (("parks", "Parks"), ("unparks", "Brings back")) if d[key]]
+    if d["order"]:
+        rows.append(("Orders the work" if done else "Would order the work", "<ol>" + "".join(f"<li>{named(lab, i) if i in lab.nodes else e(i)}</li>" for i in d["order"]) + "</ol>"))
     rows += [(k, block(T, d["slots"][k])) for k in ("Seen", "Options", "Recommendation") if L.flat(d["slots"].get(k, ""))]
     if not done:
         held = lab.held_by(d)
@@ -647,7 +649,8 @@ def home(lab, T):
     nxt = [x for x in lab.yours() if x["id"] != busy]
     held = [x for x in lab.pursued() if x["state"] == "waiting" or (x["state"] == "planned" and not x["mine"] and x["next"])]
     if nxt or held:
-        out.append('<h2>Next</h2><table class="t"><tr><th>What</th><th>Who moves it</th><th>What happens next</th></tr>' + "".join(
+        by = lab.ordered_by()
+        out.append('<h2>Next</h2>' + (f'<p class="muted" style="font:.84rem var(--sans)">In the order of the work set by {named(lab, by["id"])}.</p>' if by else "") + '<table class="t"><tr><th>What</th><th>Who moves it</th><th>What happens next</th></tr>' + "".join(
             f'<tr><td>{named(lab, x["id"])}</td><td>{"the agent" if x["mine"] else "waits"}</td><td>{("" if x["mine"] else "on ") + T(you(x["next"]))}</td></tr>' for x in nxt + held) + "</table>")
     out.append("<h2>Where each question stands</h2>")
     for g in lab.live(lab.goals):

@@ -246,12 +246,22 @@ that parks or brings back a question has the say. An open decision parks nothing
 never come back, with `dropped: <why>` on its card; park one that may. A goal is closed by `reached: true` or
 `dropped: <why>`, and a dropped goal drops every question under it.
 
+**The order of the work.** What the agent takes up first is agreed with you, and a settled decision records
+it: `order:` lists goals, questions and steps, first to last. `lab now` ("Yours next", "Not yours to move yet")
+and the site's Now page list steps in that order. A step takes the place of its own id where the order names it,
+else of its question's, else of its goal's; steps that share a place, and every step the order does not name,
+keep the order of the tree, the unnamed ones after the named. The last settled decision, by number, that carries
+an `order:` has the say; an open decision orders nothing yet. The order only sorts: it moves nothing a step's
+state holds, and a step under a parked or dropped question stays off the list wherever the order puts it. Each
+id is a goal, a question or a step of the lab, named once. A step never carries its own place: the order is
+worked out from the decision, never written on a card.
+
 You may also decide something nobody raised: add, change or drop an experiment or a build, reorder the
-work, stop a run. Say it, and the agent records it as a decision and follows it. Two things hold for
+work (a decision with a new `order:`), stop a run. Say it, and the agent records it as a decision and follows it. Two things hold for
 you as for the agent: a locked plan is changed by a new experiment that replaces it, and an outcome is
 worked out from the results, not decided.
 
-**A settled decision stays as it was settled.** Its `decided:`, its `about:`, its `parks:`, its `unparks:` and its Decided text never
+**A settled decision stays as it was settled.** Its `decided:`, its `about:`, its `parks:`, its `unparks:`, its `order:` and its Decided text never
 change once committed; a change of mind is a new decision. `lab check` holds this against the lab's
 history. So a decision cannot be made, afterwards, to be about something it never discussed.
 
@@ -389,7 +399,8 @@ the same briefing as text, which is what the agent says in chat when asked what 
 and the answer in chat cannot differ. An experiment's page is the evidence behind one step.
 
 **Now** is read top to bottom in the order the operator asks: what is happening at this moment and
-how fresh the record is; what there is to discuss with you; what is next and who moves it; where each
+how fresh the record is; what there is to discuss with you; what is next and who moves it, in the agreed
+order of the work and naming the decision that set it; where each
 question stands (what is known so far, and nothing else); the latest events; what is left of each
 resource. Nothing on it is static text except one line per goal.
 
@@ -458,7 +469,7 @@ and its sealed runs across as what they were.
 **A card** is front matter, then its description as a paragraph, then `## Slot` sections. It never
 holds an id, a state or an outcome. Every file of a lab is UTF-8 text; line ends of either kind
 read the same, and so hash the same where a review is bound to a file. The front matter sits between
-the first two lines that are exactly `---`. A key that holds a list (`needs`, `uses`, `see`, `about`, `holds`, `parks`, `unparks`, `commits`,
+the first two lines that are exactly `---`. A key that holds a list (`needs`, `uses`, `see`, `about`, `holds`, `parks`, `unparks`, `order`, `commits`,
 `tests`) is written as one, `[a, b]`; every other key holds one value.
 
 | Card | Front matter | Slots (word budget) |
@@ -468,7 +479,7 @@ the first two lines that are exactly `---`. A key that holds a list (`needs`, `u
 | `experiment.md` | `title:`, `needs:`, `uses:` (resources), `override: {resource: cap}`, `cost:`, `replaces:` with `because:` (one sentence), `waiting_on:`, `dropped: <why>` | description (70), Compares: the comparison in a sentence (80), Arms (260), Cases (100), Confirmed if (150), Refuted if (110), Outcomes (200), Limits (120), Found (180), Means (150) |
 | `reading.md` | `title:`, `needs:`, `dropped: <why>` | description (70), Looks at: what, and where it is (110), Seen (320), Suggests (150) |
 | `build.md` | `title:`, `needs:`, `commits:`, `tests:`, `dropped: <why>` | description (60), How it works (200), Works when (80) |
-| `D<n>-<slug>.md` | `title:`, `about:` (the goals, questions, experiments or resources it concerns), `date:`, `holds:`; `parks:` and `unparks:` (questions, each also under `about:`); `decided: {date, with}` is written by `lab decide` | Seen (120), Options: a list, one option an item (200), Recommendation (80), Decided (120) |
+| `D<n>-<slug>.md` | `title:`, `about:` (the goals, questions, experiments or resources it concerns), `date:`, `holds:`; `parks:` and `unparks:` (questions, each also under `about:`); `order:` (goals, questions and steps, first to last); `decided: {date, with}` is written by `lab decide` | Seen (120), Options: a list, one option an item (200), Recommendation (80), Decided (120) |
 
 Any card may carry `see:`, a list of pages that explain it: pages of the lab's own library, and pages
 of another library its charter names, written as folio writes them (`pier-folio:/content/readings/...`),

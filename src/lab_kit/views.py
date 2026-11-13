@@ -26,6 +26,8 @@ def decision_text(lab, d):
     for key, verb in (("parks", "Parks"), ("unparks", "Brings back")):
         if d[key]:
             out += [f"{verb}: " + ", ".join(f"{i} {lab.nodes[i]['title']}" if i in lab.nodes else i for i in d[key])]
+    if d["order"]:
+        out += [("Orders the work" if d["decided"] else "Would order the work") + ", first to last: " + ", ".join(d["order"])]
     out += [f"{slot}. {R.flat(d['slots'][slot])}" for slot in ("Seen", "Options", "Recommendation", "Decided") if R.flat(d["slots"].get(slot, ""))]
     if d["state"] == "open":
         held = lab.held_by(d)
@@ -71,9 +73,11 @@ def _now(lab):
         out += [decision_text(lab, d), ""]
     going = [f"- {x['id']} {x['title']}: {r['id']}, started {r['started']}" for x in lab.experiments for r in x["runs"] + x["trials"] if r["state"] == "running" and not r["orphan"]]
     out += ["" if not waiting else None, "Running"] + (going or ["- nothing"])
-    out += ["", "Yours next"] + ([f"- {x['id']} {x['title']} ({x['type']}): {x['next']}" for x in lab.yours()] or ["- nothing"])
+    by = lab.ordered_by()
+    order = f" (in the order {by['id']} set)" if by else ""
+    out += ["", "Yours next" + order] + ([f"- {x['id']} {x['title']} ({x['type']}): {x['next']}" for x in lab.yours()] or ["- nothing"])
     held = [f"- {x['id']} {x['title']}: on {x['next']}" for x in lab.pursued() if x["state"] == "waiting" or (x["state"] == "planned" and not x["mine"])]
-    out += ["", "Not yours to move yet"] + (held or ["- nothing"])
+    out += ["", "Not yours to move yet" + order] + (held or ["- nothing"])
     out += ["", "Questions"]
     for q in lab.live(lab.questions):
         counts = {}

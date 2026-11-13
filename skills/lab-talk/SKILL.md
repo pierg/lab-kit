@@ -63,6 +63,12 @@ clear. To park, list the question under `parks:` and `about:` on the decision be
 the Decided text why and what would bring it back. To bring one back, a new decision lists it under
 `unparks:`. To close a goal, put `reached: true` or `dropped: <why>` on its card, out of a decision.
 
+When they agree an order of work ("this first, then these side by side"), record it on the decision as
+`order: [<ids>]`, first to last: goals, questions or steps, each once. A question or a goal stands for every
+step under it; a step named on its own takes its own place. Steps not named follow, in the tree's order. Say
+the order in the Decided text too. To change it, a new decision with a new `order:`; never edit a settled one,
+and never write the order anywhere else (not in `AGENTS.md`, not on a step).
+
 ## Rules
 
 - Never copy the operator's messages into the lab. The record says what was decided and why.
