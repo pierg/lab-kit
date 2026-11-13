@@ -77,4 +77,4 @@ def test_parking_names_a_question_the_decision_is_about_and_stays_as_settled(tmp
     git(root, "add", ".")
     git(root, "commit", "-qm", "settled")
     front(card, parks="[]")  # what a settled decision parked cannot be taken back by editing it
-    assert "and what it parks or brings back, its `decided:`" in lab(root, "check", "--no-rederive", ok=False)
+    assert "and what it parks or brings back, the order it sets, its `decided:`" in lab(root, "check", "--no-rederive", ok=False)
