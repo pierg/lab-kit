@@ -177,10 +177,10 @@ class Text:
                 return ref(lab, m.group("id")) if m.group("id") in lab.nodes else m.group("id")
             word = m.group("term")
             key = word.lower() if word.lower() in self.defs else word.lower()[:-1]
-            if key in seen or key not in self.defs:
+            if key not in self.defs:
                 return word
-            seen.add(key)
-            return f'<span class="term" data-tip="{e(self.defs[key]["definition"])}">{word}</span>'
+            anchor = self.defs[key]["term"].lower().replace(" ", "-")
+            return f'<a class="term" href="/glossary#{e(anchor)}" data-tip="{e(self.defs[key]["definition"])}">{word}</a>'
 
         return self.rx.sub(one, e(L.flat(text), quote=False))
 
@@ -258,7 +258,8 @@ CSS = """
 .lv .log .so::before{content:"So  ";font:650 .66rem var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .lv [data-tip]{position:relative}
 .lv [data-tip]:hover::after{content:attr(data-tip);position:absolute;left:0;top:1.5em;z-index:40;width:max-content;max-width:23rem;padding:.5rem .7rem;border-radius:6px;background:var(--ink);color:var(--paper);font:400 .8rem/1.4 var(--sans);white-space:normal;box-shadow:var(--shadow)}
-.lv .term{border-bottom:1px dotted var(--ink-3);cursor:help}
+.lv a.term{color:inherit;text-decoration:none;border-bottom:1px dotted var(--ink-3)}
+.lv a.term:hover{color:var(--accent);border-bottom-color:var(--accent)}
 .lv a.num{font-variant-numeric:tabular-nums;font-family:var(--sans);font-size:.92em;padding:0 .22em;margin:0 -.05em;border-radius:4px;background:var(--info-soft);color:var(--info);text-decoration:none}
 .lv a.ref{font:500 .88em var(--sans);text-decoration:none;white-space:nowrap}
 .lv .chg{background:var(--mark);border-radius:3px;padding:0 .25em;font:650 .64rem var(--sans);letter-spacing:.06em;text-transform:uppercase;margin-left:.4em;color:var(--ink)}
@@ -1218,7 +1219,7 @@ class Provider:
             n = lab.nodes[inner]
             page = {"goal": goal_page, "question": question_page, "experiment": experiment_page, "build": build_page, "reading": reading_page, "decision": decision_page}[n["type"]](lab, T, n)
             genre, status, path = n["type"], label(n), n["path"]
-            description = n["asks"] if n["type"] == "question" and n["asks"] != n["title"] else "" if n["type"] in L.STEPS else L.bare(n.get("description") or "")
+            description = "" if n["type"] in ("question",) or n["type"] in L.STEPS else L.bare(n.get("description") or "")
         if page is None:
             return None
         body = re.sub(r"<h1>.*?</h1>", "", page["body"], count=1, flags=re.S)
@@ -1329,6 +1330,8 @@ def question_page(lab, T, q):
     s = q["slots"]
     live = [x for x in q["items"] if x["state"] not in ("replaced", "dropped")]
     body = [f'<h1>{e(q["title"])}</h1>']
+    if q.get("asks") and q["asks"] != q["title"]:
+        body.append(f'<p class="lead">{T(q["asks"])}</p>')
     if q["state"] == "parked":
         d = lab.parked_by(q["id"])
         body.append(f'<div class="box"><b>Set aside</b> by {named(lab, d["id"])}: nothing under it moves until a decision brings it back.</div>')
