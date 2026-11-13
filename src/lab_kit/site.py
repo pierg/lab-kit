@@ -186,6 +186,15 @@ class Text:
 
 
 CSS = """
+.lv figure.pic{margin:1.2rem 0 1.6rem;padding:1rem;background:var(--surface);border:1px solid var(--rule);border-radius:10px;overflow-x:auto}
+.lv figure.pic svg{display:block;width:100%;height:auto;min-width:560px}
+.lv .tw{overflow-x:auto;margin:.6rem 0 1rem}
+.lv table.t.card th{text-transform:none;letter-spacing:0;font:650 .82rem var(--sans);color:var(--ink-2)}
+.lv .box.note{border-left:3px solid var(--ink-3);background:var(--sunk)}
+.lv .box.note p{display:inline}
+.lv .lv-h3,.lv h3{font:650 1.02rem var(--sans)}
+.lv details.record{margin-top:2rem}
+.lv details.record>summary{font:650 1.1rem var(--sans);cursor:pointer;padding:.6rem 0}
 .lv{font:400 1rem/1.6 var(--serif)}
 .lv h3{margin:1.2em 0 .3em}
 .lv .crumbs{font:500 .8rem var(--sans);color:var(--ink-3)}
@@ -375,12 +384,27 @@ def slot(name, inner, cls=""):
     return f'<div class="slot {cls}"><h5>{e(name)}</h5>{inner if inner.startswith(("<p>", "<ul>", "<ol>")) else "<p>" + inner + "</p>"}</div>'
 
 
+def table_html(T, lines, home=None):
+    """A pipe table as the card writes it: the first row is the header, a row of dashes under it is skipped."""
+    rows = [[c.strip() for c in l.strip().strip("|").split("|")] for l in lines]
+    rows = [r for r in rows if not all(re.fullmatch(r":?-{2,}:?", c) for c in r if c)]
+    head, body = rows[0], rows[1:]
+    return ('<div class="tw"><table class="t card">' + "<tr>" + "".join(f"<th>{T(c, home)}</th>" for c in head) + "</tr>"
+            + "".join("<tr>" + "".join(f"<td>{T(c, home)}</td>" for c in r) + "</tr>" for r in body) + "</table></div>")
+
+
 def block(T, text, home=None):
-    """A slot's prose as written: its paragraphs as paragraphs, its lists as lists, numbered when the card numbers them."""
+    """A slot's prose as written: its paragraphs as paragraphs, its lists as lists, numbered when the card numbers them,
+    its tables as tables, and a heading line (### ...) as a heading."""
     out = []
     mark = re.compile(r"^(- |\d+\. )")
     for part in re.split(r"\n\s*\n", str(text or "").strip()):
         lines = [l.strip() for l in part.splitlines() if l.strip()]
+        while lines and lines[0].startswith("### "):
+            out.append(f"<h3>{T(lines.pop(0)[4:], home)}</h3>")
+        if lines and all(l.startswith("|") for l in lines):
+            out.append(table_html(T, lines, home))
+            continue
         first = next((i for i, l in enumerate(lines) if mark.match(l)), None)
         if lines and first is None:
             out.append(f"<p>{T(' '.join(lines), home)}</p>")
@@ -396,6 +420,39 @@ def block(T, text, home=None):
                     rows[-1] += " " + l
             tag = "ul" if lines[first].startswith("- ") else "ol"
             out.append(f"<{tag}>" + "".join(f"<li>{T(r, home)}</li>" for r in rows) + f"</{tag}>")
+    return "".join(out)
+
+
+def own(text, default):
+    """A slot's heading: the card's own first line when it is a heading (## ...), else the template's name."""
+    t = str(text or "").strip()
+    m = re.match(r"^#{2,3} (.+)\n?", t)
+    return (m.group(1).strip(), t[m.end():]) if m else (default, t)
+
+
+def section(T, text, default, home=None, extra=""):
+    if not L.flat(text) and not extra:
+        return ""
+    head, body = own(text, default)
+    return f'<h2>{T(head, home)}</h2>{block(T, body, home)}{extra}'
+
+
+def picture(lab, n):
+    """The node's picture: picture.svg beside its card, drawn inline at the top of its page."""
+    p = os.path.join(lab.root, n["dir"], "picture.svg")
+    if not os.path.isfile(p):
+        return ""
+    svg = L.read(p)
+    svg = re.sub(r"<\?xml[^>]*>", "", svg)
+    return f'<figure class="pic">{svg}</figure>'
+
+
+def decided_notes(lab, T, n):
+    """The decisions about a node that are settled and change how it is read: one line each, at the top."""
+    out = []
+    for d in lab.decisions:
+        if d["state"] == "decided" and n["id"] in d["about"] and L.flat(d["slots"].get("Note", "")):
+            out.append(f'<div class="box note"><b><a href="/{d["id"]}">{e(d["title"])}</a></b> {block(T, d["slots"]["Note"])}</div>')
     return "".join(out)
 
 
@@ -1206,3 +1263,98 @@ class Provider:
 
 def provider(library_root):
     return Provider(library_root)
+
+
+# ---- page style 2: the card's own headings, a picture at the top, the record folded ----
+
+def record_box(lab, T, x, runs_html="", reviews_html=""):
+    inner = runs_html + reviews_html + earlier(lab, T, x) + where_to_look(lab, [x]) + "<h3>Log</h3>" + log_html(lab, T, happened([l for l in lab.lines if l["about"] == x["id"]]), False)
+    return f'<details class="record"><summary>The record: runs, reviews, files and log</summary>{inner}</details>'
+
+
+_old_experiment_page = experiment_page
+
+
+def experiment_page(lab, T, x):
+    q = lab.nodes[x["question"]]
+    s = x["slots"]
+    body = [f'<h1>{e(x["title"])}</h1>', f'<p class="lead">{T(x["description"])}</p>', ran(lab, x)]
+    by = lab.replaced_by(x["id"])
+    if by:
+        why = L.flat(by.get("because") or "")
+        body.append(f'<div class="box"><b>Replaced by</b> {named(lab, by["id"])}' + (f": {T(why)}" if why else ".") + "</div>")
+    body.append(where_box(lab, T, x))
+    body += [decision_box(lab, T, d) for d in lab.open_decisions() if x["id"] in d["about"] or x["id"] in d["holds"]]
+    body.append(decided_notes(lab, T, x))
+    body.append(picture(lab, x))
+    if x["state"] == "done":
+        body.append(section(T, s.get("Means", ""), "What it means", x["id"]) + section(T, s.get("Found", ""), "What was found", x["id"]))
+    body.append(section(T, s.get("Compares", ""), "What it compares"))
+    body.append(section(T, s.get("Arms", ""), "The arms"))
+    body.append(section(T, s.get("Cases", ""), "Run on"))
+    body.append(section(T, s.get("Outcomes", ""), "How the answer is read", extra=tick_rows(lab, x)))
+    body.append(section(T, s.get("Limits", ""), "What it cannot show"))
+    if x["state"] != "done":
+        body.append(cost_box(lab, T, [x], [x.get("cost") or ""]))
+    if x["results"] and x["reviewed"]:
+        body.append(results_tables(lab, T, x))
+    # the record: reuse the old page's runs and reviews, cut out of it
+    old = _old_experiment_page(lab, T, x)["body"]
+    m = re.search(r'(<ul class="runs">.*?</ul>)', old, flags=re.S)
+    runs_html = ("<h3>Runs</h3>" + m.group(1)) if m else ""
+    m = re.search(r'(<table class="t"><tr><th>Reviewed</th>.*?</table>)', old, flags=re.S)
+    reviews_html = ("<h3>Reviews</h3>" + m.group(1)) if m else ""
+    body.append(record_box(lab, T, x, runs_html, reviews_html))
+    return frame(lab, x["title"], "".join(body), edges_panel(lab, x), [("/", "Now"), ("/" + q["id"], q["title"])])
+
+
+def question_page(lab, T, q):
+    s = q["slots"]
+    live = [x for x in q["items"] if x["state"] not in ("replaced", "dropped")]
+    body = [f'<h1>{e(q["title"])}</h1>']
+    if q["state"] == "parked":
+        d = lab.parked_by(q["id"])
+        body.append(f'<div class="box"><b>Set aside</b> by {named(lab, d["id"])}: nothing under it moves until a decision brings it back.</div>')
+    body.append(decided_notes(lab, T, q))
+    body.append(picture(lab, q))
+    body.append(f'<div class="why">{block(T, q["description"])}</div>')
+    body.append(section(T, s.get("So far", ""), "What we know so far"))
+    body.append(section(T, s.get("How we would know", ""), "How it works"))
+    body.append(section(T, s.get("Example", ""), "One real case, step by step"))
+    body.append(section(T, s.get("We expect", ""), "We expect"))
+    body.append(section(T, s.get("Wrong if", ""), "Wrong if"))
+    talk = [d for d in lab.open_decisions() if any(a == q["id"] or a.startswith(q["id"] + ".") for a in d["about"] + d["holds"])]
+    if talk:
+        body.append("<h2>What is needed from you</h2>" + "".join(decision_box(lab, T, d) for d in talk))
+    if live:
+        body.append("<h2>The steps, and where each stands</h2>" + "".join(step_row(lab, T, x) for x in live))
+    tests = [x for x in live if x["type"] == "experiment"]
+    body.append(cost_box(lab, T, tests, [x.get("cost") or "" for x in tests if x["state"] != "done"]))
+    inner = where_to_look(lab, live) + "<h3>Log</h3>" + log_html(lab, T, happened([l for l in lab.lines if l["about"] == q["id"] or l["about"].startswith(q["id"] + ".")]))
+    body.append(f'<details class="record"><summary>The record: files and log</summary>{inner}</details>')
+    return frame(lab, q["title"], "".join(body), edges_panel(lab, q), [("/", "Now"), ("/" + q["goal"], lab.nodes[q["goal"]]["title"])])
+
+
+def glossary_page(lab, T):
+    """Every term, by group, all open; each with its definition, its example and where it is explained."""
+    groups = {}
+    for g in lab.glossary:
+        groups.setdefault(g["group"] or "Terms", []).append(g)
+    body = ["<h1>Glossary</h1>"]
+    intro = getattr(lab, "glossary_intro", "")
+    if intro:
+        body.append(f'<div class="why">{block(T, intro)}</div>')
+    body.append('<input class="gfilter" type="search" placeholder="Find a term" aria-label="Find a term" oninput="'
+                "var q=this.value.toLowerCase();document.querySelectorAll('.ggroup').forEach(function(g){var n=0;g.querySelectorAll('dt').forEach(function(t){"
+                "var d=t.nextElementSibling,hit=!q||(t.textContent+' '+d.textContent).toLowerCase().indexOf(q)>=0;t.hidden=d.hidden=!hit;if(hit)n++;});g.hidden=!n;});"
+                '">')
+    for name, terms in groups.items():
+        rows = []
+        for g in terms:
+            ex = f'<span class="gex">{T(g["example"])}</span>' if g.get("example") else ""
+            more = f' <span class="gsee">See: {see_link(lab, g["see"])}</span>' if g["see"] else ""
+            rows.append(f'<dt id="{e(g["term"].lower().replace(" ", "-"))}">{e(g["term"])}</dt><dd>{e(g["definition"])}{ex}{more}{avoid_note(g)}</dd>')
+        body.append(f'<details class="ggroup" open><summary>{e(name)}<span>{len(terms)} terms</span></summary><dl class="gloss">{"".join(rows)}</dl></details>')
+    body.append("<style>.lv .gex{display:block;margin-top:.3rem;font-size:.93rem;color:var(--ink-2)}.lv .gex::before{content:'For example: ';font-weight:600}.lv .gsee{display:block;font:.82rem var(--sans);margin-top:.2rem}.lv .why{max-width:48rem}</style>")
+    body.append("<script>(function(){var h=decodeURIComponent(location.hash.slice(1));var t=h&&document.getElementById(h);if(t){t.scrollIntoView();}})();</script>")
+    return frame(lab, "Glossary", "".join(body))
