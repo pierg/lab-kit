@@ -52,9 +52,9 @@ def run(lab, rederive=True):
         for key in sorted(fm_keys - KEYS[n["type"]] - {"id", "status", "state", "outcome"}):
             bad("cards", n["path"], f"`{key}:` is not something a {n['type']} card holds")
         for slot, budget in R.SLOTS.get(n["type"], ()):
-            if slot not in n["slots"]:
+            if slot not in n["slots"] and (n["type"], slot) not in R.OPTIONAL:
                 bad("cards", n["path"], f"missing slot {slot}")
-            elif len(n["slots"][slot].split()) > budget:
+            elif len(n["slots"].get(slot, "").split()) > budget:
                 bad("cards", n["path"], f"{slot} is {len(n['slots'][slot].split())} words, budget {budget}")
         if not str(n.get("title") or "").strip() or n["title"] == n["id"]:
             bad("cards", n["path"], "has no title")
@@ -141,8 +141,8 @@ def run(lab, rederive=True):
             bad("cards", d["path"], "a settled decision holds when, with whom, and what was decided and why under Decided")
         if not done and d["slots"].get("Decided"):
             bad("cards", d["path"], "holds a Decided that `lab decide` did not record")
-        if len(d["slots"].get("Decided", "").split()) > 120:
-            bad("cards", d["path"], f"Decided is {len(d['slots']['Decided'].split())} words, budget 120")
+        if len(d["slots"].get("Decided", "").split()) > R.DECIDED:
+            bad("cards", d["path"], f"Decided is {len(d['slots']['Decided'].split())} words, budget {R.DECIDED}")
         if not R.flat(d["slots"].get("Seen", "")):
             bad("cards", d["path"], "does not say what was seen")
 
@@ -184,7 +184,7 @@ def run(lab, rederive=True):
             if lab.nodes[x["question"]]["state"] == "under discussion":
                 bad("locks", p, f"is locked under {x['question']}, whose decision is not settled")
             if not x["lock"].get("unreadable") and not lab.lock_holds(x):
-                bad("locks", p, "what it demands (its comparison, arms, cases, bars, outcomes or limits) or the resources it uses changed after the lock; that is a new experiment")
+                bad("locks", p, "what it demands (a bar's result, comparison or number, an arm's name) or the resources it uses changed after the lock; that is a new experiment")
             for l in x["lines"]["confirmed"] + x["lines"]["refuted"]:
                 if not l["test"]:
                     bad("locks", p, f"the line {l['say']!r} has no test")

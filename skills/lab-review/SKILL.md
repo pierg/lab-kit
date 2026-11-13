@@ -50,8 +50,44 @@ When you read a plan, also read the card as someone who was not there. If an arm
 explained, or the card points at something it does not say, say so in the note: it does not fail the
 review, and the author fixes it before the lock.
 
+## A rewording of a locked card
+
+After the lock, the words of a plan may be made clearer; what it demands may not. `lab check` holds
+the machine terms (each bar's result, comparison and number, each arm's name, `uses:`). You read the
+rest. Compare the card as it was locked (`git log -p -- <card>`, from the commit that holds its lock)
+with the card now:
+
+1. Slot by slot, the meaning is unchanged: the same comparison, the same arms doing the same things,
+   the same cases, the same outcomes and limits. A clearer sentence passes; a narrower or wider one
+   fails.
+2. Every number in a line's sentence matches its test, and its test is the one locked.
+3. Nothing observed is in the plan or in the picture: no status, no result, no "since the lock".
+   What was observed goes in So far.
+4. The picture shows only what the card states.
+5. Every dotted word on the page (a glossary link) means the lab's meaning where it is used. A word
+   used in its everyday sense that links to a lab term is a fault.
+
+Give the verdict, pass or fail, with one sentence per fault, to whoever asked. You write nothing in
+the lab: the author logs the rewording with your verdict
+(`lab log <experiment> agent "Reworded the locked card: <what>" "Reviewed by <you>: pass"`).
+
+## A page's style
+
+Open the page on the site and read it top to bottom as the operator would:
+
+- the picture comes first, numbered, showing the whole work and only what the card states;
+- What we know so far holds everything observed, and the plan below it holds nothing observed;
+- each slot sits in its box under its fixed label, with no heading of the card's own above it;
+- every other page is named by its exact title, so it is a link;
+- every glossary word is a link and means the lab's meaning there, and no word is defined on the
+  page that is not in the glossary;
+- sentences are plain, one idea each; items compared are in a table; options are named in words,
+  never letters.
+
+Report each fault with where it is. Fix nothing yourself.
+
 ## Rules
 
-- Do not fix anything. Do not edit a card, a plan or a row.
+- Do not fix anything. Do not edit a card, a picture, a plan or a row.
 - Do not read the author's log lines or messages before you have read the files.
 - If you cannot re-run a command or open the run's output, fail it and say why.

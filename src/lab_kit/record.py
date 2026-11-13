@@ -15,19 +15,21 @@ import yaml
 
 KINDS = ["decision", "agent", "result", "stuck", "doing"]  # a decision recorded, a choice of the agent's, a result, something in the way, what the agent is on now
 CLOSES = ("agent", "result", "stuck")  # a later line of these kinds about the same card ends a `doing` line
-SLOTS = {  # every slot a card has, with its word budget
+SLOTS = {  # every slot a card has, with its word budget: a ceiling against sprawl, with room for a table or a numbered list
     "goal": (("Claim", 90), ("Example", 260), ("Approach", 340), ("Roles", 170), ("Vocabulary", 260)),
-    "question": (("How we would know", 150), ("Example", 380), ("We expect", 70), ("Wrong if", 70), ("So far", 180)),
-    "experiment": (("Compares", 80), ("Arms", 260), ("Cases", 100), ("Confirmed if", 150), ("Refuted if", 110), ("Outcomes", 200), ("Limits", 120), ("Found", 180), ("Means", 150)),
+    "question": (("How we would know", 180), ("Example", 380), ("We expect", 70), ("Wrong if", 70), ("So far", 220)),
+    "experiment": (("So far", 300), ("Compares", 300), ("Arms", 260), ("Cases", 120), ("Confirmed if", 150), ("Refuted if", 110), ("Outcomes", 260), ("Limits", 160), ("Found", 180), ("Means", 150)),
     "build": (("How it works", 200), ("Works when", 80)),
-    "reading": (("Looks at", 110), ("Seen", 320), ("Suggests", 150)),
-    "decision": (("Seen", 120), ("Options", 200), ("Recommendation", 80)),
+    "reading": (("Looks at", 120), ("Seen", 360), ("Suggests", 150)),
+    "decision": (("Seen", 150), ("Options", 200), ("Recommendation", 80), ("Note", 60)),
 }
+OPTIONAL = {("experiment", "So far"), ("decision", "Note")}  # slots a card may leave out: one written before the kit had them is still whole
+DECIDED = 150  # the word budget of what a decision says was decided and why, which `lab decide` writes
 # What a reader who was not there needs under every title. A question's is its motivation, so it gets room.
-DESCRIPTION = {"goal": 70, "question": 130, "experiment": 70, "build": 60, "reading": 70}
+DESCRIPTION = {"goal": 70, "question": 150, "experiment": 80, "build": 60, "reading": 70}
 STEPS = ("experiment", "build", "reading")  # what sits under a question: a locked comparison, something made, a look at what already exists
 READS = ("", "percent", "points")  # how a result's value reads on a page
-BEFORE = ("Compares", "Arms", "Cases", "Confirmed if", "Refuted if", "Outcomes", "Limits")  # what an experiment says before it runs, and what its lock holds
+BEFORE = ("Compares", "Arms", "Cases", "Confirmed if", "Refuted if", "Outcomes", "Limits")  # what an experiment says before it runs: its plan, which So far, Found and Means are not part of
 ROLES = {"answer": "The answer", "readable": "The answer can be read only if", "counts": "The answer counts only if"}  # what a confirmed-if bar is there for
 LINE = re.compile(r"^(?:(?P<role>answer|readable|counts):\s*)?(?P<say>.+?)\s*\(`(?P<name>[A-Za-z][\w.-]*)\s*(?P<op><=|>=|<|>)\s*(?P<num>-?\d+(?:\.\d+)?)`\)$")
 NAMED = re.compile(r"\{(?:(G\d+\.Q\d+\.\d+):)?([A-Za-z][\w.-]*?)\}")  # a result named on a card: {name}, or {G1.Q1.2:name} from elsewhere
@@ -803,11 +805,61 @@ class Lab:
             return None, False
         return rows[-1].get("verdict"), rows[-1].get("of") in (self.content(x, stage), self.content(x, stage, 1))  # a review made before folders were hashed as now still stands
 
+    def terms(self, slots):
+        """What a card demands in machine terms: each bar's result name, comparison and number, on its side, and each
+        arm's name. The words around them are not in it: they may be made clearer after the lock."""
+        sides = {}
+        for side, slot in (("confirmed", "Confirmed if"), ("refuted", "Refuted if")):
+            sides[side] = sorted([l["name"], l["op"], repr(l["num"])] if l["test"] else ["no test"] for l in self._lines(slots.get(slot, "")))
+        arms = sorted(tuple(p.strip() for p in (i.split(": ", 1) + [""])[:2])[0] for i in items(slots.get("Arms", "")))
+        return {**sides, "arms": arms}
+
+    def terms_hash(self, x):
+        return text_hash(json.dumps(self.terms(x["slots"]), sort_keys=True))
+
+    def locked_terms(self, x):
+        """The hash of what the experiment demanded in machine terms when it was locked, and where it was read from. A
+        lock made since 1.3.0 holds it (`terms`). An earlier lock holds only the hash of the whole plan as it was locked
+        (`card`): its terms are read from the card as git holds it in the version whose plan has that hash. None when
+        neither is there, and the whole plan is then held as it was locked."""
+        lock = x["lock"] or {}
+        if isinstance(lock.get("terms"), str):
+            return lock["terms"], "lock"
+        if lock.get("card") == self.before_hash(x):
+            return self.terms_hash(x), "card"
+        cache = self.__dict__.setdefault("_locked_terms", {})
+        if x["id"] not in cache:
+            cache[x["id"]] = None
+            import subprocess
+            git = lambda *a: subprocess.run(["git", "-C", self.root, *a], capture_output=True, text=True, errors="replace")
+            log = git("log", "--follow", "--format=commit %H", "--name-only", "--", x["path"])
+            commit = None
+            for line in log.stdout.splitlines() if log.returncode == 0 else []:
+                if line.startswith("commit "):
+                    commit = line[7:].strip()
+                elif line.strip() and commit:
+                    shown = git("show", f"{commit}:{line.strip()}")
+                    if shown.returncode != 0:
+                        continue
+                    try:
+                        _, slots, _ = parse(shown.stdout.replace("\r\n", "\n"))
+                    except Exception:
+                        continue
+                    if text_hash("\n".join(f"{k}\n{flat(slots.get(k, ''))}" for k in BEFORE)) == lock.get("card"):
+                        cache[x["id"]] = text_hash(json.dumps(self.terms(slots), sort_keys=True))
+                        break
+        return (cache[x["id"]], "git") if cache[x["id"]] else (None, None)
+
     def lock_holds(self, x):
-        """The lock holds what the experiment demands: its comparison, arms, cases, bars, outcomes and limits. The
-        apparatus in plan/ is pinned by each run, and may change between runs while none has finished."""
+        """The lock holds what the experiment demands in machine terms: the result, the comparison and the number of
+        each bar, the name of each arm, and the resources it uses. The words of the plan may be made clearer after the
+        lock; what they demand may not. The apparatus in plan/ is pinned by each run, and may change between runs while
+        none has finished."""
         lock = x["lock"]
-        return bool(lock) and lock.get("card") == self.before_hash(x) and (lock.get("uses") is None or sorted(lock["uses"]) == sorted(x["uses"]))
+        if not lock or not (lock.get("uses") is None or sorted(lock["uses"]) == sorted(x["uses"])):
+            return False
+        held, _ = self.locked_terms(x)
+        return self.terms_hash(x) == held if held else lock.get("card") == self.before_hash(x)
 
     def ticks(self, x):
         """Each line with whether it holds: True, False, or None while its result is not there."""

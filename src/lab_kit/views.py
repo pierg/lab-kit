@@ -176,6 +176,8 @@ def _show(lab, ident):
         out += [f"Replaced by {by['id']} {by['title']}."]
     if x.get("dropped"):
         out += [f"Dropped: {x['dropped']}"]
+    if R.flat(x["slots"].get("So far", "")):
+        out += ["", f"So far. {lab.fill(R.flat(x['slots']['So far']), x['id'])}"]
     out += ["", f"Compares. {R.flat(x['slots'].get('Compares', ''))}", "", "Arms"] + ([f"- {name}: {what}" for name, what in x["arms"]] or ["- none written yet"])
     out += ["", f"Cases. {R.flat(x['slots'].get('Cases', ''))}", ""]
     t = lab.ticks(x)

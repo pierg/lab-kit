@@ -38,7 +38,7 @@ def stop(msg):
 CARDS = {  # the description is the paragraph between the front matter and the first slot
     "goal": "---\ntitle: {title}\nfrom: {origin}\n---\n\n\n\n## Claim\n\n\n## Example\n\n\n## Approach\n\n\n## Roles\n\n\n## Vocabulary\n\n",
     "question": "---\ntitle: {title}\n{asks}from: {origin}\nneeds: []\n---\n\n\n\n## How we would know\n\n\n## Example\n\n\n## We expect\n\n\n## Wrong if\n\n\n## So far\n\nNothing has been run.\n",
-    "experiment": "---\ntitle: {title}\nneeds: []\nuses: []\n{extra}---\n\n{description}\n\n## Compares\n\n{Compares}\n\n## Arms\n\n{Arms}\n\n## Cases\n\n{Cases}\n\n## Confirmed if\n\n{Confirmed if}\n\n## Refuted if\n\n{Refuted if}\n\n## Outcomes\n\n{Outcomes}\n\n## Limits\n\n{Limits}\n\n## Found\n\n\n## Means\n\n",
+    "experiment": "---\ntitle: {title}\nneeds: []\nuses: []\n{extra}---\n\n{description}\n\n## So far\n\n\n## Compares\n\n{Compares}\n\n## Arms\n\n{Arms}\n\n## Cases\n\n{Cases}\n\n## Confirmed if\n\n{Confirmed if}\n\n## Refuted if\n\n{Refuted if}\n\n## Outcomes\n\n{Outcomes}\n\n## Limits\n\n{Limits}\n\n## Found\n\n\n## Means\n\n",
     "build": "---\ntitle: {title}\nneeds: []\ncommits: []\ntests: []\n---\n\n\n\n## How it works\n\n\n## Works when\n\n",
     "reading": "---\ntitle: {title}\nneeds: []\n---\n\n\n\n## Looks at\n\n\n## Seen\n\n\n## Suggests\n\n",
     "decision": "---\ntitle: {title}\nabout: [{about}]\ndate: {today}\nholds: []\n---\n\n## Seen\n\n\n## Options\n\n\n## Recommendation\n\n",
@@ -302,7 +302,7 @@ def lock(lab, ident):
         problems.append("its run uses a metered resource, and " + ("the plan changed after its review" if verdict == "pass" and not fresh else "no review has passed the plan"))
     if problems:
         stop(f"{ident} cannot be locked:\n- " + "\n- ".join(problems))
-    record = {"kit": __version__, "locked": now(), "commit": R.code_head(lab), "card": lab.before_hash(x), "plan": lab.plan_hash(x), "hash": R.HASH, "uses": sorted(x["uses"]),
+    record = {"kit": __version__, "locked": now(), "commit": R.code_head(lab), "card": lab.before_hash(x), "terms": lab.terms_hash(x), "plan": lab.plan_hash(x), "hash": R.HASH, "uses": sorted(x["uses"]),
               "trials": [r["id"] for r in x["trials"]]}
     path = os.path.join(lab.root, x["dir"], "lock.json")
     open(path, "w").write(json.dumps(record, indent=1) + "\n")

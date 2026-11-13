@@ -141,32 +141,39 @@ def named(lab, ident):
 
 
 class Text:
-    """Card prose to HTML: ids become links, a named result becomes its value, glossary terms get their definition."""
+    """Card prose to HTML. An id becomes a link, and a named result its value. A page's exact title becomes a link to
+    that page, an id in brackets after it included, before any glossary term inside it. Every glossary term, and every
+    other name its entry lists, links to its entry with the definition as its tooltip, wherever it is written."""
 
-    def __init__(self, lab):
-        self.lab = lab
+    def __init__(self, lab, here=None):
+        self.lab, self.here = lab, here
         terms = [g for g in lab.glossary if g["term"].lower() not in GENERIC]
         self.defs = {g["term"].lower(): g for g in terms}
         for g in terms:  # a term's other names (- also: ...) point at the same entry
             for other in g.get("also") or []:
                 self.defs.setdefault(other.lower(), g)
-        names = sorted(self.defs, key=len, reverse=True)
-        alt = "|".join(re.escape(n) for n in names) or r"(?!x)x"
-        # a page's own title, written in prose, links to that page before any glossary term inside it
-        self.titles = {}
+        self.titles = {}  # a title of two words or more, as it reads in escaped prose
         for n in lab.nodes.values():
             t = str(n.get("title") or "")
             if len(t.split()) >= 2 and t.lower() not in self.defs:
                 self.titles.setdefault(e(t, quote=False).lower(), n["id"])
-        talt = "|".join(re.escape(t) for t in sorted(self.titles, key=len, reverse=True)) or r"(?!x)x"
-        self.seen = set()
+        either = lambda words: "|".join(re.escape(w) for w in sorted(words, key=len, reverse=True)) or r"(?!x)x"
+        ident = r"(?:G\d+(?:\.Q\d+(?:\.\d+)?)?|D\d+)"
         self.rx = re.compile(
-            r"(?P<link>\[[^\]\n]+\]\([^)\s]+\))|(?P<code>`[^`]+`)|(?P<strong>\*\*[^*\n]+\*\*)|(?P<em>\*[^*\n]+\*)|(?P<named>\{(?:G\d+\.Q\d+\.\d+:)?[A-Za-z][\w.-]*?\})|(?P<id>\b(?:G\d+(?:\.Q\d+(?:\.\d+)?)?|D\d+)\b)"
-            r"|(?P<term>(?i:\b(?:" + alt + r")s?\b))")
-        self.rx = re.compile(self.rx.pattern.replace("|(?P<id>", r"|(?P<title>(?i:\b(?:" + talt + r")\b)(?: \((?:G\d+(?:\.Q\d+(?:\.\d+)?)?|D\d+)\))?)|(?P<id>", 1))
+            r"(?P<link>\[[^\]\n]+\]\([^)\s]+\))|(?P<code>`[^`]+`)|(?P<strong>\*\*[^*\n]+\*\*)|(?P<em>\*[^*\n]+\*)|(?P<named>\{(?:G\d+\.Q\d+\.\d+:)?[A-Za-z][\w.-]*?\})"
+            r"|(?P<title>(?i:\b(?:" + either(self.titles) + r")\b)(?: \(" + ident + r"\))?)"
+            r"|(?P<id>\b" + ident + r"\b)"
+            r"|(?P<term>(?i:\b(?:" + either(self.defs) + r")s?\b))")
+
+    def term(self, word):
+        """A glossary term as written in prose: a link to its entry, its definition as the tooltip."""
+        key = word.lower() if word.lower() in self.defs else word.lower()[:-1]
+        if key not in self.defs:
+            return word
+        return f'<a class="term" href="/glossary#{e(anchor(self.defs[key]["term"]))}" data-tip="{e(self.defs[key]["definition"])}">{word}</a>'
 
     def __call__(self, text, home=None):
-        lab, seen = self.lab, self.seen
+        lab = self.lab
 
         def one(m):
             if m.group("code"):
@@ -180,12 +187,11 @@ class Text:
             if m.group("em"):
                 return f"<em>{self.rx.sub(one, m.group('em')[1:-1])}</em>"
             if m.group("title"):
-                written = m.group("title")
-                said = re.sub(r" \([GD][\d.Q]+\)$", "", written)
+                said = re.sub(r" \([GDQ\d.]+\)$", "", m.group("title"))
                 nid = self.titles.get(said.lower())
-                if nid:
-                    return f'<a class="page" href="/{nid}" data-tip="{e(nid)}: {e(lab.nodes[nid]["title"])}">{said}</a>'
-                return written
+                if nid == self.here:  # a page does not link to itself
+                    return said
+                return f'<a class="page" href="/{nid}" data-tip="{e(nid)}: {e(lab.nodes[nid]["title"])}">{said}</a>'
             if m.group("named"):
                 (written, row), = lab.named(m.group("named"), home)
                 if not row or not row["usable"]:
@@ -194,14 +200,14 @@ class Text:
                 return f'<a class="num" href="/{row["experiment"]}#r-{e(row["name"])}" data-tip="{e(tip)}">{e(L.shown(row))}</a>'
             if m.group("id"):
                 return ref(lab, m.group("id")) if m.group("id") in lab.nodes else m.group("id")
-            word = m.group("term")
-            key = word.lower() if word.lower() in self.defs else word.lower()[:-1]
-            if key not in self.defs:
-                return word
-            anchor = self.defs[key]["term"].lower().replace(" ", "-")
-            return f'<a class="term" href="/glossary#{e(anchor)}" data-tip="{e(self.defs[key]["definition"])}">{word}</a>'
+            return self.term(m.group("term"))
 
         return self.rx.sub(one, e(L.flat(text), quote=False))
+
+
+def anchor(term):
+    """Where a term's entry is on the glossary page."""
+    return term.lower().replace(" ", "-")
 
 
 CSS = """
@@ -377,6 +383,9 @@ CSS = """
 .lv dl.gloss dt{font-weight:600}
 .lv dl.gloss dd{margin:0;color:var(--ink-2)}
 .lv dl.gloss :target{background:var(--mark)}
+.lv .gex{display:block;margin-top:.3rem;font-size:.93rem;color:var(--ink-2)}
+.lv .gex::before{content:"For example: ";font-weight:600}
+.lv .gsee{display:block;font:.82rem var(--sans);margin-top:.2rem}
 @media (max-width:640px){.lv dl.gloss{grid-template-columns:1fr}.lv .qrow{grid-template-columns:1fr}}
 """
 
@@ -447,37 +456,54 @@ def block(T, text, home=None):
     return "".join(out)
 
 
-def own(text, default):
-    """A slot's heading: the card's own first line when it is a heading (## ...), else the template's name."""
-    t = str(text or "").strip()
-    m = re.match(r"^#{2,3} (.+)\n?", t)
-    return (m.group(1).strip(), t[m.end():]) if m else (default, t)
-
-
-def section(T, text, default, home=None, extra=""):
-    if not L.flat(text) and not extra:
+def boxed(T, name, text, cls="full", home=None, extra=""):
+    """One slot in its box, under the template's fixed label: the label is the heading, the same on every page, so a
+    heading line the card starts the slot with is dropped. Nothing when the slot is empty and nothing goes with it."""
+    t = re.sub(r"^#{2,3} .+\n?", "", str(text or "").strip()).strip()
+    if not L.flat(t) and not extra:
         return ""
-    head, body = own(text, default)
-    return f'<h2>{T(head, home)}</h2>{block(T, body, home)}{extra}'
+    return slot(name, block(T, t, home) + extra, cls)
+
+
+def slots(*boxes):
+    inner = "".join(boxes)
+    return f'<div class="slots">{inner}</div>' if inner else ""
 
 
 def picture(lab, n):
-    """The node's picture: picture.svg beside its card, drawn inline at the top of its page."""
+    """The picture beside a card (`picture.svg`), drawn inline at the top of its page. It is the lab's own drawing, so
+    it may use the site's colours; what could run in a page (a script, an event handler, a javascript: link) is left out."""
+    if n["type"] == "decision":
+        return ""
     p = os.path.join(lab.root, n["dir"], "picture.svg")
     if not os.path.isfile(p):
         return ""
-    svg = L.read(p)
-    svg = re.sub(r"<\?xml[^>]*>", "", svg)
-    return f'<figure class="pic">{svg}</figure>'
+    svg = re.sub(r"<\?xml[^>]*>|<!DOCTYPE[^>]*>", "", L.read(p))
+    svg = re.sub(r"<script\b.*?(</script\s*>|$)", "", svg, flags=re.S | re.I)
+    svg = re.sub(r"<foreignObject\b.*?(</foreignObject\s*>|$)", "", svg, flags=re.S | re.I)
+    svg = re.sub(r"<[^<>]*>", lambda m: re.sub(r"""\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)""", "", m.group(0), flags=re.I), svg)
+    svg = re.sub(r"""(href\s*=\s*["']?)\s*javascript:""", r"\1#", svg, flags=re.I)
+    return f'<figure class="pic">{svg.strip()}</figure>' if svg.lstrip().startswith("<svg") else ""
 
 
 def decided_notes(lab, T, n):
-    """The decisions about a node that are settled and change how it is read: one line each, at the top."""
+    """The settled decisions about a node that carry a Note: what changes how the node is read, each with its decision."""
     out = []
     for d in lab.decisions:
         if d["state"] == "decided" and n["id"] in d["about"] and L.flat(d["slots"].get("Note", "")):
-            out.append(f'<p><b>Decided in <a href="/{d["id"]}">{e(d["title"])} ({d["id"]})</a>:</b></p>{block(T, d["slots"]["Note"])}')
+            out.append(f'<p><b>Decided in {named(lab, d["id"])}:</b></p>{block(T, d["slots"]["Note"])}')
     return "".join(out)
+
+
+def so_far(lab, T, n, home=None):
+    """What we know so far: the card's So far, or, while it says nothing, the notes of the decisions settled about it."""
+    text = n["slots"].get("So far", "")
+    return boxed(T, "What we know so far", text, "full key", home, "" if L.flat(re.sub(r"^#{2,3} .+\n?", "", str(text).strip())) else decided_notes(lab, T, n))
+
+
+def record_html(summary, inner):
+    """The record behind a page, folded at its bottom: runs, reviews, earlier plans, files and log."""
+    return f'<details class="record"><summary>{e(summary)}</summary>{inner}</details>'
 
 
 def arms_table(lab, T, x):
@@ -517,12 +543,14 @@ def decision_box(lab, T, d, link=True, title=True):
     rows += [(verb if done else f"Would {verb.lower()}", "<br>".join(named(lab, i) if i in lab.nodes else e(i) for i in d[key])) for key, verb in (("parks", "Parks"), ("unparks", "Brings back")) if d[key]]
     if d["order"]:
         rows.append(("Orders the work" if done else "Would order the work", "<ol>" + "".join(f"<li>{named(lab, i) if i in lab.nodes else e(i)}</li>" for i in d["order"]) + "</ol>"))
+    if done and L.flat(d["slots"].get("Note", "")):
+        rows.append(("What it changes for the reader", block(T, d["slots"]["Note"])))
     rows += [(k, block(T, d["slots"][k])) for k in ("Seen", "Options", "Recommendation") if L.flat(d["slots"].get(k, ""))]
     if not done:
         held = lab.held_by(d)
         rows.append(("Held until it is settled", "<br>".join(named(lab, h["id"]) for h in held) if held else "Nothing: the work goes on."))
     return (f'<div class="box decision{" closed" if done else ""}"><div class="decisionhead">{head}</div>'
-            + (f'<p class="decisionq">{T(d["title"])}</p>' if title else "")
+            + (f'<p class="decisionq">{e(d["title"])}</p>' if title else "")
             + '<dl class="decisionrows">' + "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in rows) + "</dl></div>")
 
 
@@ -784,18 +812,18 @@ def resources_table(lab):
 
 
 def goal_page(lab, T, g):
-    body = [f'<h1>{e(g["title"])}</h1>']
-    if L.flat(g["slots"].get("Claim", "")):
-        body.append('<div class="slots">' + slot("What we would claim, and against what", T(g["slots"]["Claim"]), "full key") + "</div>")
-    pairs = lambda name: [tuple(p.strip() for p in (i.split(": ", 1) + [""])[:2]) for i in L.items(g["slots"].get(name, ""))]
-    extra = [(title, block(T, g["slots"][k]), cls) for k, title, cls in (("Example", "The idea in one case", "full example"), ("Approach", "The design, and how this lab approximates it", "full")) if L.flat(g["slots"].get(k, ""))]
-    if extra:
-        body.append('<div class="slots">' + "".join(slot(*x) for x in extra) + "</div>")
-    if pairs("Roles"):
-        body.append('<h2>Who plays what</h2><table class="t roles"><tr><th>Role</th><th>Played by, and what it does</th></tr>' + "".join(f"<tr><td>{T(a)}</td><td>{T(b)}</td></tr>" for a, b in pairs("Roles")) + "</table>")
+    """A goal: what it wants to be able to say and a picture of it; its claim, its idea in one case and its design, each
+    in its box; who plays what and the words it uses; its questions; its story."""
+    body = [f'<h1>{e(g["title"])}</h1>', f'<p class="lead">{T(g["description"])}</p>' if L.flat(g["description"]) else "", picture(lab, g)]
+    body.append(slots(boxed(T, "What we would claim, and against what", g["slots"].get("Claim", ""), "full key"),
+                      boxed(T, "The idea in one case", g["slots"].get("Example", ""), "full example"),
+                      boxed(T, "The design, and how this lab approximates it", g["slots"].get("Approach", ""))))
+    pairs = [tuple(p.strip() for p in (i.split(": ", 1) + [""])[:2]) for i in L.items(g["slots"].get("Roles", ""))]
+    if pairs:
+        body.append('<h2>Who plays what</h2><table class="t roles"><tr><th>Role</th><th>Played by, and what it does</th></tr>' + "".join(f"<tr><td>{T(a)}</td><td>{T(b)}</td></tr>" for a, b in pairs) + "</table>")
     words = lab.vocabulary(g)
     if words:  # the names are the card's; what each means is the glossary's, whatever the card says after a colon
-        rows = "".join(f'<tr><td>{e(w["entry"]["term"] if w["entry"] else w["name"])}</td><td>' + (e(w["entry"]["definition"]) + avoid_note(w["entry"]) if w["entry"] else '<span class="muted">not in the glossary</span>') + "</td></tr>" for w in words)
+        rows = "".join(f'<tr><td>{T.term(w["entry"]["term"]) if w["entry"] else e(w["name"])}</td><td>' + (e(w["entry"]["definition"]) + avoid_note(w["entry"]) if w["entry"] else '<span class="muted">not in the glossary</span>') + "</td></tr>" for w in words)
         body.append('<h2>The words this lab uses</h2><table class="t roles"><tr><th>Word</th><th>What it means here, everywhere</th></tr>' + rows + "</table>")
     body.append("<h2>Questions</h2>" + "".join(qcard(lab, T, q) for q in lab.live(g["questions"])))
     parked = [q for q in g["questions"] if q["state"] == "parked"]
@@ -830,31 +858,32 @@ def step_row(lab, T, x):
 
 
 def question_page(lab, T, q):
-    """A question's briefing, in the order the operator asks: where we come from, what we ask and why, how it works,
-    where each step stands, what it costs, what it cannot show, what is needed from them, where to look."""
+    """A question's briefing, in the order the operator asks: the question and a picture of it; where we come from
+    and what we know so far; the question as it was asked, slot by slot; what is needed from them; where each step
+    stands; what it costs and what it cannot show; the record, folded."""
     s = q["slots"]
     live = [x for x in q["items"] if x["state"] not in ("replaced", "dropped")]
     gone = [x for x in q["items"] if x["state"] == "dropped" or (x["state"] == "replaced" and not lab.replaced_by(x["id"]))]
     body = [f'<h1>{e(q["title"])}</h1>']
+    if q.get("asks") and q["asks"] != q["title"]:
+        body.append(f'<p class="lead">{T(q["asks"])}</p>')
     if q["state"] == "parked":
         d = lab.parked_by(q["id"])
-        body.append(f'<div class="box"><b>Parked</b> by {named(lab, d["id"])}: nothing under it moves until a decision brings it back. {T(L.flat(d["slots"].get("Decided", "")))}</div>')
+        body.append(f'<div class="box"><b>Set aside</b> by {named(lab, d["id"])}: nothing under it moves until a decision brings it back. {T(L.flat(d["slots"].get("Decided", "")))}</div>')
+    body.append(picture(lab, q))
     before = [lab.nodes[i] for i in q["needs"] if i in lab.nodes]
-    if before:
-        body.append('<div class="slots">' + slot("Where we are coming from", "".join(f'<p>{named(lab, n["id"])} ({e(label(n))}).</p>{block(T, n["slots"].get("So far", ""))}' for n in before), "full") + "</div>")
-    body.append('<div class="slots">' + slot("What we know so far", block(T, s.get("So far", "")), "full key")
-                + slot("Why we ask", block(T, q["description"]), "full")
-                + (slot("How it works", block(T, s["How we would know"]), "full") if L.flat(s.get("How we would know", "")) else "")
-                + (slot("One real case, step by step", block(T, s["Example"]), "full example") if L.flat(s.get("Example", "")) else "")
-                + "".join(slot(k, block(T, s.get(k, ""))) for k in ("We expect", "Wrong if")) + "</div>")
+    body.append(slots(slot("Where we are coming from", "".join(f'<p>{named(lab, n["id"])} ({e(label(n))}).</p>' for n in before), "full") if before else "",
+                      so_far(lab, T, q)))
+    body.append("<h2>The question, as asked</h2>" + slots(
+        boxed(T, "Why we ask", q["description"]),
+        boxed(T, "How it works", s.get("How we would know", "")),
+        boxed(T, "One real case, step by step", s.get("Example", ""), "full example"),
+        boxed(T, "We expect", s.get("We expect", ""), ""),
+        boxed(T, "Wrong if", s.get("Wrong if", ""), "")))
     talk = [d for d in lab.open_decisions() if any(a == q["id"] or a.startswith(q["id"] + ".") for a in d["about"] + d["holds"])]
     if talk:
         body.append("<h2>What is needed from you</h2>" + "".join(decision_box(lab, T, d) for d in talk))
-    body.append("<h2>The steps, and where each stands</h2>")
-    for x in live:
-        body.append(step_row(lab, T, x))
-    if not q["items"]:
-        body.append('<p class="muted">Not started: no experiment is planned yet.</p>')
+    body.append("<h2>The steps, and where each stands</h2>" + ("".join(step_row(lab, T, x) for x in live) if live else '<p class="muted">Not started: no experiment is planned yet.</p>'))
     if gone:
         body.append(f'<details class="old"><summary>Dropped ({len(gone)})</summary>' + "".join(f'<p>{named(lab, x["id"])}: {T(str(x.get("dropped") or ""))}</p>' for x in gone) + "</details>")
     tests = [x for x in live if x["type"] == "experiment"]
@@ -862,8 +891,8 @@ def question_page(lab, T, q):
     limits = [(x, x["slots"].get("Limits", "")) for x in tests if L.flat(x["slots"].get("Limits", ""))]
     if limits:
         body.append("<h2>What it cannot show</h2>" + "".join(f'<p class="lbl">{e(x["title"])}</p><div class="limits">{block(T, text)}</div>' for x, text in limits))
-    body.append(where_to_look(lab, live))
-    body.append("<h2>Log</h2>" + log_html(lab, T, happened([l for l in lab.lines if l["about"] == q["id"] or l["about"].startswith(q["id"] + ".")])))
+    inner = where_to_look(lab, live) + "<h3>Log</h3>" + log_html(lab, T, happened([l for l in lab.lines if l["about"] == q["id"] or l["about"].startswith(q["id"] + ".")]))
+    body.append(record_html("The record: files and log", inner))
     return frame(lab, q["title"], "".join(body), edges_panel(lab, q), [("/", "Now"), ("/" + q["goal"], lab.nodes[q["goal"]]["title"])])
 
 
@@ -932,8 +961,45 @@ def review_note(note):
     return f'<details class="note"><summary>What the reviewer read and found</summary>{plain(note)}</details>'
 
 
+def runs_html(lab, T, x):
+    """An experiment's runs, in order: each by its id, when it started, how it ended and what it used, what changed
+    since the run before, and its folder to copy."""
+    runs = x["trials"] + x["runs"]
+    if not runs:
+        return ""
+    rows, n = [], 0
+    for r in runs:
+        used = ", ".join(f'{num(v)} {e(str(lab.resources.get(k, {}).get("unit", k)))}' for k, v in (r.get("used") or {}).items() if L.amount(v))
+        how = {"running": "Still running.", "finished": "Finished.", "failed": "Stopped with an error" + (f": {e(r['closed'])}" if r.get("closed") else ".")}[r["state"]]
+        if r["state"] != "running" and r.get("ended"):
+            mins = max(1, round((L.moment(r["ended"]) - L.moment(r["started"])).total_seconds() / 60))
+            how += f' <span class="muted">After {mins} minute{"s" if mins != 1 else ""}' + (f", using {used}" if used else "") + ".</span>"
+        n += r["kind"] != "trial"
+        name = f'<code>{e(r["id"])}</code>' + (' <span class="kind">trial run, before the lock</span>' if r["kind"] == "trial" else "")
+        folder = f'<br><span class="lbl">Folder</span> <span data-folio-copy="{e(r["dir"])}/"><code>{e(r["dir"])}/</code></span>'
+        since = "the run before" if any(k["kind"] != "trial" and k is not r for k in runs[:runs.index(r)]) else "the lock"
+        changed = f'<br><span class="lbl">Changed since {since}</span> {T(r["changed"])}' if r.get("changed") else ""
+        if r["missing"] and not r["lost"]:
+            how += ' <span class="muted">It is listed in the experiment\'s record of runs, and its folder is not in the store here.</span>'
+        rows.append(f'<li><b>{name}</b> <span class="muted">{clock(r["started"])} UTC' + (f' on {e(", ".join(x["uses"]))}' if x["uses"] else "") + f'</span><br>{pill(r["state"], TONES.get(r["state"], "plain"))} {how}{changed}{folder}</li>')
+    note = ('<p class="muted" style="font:.84rem var(--sans)">An experiment is run until one run finishes. Between runs the apparatus may be fixed, and each run says what changed; '
+            "what the experiment demands stays as it was locked. The first run that finishes is the only source of its results. "
+            "A run's folder is in the lab's store, outside git.</p>") if n > 1 else ""
+    return f'<h3>Runs</h3>{note}<ul class="runs">{"".join(rows)}</ul>'
+
+
+def reviews_html(x):
+    if not x["reviews"]:
+        return ""
+    return ('<h3>Reviews</h3><table class="t"><tr><th>Reviewed</th><th>What</th><th>Verdict</th><th>By</th><th>Note</th></tr>' + "".join(
+        f'<tr><td>{nice(r["date"])}</td><td>the {e(r["stage"])}</td><td>{pill(r["verdict"], TONES.get(r["verdict"], "plain"))}</td><td>{e(r["by"])}</td><td>{review_note(r["note"])}</td></tr>' for r in x["reviews"]) + "</table>")
+
+
 def experiment_page(lab, T, x):
+    """An experiment: what it is and a picture of the whole work; what we know so far, apart from the plan; the plan as
+    it was locked, slot by slot; what it costs and its results; the record, folded."""
     q = lab.nodes[x["question"]]
+    s = x["slots"]
     body = [f'<h1>{e(x["title"])}</h1>', f'<p class="lead">{T(x["description"])}</p>', ran(lab, x)]
     by = lab.replaced_by(x["id"])
     if by:
@@ -944,63 +1010,38 @@ def experiment_page(lab, T, x):
         body.append(f'<div class="box bad"><b>Its results failed their review.</b> {plain(failed.get("note", ""))} No outcome is shown, and no page uses its numbers.</div>')
     body.append(where_box(lab, T, x))
     body += [decision_box(lab, T, d) for d in lab.open_decisions() if x["id"] in d["about"] or x["id"] in d["holds"]]
-    if x["state"] == "done":
-        body.append('<div class="slots">' + slot("What it means", block(T, x["slots"].get("Means", ""), x["id"]), "full key") + slot("What was found", block(T, x["slots"].get("Found", ""), x["id"]), "full") + "</div>")
+    body.append(picture(lab, x))
+    if x["state"] == "done":  # what was observed comes first, apart from the plan
+        body.append(slots(boxed(T, "What it means", s.get("Means", ""), "full key", x["id"]), boxed(T, "What was found", s.get("Found", ""), "full key", x["id"])))
         body.append(f'<p class="outcome-line">{pill(x["outcome"], tone(x))} {e(decided_by(lab, x))}</p>')
-    body.append('<h2>What it compares</h2><div class="slots">' + slot("In one sentence", block(T, x["slots"].get("Compares", "")), "full") + "</div>" + arms_table(lab, T, x)
-                + ('<div class="slots">' + slot("Run on", block(T, x["slots"]["Cases"]), "full") + "</div>" if L.flat(x["slots"].get("Cases", "")) else "")
-                + "<h2>How the answer is read</h2>" + '<p class="muted" style="font:.86rem var(--sans)">Set before the run, and locked with it.</p>' + tick_rows(lab, x)
-                + ('<div class="slots">' + slot("What each outcome would mean", block(T, x["slots"]["Outcomes"]), "full") + "</div>" if L.flat(x["slots"].get("Outcomes", "")) else "")
-                + ('<div class="slots">' + slot("What it cannot show", block(T, x["slots"]["Limits"]), "full") + "</div>" if L.flat(x["slots"].get("Limits", "")) else ""))
+    body.append(slots(so_far(lab, T, x, x["id"])))
+    body.append(("<h2>The plan, as locked</h2>" if x["lock"] else "<h2>The plan, not locked yet</h2>") + slots(
+        boxed(T, "What it compares", s.get("Compares", ""), extra=arms_table(lab, T, x)),
+        boxed(T, "Run on", s.get("Cases", "")),
+        boxed(T, "How the answer is read", s.get("Outcomes", ""), extra=tick_rows(lab, x)),
+        boxed(T, "What it cannot show", s.get("Limits", ""))))
     if x["state"] != "done":
         body.append(cost_box(lab, T, [x], [x.get("cost") or ""]))
     if x["results"] and x["reviewed"]:
         body.append(results_tables(lab, T, x))
     elif x["results"] and not failed:
         body.append('<h2>Results</h2><p class="muted">Written, and waiting for their review.</p>')
-    runs = x["trials"] + x["runs"]
-    if runs or x["reviews"]:
-        body.append("<h2>How it was run and checked</h2>")
-    if runs:
-        rows, n = [], 0
-        for r in runs:
-            used = ", ".join(f'{num(v)} {e(str(lab.resources.get(k, {}).get("unit", k)))}' for k, v in (r.get("used") or {}).items() if L.amount(v))
-            how = {"running": "Still running.", "finished": "Finished.", "failed": "Stopped with an error" + (f": {e(r['closed'])}" if r.get("closed") else ".")}[r["state"]]
-            if r["state"] != "running" and r.get("ended"):
-                mins = max(1, round((L.moment(r["ended"]) - L.moment(r["started"])).total_seconds() / 60))
-                how += f' <span class="muted">After {mins} minute{"s" if mins != 1 else ""}' + (f", using {used}" if used else "") + ".</span>"
-            n += r["kind"] != "trial"
-            label_ = f'<code>{e(r["id"])}</code>' + (' <span class="kind">trial run, before the lock</span>' if r["kind"] == "trial" else "")
-            folder = f'<br><span class="lbl">Folder</span> <span data-folio-copy="{e(r["dir"])}/"><code>{e(r["dir"])}/</code></span>'
-            since = "the run before" if any(k["kind"] != "trial" and k is not r for k in runs[:runs.index(r)]) else "the lock"
-            changed = f'<br><span class="lbl">Changed since {since}</span> {T(r["changed"])}' if r.get("changed") else ""
-            if r["missing"] and not r["lost"]:
-                how += ' <span class="muted">It is listed in the experiment\'s record of runs, and its folder is not in the store here.</span>'
-            rows.append(f'<li><b>{label_}</b> <span class="muted">{clock(r["started"])} UTC' + (f' on {e(", ".join(x["uses"]))}' if x["uses"] else "") + f'</span><br>{pill(r["state"], TONES.get(r["state"], "plain"))} {how}{changed}{folder}</li>')
-        note = ('<p class="muted" style="font:.84rem var(--sans)">An experiment is run until one run finishes. Between runs the apparatus may be fixed, and each run says what changed; '
-                "what the experiment demands stays as it was locked. The first run that finishes is the only source of its results. "
-                "A run's folder is in the lab's store, outside git.</p>") if n > 1 else ""
-        body.append(f'{note}<ul class="runs">{"".join(rows)}</ul>')
-    if x["reviews"]:
-        body.append('<table class="t"><tr><th>Reviewed</th><th>What</th><th>Verdict</th><th>By</th><th>Note</th></tr>' + "".join(
-            f'<tr><td>{nice(r["date"])}</td><td>the {e(r["stage"])}</td><td>{pill(r["verdict"], TONES.get(r["verdict"], "plain"))}</td><td>{e(r["by"])}</td><td>{review_note(r["note"])}</td></tr>' for r in x["reviews"]) + "</table>")
-    body.append(earlier(lab, T, x))
-    body.append(where_to_look(lab, [x]))
-    body.append("<h2>Log</h2>" + log_html(lab, T, happened([l for l in lab.lines if l["about"] == x["id"]]), False))
+    inner = (runs_html(lab, T, x) + reviews_html(x) + earlier(lab, T, x) + where_to_look(lab, [x])
+             + "<h3>Log</h3>" + log_html(lab, T, happened([l for l in lab.lines if l["about"] == x["id"]]), False))
+    body.append(record_html("The record: runs, reviews, files and log", inner))
     return frame(lab, x["title"], "".join(body), edges_panel(lab, x), [("/", "Now"), ("/" + q["id"], q["title"])])
 
 
 def build_page(lab, T, b):
     q = lab.nodes[b["question"]]
-    body = [f'<h1>{e(b["title"])}</h1>', f'<p class="lead">{T(b["description"])}</p>', where_box(lab, T, b)]
-    body.append('<div class="slots">' + (slot("How it works", block(T, b["slots"]["How it works"]), "full") if L.flat(b["slots"].get("How it works", "")) else "")
-                + slot("We know it works when", block(T, b["slots"].get("Works when", "")), "full key") + "</div>")
+    body = [f'<h1>{e(b["title"])}</h1>', f'<p class="lead">{T(b["description"])}</p>', where_box(lab, T, b), picture(lab, b)]
+    body.append(slots(boxed(T, "How it works", b["slots"].get("How it works", "")), slot("We know it works when", block(T, b["slots"].get("Works when", "")), "full key")))
     if b["commits"]:
         url = code_url(lab)
         commits = " ".join((f'<a href="{url}/commit/{e(str(c))}"><code>{e(str(c))}</code></a>' if url else f"<code>{e(str(c))}</code>") for c in b["commits"])
         tests = ", ".join((f'<a href="{url}/blob/main/{e(str(t))}"><code>{e(str(t))}</code></a>' if url else f"<code>{e(str(t))}</code>") for t in b["tests"])
         body.append(f'<h2>Built in</h2><p style="font:.9rem var(--sans)">{commits}</p><p style="font:.9rem var(--sans)">Checked by {tests}</p>')
-    body.append("<h2>Log</h2>" + log_html(lab, T, happened([l for l in lab.lines if l["about"] == b["id"]]), False))
+    body.append(record_html("The record: log", log_html(lab, T, happened([l for l in lab.lines if l["about"] == b["id"]]), False)))
     return frame(lab, b["title"], "".join(body), edges_panel(lab, b), [("/", "Now"), ("/" + q["id"], q["title"])])
 
 
@@ -1009,12 +1050,11 @@ def reading_page(lab, T, r):
     q = lab.nodes[r["question"]]
     body = [f'<h1>{e(r["title"])}</h1>', f'<p class="lead">{T(r["description"])}</p>',
             '<div class="box explore"><b>This looked at data the lab already had.</b> Nothing here was set as a test in advance, so it can point to what to test next and cannot confirm anything. '
-            "A number on this page is a count made while looking, not a reviewed result.</div>", where_box(lab, T, r)]
+            "A number on this page is a count made while looking, not a reviewed result.</div>", where_box(lab, T, r), picture(lab, r)]
     s = r["slots"]
-    body.append('<div class="slots">' + (slot("What it suggests", block(T, s["Suggests"]), "full key") if L.flat(s.get("Suggests", "")) else "")
-                + (slot("What was seen", block(T, s["Seen"]), "full") if L.flat(s.get("Seen", "")) else "")
-                + slot("What it looks at", block(T, s.get("Looks at", "")), "full") + "</div>")
-    body.append("<h2>Log</h2>" + log_html(lab, T, happened([l for l in lab.lines if l["about"] == r["id"]]), False))
+    body.append(slots(boxed(T, "What it suggests", s.get("Suggests", ""), "full key"), boxed(T, "What was seen", s.get("Seen", "")),
+                      slot("What it looks at", block(T, s.get("Looks at", "")), "full")))
+    body.append(record_html("The record: log", log_html(lab, T, happened([l for l in lab.lines if l["about"] == r["id"]]), False)))
     return frame(lab, r["title"], "".join(body), edges_panel(lab, r), [("/", "Now"), ("/" + q["id"], q["title"])])
 
 
@@ -1087,7 +1127,8 @@ def see_link(lab, page):
 
 
 def glossary_page(lab, T):
-    """Every term, by group, each group closed until it is opened or the filter finds something in it."""
+    """Every term, by group, every group open: each with its definition, an example, where it is in the code, the page
+    that explains it, its other names and the words to avoid. A link to a term lands on its entry."""
     url = code_url(lab)
     groups = {}
     for g in lab.glossary:
@@ -1096,19 +1137,21 @@ def glossary_page(lab, T):
     if not lab.glossary:
         body.append('<p class="muted">No term is defined yet.</p>')
         return frame(lab, "Glossary", "".join(body))
-    body.append('<p class="muted" style="font:.86rem var(--sans)">A term is explained where it is used: hover a dotted word on any page. This page is the whole list.</p>')
     body.append('<input class="gfilter" type="search" placeholder="Find a term" aria-label="Find a term" oninput="'
                 "var q=this.value.toLowerCase();document.querySelectorAll('.ggroup').forEach(function(g){var n=0;g.querySelectorAll('dt').forEach(function(t){"
-                "var d=t.nextElementSibling,hit=!q||(t.textContent+' '+d.textContent).toLowerCase().indexOf(q)>=0;t.hidden=d.hidden=!hit;if(hit)n++;});g.hidden=!n;g.open=!!q&&n>0;});"
+                "var d=t.nextElementSibling,hit=!q||(t.textContent+' '+d.textContent).toLowerCase().indexOf(q)>=0;t.hidden=d.hidden=!hit;if(hit)n++;});g.hidden=!n;});"
                 '">')
     for name, terms in groups.items():
         rows = []
         for g in terms:
-            code = (f' · <a href="{url}/blob/main/src/{e(g["code"].split(":")[0].replace(".", "/"))}.py"><code>{e(g["code"])}</code></a>' if url else f' · <code>{e(g["code"])}</code>') if g["code"] else ""
-            more = f' · See: {see_link(lab, g["see"])}' if g["see"] else ""
-            rows.append(f'<dt id="{e(g["term"].lower().replace(" ", "-"))}">{e(g["term"])}</dt><dd>{e(g["definition"])}{code}{more}{avoid_note(g)}</dd>')
-        body.append(f'<details class="ggroup"><summary>{e(name)}<span>{len(terms)} terms</span></summary><dl class="gloss">{"".join(rows)}</dl></details>')
-    body.append("<script>(function(){var h=decodeURIComponent(location.hash.slice(1));var t=h&&document.getElementById(h);if(t){t.closest('details').open=true;t.scrollIntoView();}})();</script>")
+            example = f'<span class="gex">{T(g["example"])}</span>' if g.get("example") else ""
+            code = (f'<a href="{url}/blob/main/src/{e(g["code"].split(":")[0].replace(".", "/"))}.py"><code>{e(g["code"])}</code></a>' if url else f'<code>{e(g["code"])}</code>') if g["code"] else ""
+            more = " · ".join(x for x in (code, f"See: {see_link(lab, g['see'])}" if g["see"] else "") if x)
+            also = f' <span class="avoid">Also: {e(", ".join(g["also"]))}</span>' if g.get("also") else ""
+            rows.append(f'<dt id="{e(anchor(g["term"]))}">{e(g["term"])}</dt><dd>{e(g["definition"])}{example}'
+                        + (f'<span class="gsee">{more}</span>' if more else "") + f"{also}{avoid_note(g)}</dd>")
+        body.append(f'<details class="ggroup" open><summary>{e(name)}<span>{len(terms)} terms</span></summary><dl class="gloss">{"".join(rows)}</dl></details>')
+    body.append("<script>(function(){var h=decodeURIComponent(location.hash.slice(1));var t=h&&document.getElementById(h);if(t){t.scrollIntoView();}})();</script>")
     return frame(lab, "Glossary", "".join(body))
 
 
@@ -1220,7 +1263,7 @@ class Provider:
     def get(self, inner):
         from folio.views import View
         lab = self.lab()
-        T = Text(lab)
+        T = Text(lab, inner)
         parts = inner.split("/")
         genre, status, description, page, path = "", "", "", None, ""
         if inner == "":
@@ -1239,7 +1282,7 @@ class Provider:
             n = lab.nodes[inner]
             page = {"goal": goal_page, "question": question_page, "experiment": experiment_page, "build": build_page, "reading": reading_page, "decision": decision_page}[n["type"]](lab, T, n)
             genre, status, path = n["type"], label(n), n["path"]
-            description = "" if n["type"] in ("question",) or n["type"] in L.STEPS else L.bare(n.get("description") or "")
+            description = "" if n["type"] in ("goal", "question") or n["type"] in L.STEPS else L.bare(n.get("description") or "")  # drawn as the page's lead, with its links
         if page is None:
             return None
         body = re.sub(r"<h1>.*?</h1>", "", page["body"], count=1, flags=re.S)
@@ -1288,118 +1331,3 @@ class Provider:
 def provider(library_root):
     return Provider(library_root)
 
-
-# ---- page style 2: a picture at the top, results kept apart from the plan, the record folded ----
-
-def boxed(T, label, text, cls="full", home=None, extra=""):
-    """One slot in its box, under the template's fixed label. A heading line the card starts with is dropped:
-    the label is the heading, the same on every page."""
-    t = str(text or "").strip()
-    t = re.sub(r"^#{2,3} .+\n?", "", t).strip()
-    if not L.flat(t) and not extra:
-        return ""
-    return slot(label, block(T, t, home) + extra, cls)
-
-
-def record_box(lab, T, x, runs_html="", reviews_html=""):
-    inner = runs_html + reviews_html + earlier(lab, T, x) + where_to_look(lab, [x]) + "<h3>Log</h3>" + log_html(lab, T, happened([l for l in lab.lines if l["about"] == x["id"]]), False)
-    return f'<details class="record"><summary>The record: runs, reviews, files and log</summary>{inner}</details>'
-
-
-_old_experiment_page = experiment_page
-
-
-def experiment_page(lab, T, x):
-    q = lab.nodes[x["question"]]
-    s = x["slots"]
-    body = [f'<h1>{e(x["title"])}</h1>', f'<p class="lead">{T(x["description"])}</p>', ran(lab, x)]
-    by = lab.replaced_by(x["id"])
-    if by:
-        why = L.flat(by.get("because") or "")
-        body.append(f'<div class="box"><b>Replaced by</b> {named(lab, by["id"])}' + (f": {T(why)}" if why else ".") + "</div>")
-    body.append(where_box(lab, T, x))
-    body += [decision_box(lab, T, d) for d in lab.open_decisions() if x["id"] in d["about"] or x["id"] in d["holds"]]
-    body.append(picture(lab, x))
-    # results and what changed since the lock: apart from the plan, above it
-    after = ""
-    if x["state"] == "done":
-        after += boxed(T, "What it means", s.get("Means", ""), "full key", x["id"]) + boxed(T, "What was found", s.get("Found", ""), "full key", x["id"])
-    sofar = s.get("So far", "") or s.get("Since the lock", "")
-    after += boxed(T, "What we know so far", sofar, "full key", x["id"], "" if L.flat(sofar) else decided_notes(lab, T, x))
-    if after:
-        body.append('<div class="slots">' + after + "</div>")
-    # the plan, as locked
-    body.append('<h2>The plan, as locked</h2><div class="slots">'
-                + boxed(T, "What it compares", s.get("Compares", ""), extra=arms_table(lab, T, x))
-                + boxed(T, "Run on", s.get("Cases", ""))
-                + boxed(T, "How the answer is read", s.get("Outcomes", ""), extra=tick_rows(lab, x))
-                + boxed(T, "What it cannot show", s.get("Limits", "")) + "</div>")
-    if x["state"] != "done":
-        body.append(cost_box(lab, T, [x], [x.get("cost") or ""]))
-    if x["results"] and x["reviewed"]:
-        body.append(results_tables(lab, T, x))
-    old = _old_experiment_page(lab, T, x)["body"]
-    m = re.search(r'(<ul class="runs">.*?</ul>)', old, flags=re.S)
-    runs_html = ("<h3>Runs</h3>" + m.group(1)) if m else ""
-    m = re.search(r'(<table class="t"><tr><th>Reviewed</th>.*?</table>)', old, flags=re.S)
-    reviews_html = ("<h3>Reviews</h3>" + m.group(1)) if m else ""
-    body.append(record_box(lab, T, x, runs_html, reviews_html))
-    return frame(lab, x["title"], "".join(body), edges_panel(lab, x), [("/", "Now"), ("/" + q["id"], q["title"])])
-
-
-def question_page(lab, T, q):
-    s = q["slots"]
-    live = [x for x in q["items"] if x["state"] not in ("replaced", "dropped")]
-    body = [f'<h1>{e(q["title"])}</h1>']
-    if q.get("asks") and q["asks"] != q["title"]:
-        body.append(f'<p class="lead">{T(q["asks"])}</p>')
-    if q["state"] == "parked":
-        d = lab.parked_by(q["id"])
-        body.append(f'<div class="box"><b>Set aside</b> by {named(lab, d["id"])}: nothing under it moves until a decision brings it back.</div>')
-    body.append(picture(lab, q))
-    before = [lab.nodes[i] for i in q["needs"] if i in lab.nodes]
-    head = ""
-    if before:
-        head += slot("Where we are coming from", "".join(f'<p>{named(lab, n["id"])} ({e(label(n))}).</p>' for n in before), "full")
-    head += boxed(T, "What we know so far", s.get("So far", ""), "full key", extra=decided_notes(lab, T, q))
-    body.append('<div class="slots">' + head + "</div>")
-    body.append('<h2>The question, as asked</h2><div class="slots">'
-                + boxed(T, "Why we ask", q["description"])
-                + boxed(T, "How it works", s.get("How we would know", ""))
-                + boxed(T, "One real case, step by step", s.get("Example", ""), "full example")
-                + boxed(T, "We expect", s.get("We expect", ""), "")
-                + boxed(T, "Wrong if", s.get("Wrong if", ""), "") + "</div>")
-    talk = [d for d in lab.open_decisions() if any(a == q["id"] or a.startswith(q["id"] + ".") for a in d["about"] + d["holds"])]
-    if talk:
-        body.append("<h2>What is needed from you</h2>" + "".join(decision_box(lab, T, d) for d in talk))
-    body.append("<h2>The steps, and where each stands</h2>" + ("".join(step_row(lab, T, x) for x in live) if live else '<p class="muted">Not started: no experiment is planned yet.</p>'))
-    tests = [x for x in live if x["type"] == "experiment"]
-    body.append(cost_box(lab, T, tests, [x.get("cost") or "" for x in tests if x["state"] != "done"]))
-    inner = where_to_look(lab, live) + "<h3>Log</h3>" + log_html(lab, T, happened([l for l in lab.lines if l["about"] == q["id"] or l["about"].startswith(q["id"] + ".")]))
-    body.append(f'<details class="record"><summary>The record: files and log</summary>{inner}</details>')
-    return frame(lab, q["title"], "".join(body), edges_panel(lab, q), [("/", "Now"), ("/" + q["goal"], lab.nodes[q["goal"]]["title"])])
-
-def glossary_page(lab, T):
-    """Every term, by group, all open; each with its definition, its example and where it is explained."""
-    groups = {}
-    for g in lab.glossary:
-        groups.setdefault(g["group"] or "Terms", []).append(g)
-    body = ["<h1>Glossary</h1>"]
-    intro = getattr(lab, "glossary_intro", "")
-    if intro:
-        body.append(f'<div class="why">{block(T, intro)}</div>')
-    body.append('<input class="gfilter" type="search" placeholder="Find a term" aria-label="Find a term" oninput="'
-                "var q=this.value.toLowerCase();document.querySelectorAll('.ggroup').forEach(function(g){var n=0;g.querySelectorAll('dt').forEach(function(t){"
-                "var d=t.nextElementSibling,hit=!q||(t.textContent+' '+d.textContent).toLowerCase().indexOf(q)>=0;t.hidden=d.hidden=!hit;if(hit)n++;});g.hidden=!n;});"
-                '">')
-    for name, terms in groups.items():
-        rows = []
-        for g in terms:
-            ex = f'<span class="gex">{T(g["example"])}</span>' if g.get("example") else ""
-            more = f' <span class="gsee">See: {see_link(lab, g["see"])}</span>' if g["see"] else ""
-            aka = f' <span class="avoid">Also: {e(", ".join(g["also"]))}</span>' if g.get("also") else ""
-            rows.append(f'<dt id="{e(g["term"].lower().replace(" ", "-"))}">{e(g["term"])}</dt><dd>{e(g["definition"])}{ex}{more}{aka}{avoid_note(g)}</dd>')
-        body.append(f'<details class="ggroup" open><summary>{e(name)}<span>{len(terms)} terms</span></summary><dl class="gloss">{"".join(rows)}</dl></details>')
-    body.append("<style>.lv .gex{display:block;margin-top:.3rem;font-size:.93rem;color:var(--ink-2)}.lv .gex::before{content:'For example: ';font-weight:600}.lv .gsee{display:block;font:.82rem var(--sans);margin-top:.2rem}.lv .why{max-width:48rem}</style>")
-    body.append("<script>(function(){var h=decodeURIComponent(location.hash.slice(1));var t=h&&document.getElementById(h);if(t){t.scrollIntoView();}})();</script>")
-    return frame(lab, "Glossary", "".join(body))

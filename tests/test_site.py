@@ -155,7 +155,9 @@ def test_a_questions_page_is_its_briefing_and_a_bar_says_what_it_is_for(tmp_path
     site = Provider(root)
     page = site.get("G1.Q1.3").main
     assert page.index("The answer</th>") < page.index("The answer can be read only if</th>") < page.index("Would refute it</th>") and "answer:" not in page
-    assert "What each outcome would mean" in page and "The law holds further out." in page and "What it cannot show" in page and "One seed." in page
+    assert "How the answer is read" in page and "The law holds further out." in page and "What it cannot show" in page and "One seed." in page
+    plan = ["The plan, not locked yet", "What it compares", "Run on", "How the answer is read", "What it cannot show", '<details class="record">']
+    assert [page.index(x) for x in plan] == sorted(page.index(x) for x in plan)  # the plan in its fixed boxes, the record folded under it
     assert "Sixteen times the flips" in page and "up to 2 hours" in page and "plan/sample.py" in page
     q = site.get("G1.Q1").main
     order = ["What we know so far", "Why we ask", "What is needed from you", "The steps, and where each stands", "What it costs", "What it cannot show", "Where to look"]
@@ -329,3 +331,38 @@ def test_a_step_that_needs_a_later_one_reads_on_every_page_as_it_does_in_the_com
     for step in ("G1.Q1.1", "G1.Q1.2", ident):
         assert "Waiting on" in site.get(step).main and "Every estimate that missed, by cause" in site.get(step).main, step
     assert site.get("G1.Q1").main.count("Waiting on ") == 3
+
+
+def test_a_page_draws_its_picture_what_we_know_apart_from_the_plan_and_links_titles_and_terms(tmp_path):
+    root = a_lab(tmp_path)
+    qdir = glob.glob(f"{root}/goals/G1-*/Q1-*")[0]
+    third = glob.glob(f"{qdir}/3-*")[0]
+    open(f"{root}/GLOSSARY.md", "w").write("# Terms\n\n## estimate\nOne share of heads, from one sample.\n- example: 0.52 from 100 flips.\n- also: guess\n\n## flip\nOne toss of the coin.\n")
+    open(f"{third}/picture.svg", "w").write('<?xml version="1.0"?><svg viewBox="0 0 10 10" onload="alert(1)"><script>alert(1)</script>'
+                                          '<a href="javascript:alert(1)"><text fill="var(--ink)">1. Flip</text></a></svg>')
+    fill(f"{third}/experiment.md", So_far="### Where it stands\n\nNothing has run. It waits on A third size, on the GPU (D2), as Error at 100 and at 400 flips did not.\n\n"
+                                          "### The sizes\n| Size | Estimates |\n|---|---|\n| 1600 flips | 200 |",
+         Compares="### Two sizes\n\nEach estimate, and each **estimate** again, and a guess; *one more estimate*.")
+    site = Provider(root)
+    page = site.get("G1.Q1.3").main
+    pic = page[page.index('<figure class="pic">'):page.index("</figure>")]
+    assert "<svg" in pic and "1. Flip" in pic and not any(x in pic for x in ("<script", "onload", "javascript:", "<?xml"))  # drawn inline, with nothing in it that runs
+    order = ['<p class="lead">', '<figure class="pic">', "What we know so far", "The plan, not locked yet", "What it compares"]
+    assert [page.index(x) for x in order] == sorted(page.index(x) for x in order)
+    key = page[page.index("What we know so far"):page.index("The plan, not locked yet")]
+    assert 'class="slot full key"' in page and "Where it stands" not in key and "<h3>The sizes</h3>" in key and '<table class="t card">' in key and "<td>200</td>" in key
+    assert key.count('class="page"') == 2 and 'href="/lab/D2/"' in key and 'href="/lab/G1.Q1.1/"' in key and "(D2)" not in key  # a title, and the id after it, is one link
+    compares = page[page.index("What it compares"):page.index("<table class=\"t arms\">")]
+    assert "Two sizes" not in compares  # the box's label is the heading
+    assert compares.count('class="term" href="/lab/glossary/#estimate"') == 4 and "<b><a class=\"term\"" in compares and "<em>one more <a class=\"term\"" in compares
+    assert 'data-tip="One share of heads, from one sample."' in compares
+    # an experiment with nothing in So far shows the notes of the settled decisions about it
+    d1 = glob.glob(f"{root}/decisions/D1-*.md")[0]
+    open(d1, "a").write("\n## Note\n\nEvery estimate is read twice.\n")
+    front(d1, about="[G1.Q1.1]")
+    page = Provider(root).get("G1.Q1.1").main
+    assert "What we know so far" in page and "is read twice." in page and page.index("What it means") < page.index("What we know so far") < page.index("The plan, as locked")
+    assert "What it changes for the reader" in Provider(root).get("D1").main
+    gloss = Provider(root).get("glossary").main
+    assert '<details class="ggroup" open>' in gloss and "0.52 from 100 <a class=\"term\"" in gloss and "Also: guess" in gloss and 'id="estimate"' in gloss
+    assert "What we know so far" in Provider(root).get("G1.Q1").main and '<details class="record">' in Provider(root).get("G1.Q1").main

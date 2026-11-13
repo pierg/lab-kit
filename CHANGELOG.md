@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.3.0
+
+A new page style, and a lock that holds what a plan demands rather than its words. Before, every page of a card
+mixed what was observed with the plan, a term was linked only the first time it was used, and a locked card
+could not be made clearer by one word without becoming a new experiment. The method and the skills `lab-work`,
+`lab-review` and `lab-talk`, and the reviewer role, changed: run `lab init` in a lab after upgrading, or
+`lab check` reports that they differ from the installed kit.
+
+- **The page style.** A goal, question, experiment, build or reading page reads: the title and the lead (a
+  question's `asks:` line), its picture, a tinted **What we know so far**, then the plan under one heading ("The
+  plan, as locked", "The question, as asked") with every slot in its box under a fixed label, then the steps,
+  the cost and the results, and the record (runs, reviews, earlier plans, files, log) folded at the bottom. A
+  done experiment shows What it means and What was found above the plan.
+- **A picture.** A `picture.svg` beside a card is drawn inline at the top of its page, in the site's colours,
+  scrolling sideways on a narrow screen. A script, an event handler or a `javascript:` link in it is dropped.
+- **So far on an experiment.** An experiment card may carry `## So far`, outside the plan: it may change after
+  the lock. `lab new experiment` writes it. When it is empty, the Notes of settled decisions about the node
+  are shown there; a decision may carry `## Note`.
+- **Links in prose.** A node's exact title of two words or more, with its id in brackets or not, becomes one
+  link to its page. Every use of a glossary term, inside bold and italic too, links to its entry with the
+  definition on hover. `check` is no longer left out as generic. A slot draws pipe tables and `### ` heading
+  lines; a heading the card starts a slot with is dropped, since the label is the heading.
+- **The glossary** takes `- example:` (one concrete case, nothing observed) and `- also:` (other names that
+  link to the same entry). Its page shows every group open, each entry with its example and its other names.
+- **The lock holds machine terms.** `lab lock` writes `terms` in `lock.json`: a hash of each bar's result,
+  comparison and number, by side, and each arm's name. The lock holds while those and `uses:` are as locked;
+  the words around them may be made clearer, and a reviewer reads that. A lock made before 1.3.0 reads its
+  terms from the version of the card that git holds with the locked hash; where git has none, the whole plan
+  is held word for word as before. `lock.json` is never written again, so every run stays under its lock.
+- **Word budgets.** Raised where a slot holds a table or a numbered list, or where cards sat exactly at the
+  ceiling: an experiment's description 80, Compares 300, Cases 120, Outcomes 260, Limits 160, So far 300; a
+  question's description 150, How we would know 180, So far 220; a reading's Looks at 120, Seen 360; a
+  decision's Seen 150, Decided 150, Note 60. `docs/model.md` says why.
+
 ## 1.2.0
 
 The order of the work can be agreed with the operator and recorded by a decision. Before, `lab now` and the

@@ -25,7 +25,12 @@ from the record, shortest first. A decision is a discussion, not a request for a
 | what does a word mean | `lab define <term>` |
 
 - The answer first, in one or two sentences, then what it rests on: the result, by its label and value.
-- Plain words. No id without its title. A glossary term is used as the glossary defines it.
+- Plain words, one idea a sentence. No id without its title. A glossary term is used as the glossary defines it.
+- Write in chat as the pages are written. Name a goal, a question, a step or a decision by its exact
+  title, as a link to its page on the lab's site when the site has an address
+  (`[The rule pilot](<site>/lab/G4.Q1.2/)`), with its id after it. The first time a glossary term
+  comes up, give its definition from `lab define` in a few words. Never use a word in its everyday
+  sense when it is also a lab term. Compare items in a table.
 - For "where are we": each goal in a line, each open question with what is known so far, what is
   running, what is next, what there is to discuss. No more than a screen.
 - `lab brief` is the question's page as text. Give it as it is, cut to what they asked. If what you
@@ -39,7 +44,7 @@ from the record, shortest first. A decision is a discussion, not a request for a
 
 1. Say what was seen and why it matters now, with the numbers, shown here in the conversation.
 2. Lay out the options, each with what it costs and what it changes, and say which you recommend
-   and why.
+   and why. Name each option in words ("read `sll` apart"), never by a letter.
 3. Discuss. Answer their questions from the record. Take their ideas seriously: an option they add
    is an option. If the discussion changes the options, rewrite the card's Options before deciding.
 4. When it is settled, write what was decided and why, in the lab's words, in two to four sentences:
@@ -77,5 +82,6 @@ and never write the order anywhere else (not in `AGENTS.md`, not on a step).
 - Never bring them something that is yours to decide, and never ask them to check your work, to
   confirm a plan already settled, or to run a command.
 - A decision holds only what its card lists under `holds:`. Keep working on everything else.
-- Two things hold for them as for you: a locked plan is changed by a new experiment that replaces
-  it, and an outcome is worked out from the results.
+- Two things hold for them as for you: what a locked plan demands is changed only by a new
+  experiment that replaces it (its words may be made clearer), and an outcome is worked out from
+  the results.
