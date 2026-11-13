@@ -43,7 +43,7 @@ COLUMNS = {"results.tsv": ("name", "label", "value", "reads", "versus", "command
 HASH = 2  # how a folder is hashed in the locks and runs made now; one without the marker was made with the first way
 NUMBER = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?")
 LISTS = {"goal": ("see",), "question": ("needs", "see"), "experiment": ("needs", "uses", "see"), "build": ("needs", "commits", "tests", "see"),
-         "reading": ("needs", "see"), "decision": ("about", "holds", "see")}  # the front matter keys that hold a list
+         "reading": ("needs", "see"), "decision": ("about", "holds", "parks", "unparks", "see")}  # the front matter keys that hold a list
 TEXTS = ("title", "asks", "from", "replaces", "because", "cost", "waiting_on", "dropped", "answered")  # and those that hold one value
 
 
@@ -627,7 +627,7 @@ class Lab:
         out = []
         for n, path in self._numbered(f"{self.root}/decisions/D*.md", r"/D(\d+)-[^/]+\.md$", {}, "D<n>-<name>.md"):
             fm, slots = self._card(path, "decision")
-            d = {"title": f"D{n}", "about": [], "holds": [], "decided": None, "date": "", "see": [], **fm, "id": f"D{n}", "type": "decision", "slots": slots,
+            d = {"title": f"D{n}", "about": [], "holds": [], "parks": [], "unparks": [], "decided": None, "date": "", "see": [], **fm, "id": f"D{n}", "type": "decision", "slots": slots,
                  "path": self.rel(path), "dir": self.rel(os.path.dirname(path))}
             d["state"] = "decided" if d["decided"] else "open"
             out.append(d)
@@ -679,8 +679,21 @@ class Lab:
         return next(g for g in self.goals if g["id"] == q["goal"])
 
     def live(self, nodes):
-        """The goals or questions still pursued: what was dropped stays in the record and off the working pages."""
-        return [n for n in nodes if n["state"] != "dropped"]
+        """The goals or questions still pursued: what was dropped or parked stays in the record and off the working pages."""
+        return [n for n in nodes if n["state"] not in ("dropped", "parked")]
+
+    def pursued(self):
+        """The steps still pursued: under a question that is neither parked nor dropped, of a goal still active. What was
+        set aside waits on a decision, not on the work, and is listed apart."""
+        keep = {q["id"] for q in self.live(self.questions) if self.nodes[q["goal"]]["state"] == "active"}
+        return [x for x in self.items if x["question"] in keep]
+
+    def set_aside(self):
+        """What was set aside, for the page and the view that list it: parked and dropped questions, and goals that
+        were reached or dropped."""
+        return {"parked": [q for q in self.questions if q["state"] == "parked"],
+                "dropped": [q for q in self.questions if q["state"] == "dropped"],
+                "goals": [g for g in self.goals if g["state"] != "active"]}
 
     def question_of(self, ident):
         m = re.match(r"(G\d+\.Q\d+)", ident)
@@ -805,11 +818,22 @@ class Lab:
     def replaced_by(self, ident):
         return next((x for x in self.experiments if x.get("replaces") == ident and not x.get("dropped")), None)
 
+    def parked_by(self, ident):
+        """The settled decision that parked this question, or None. The last settled decision, by number, that parks or
+        unparks it has the say: a question is set aside, and brought back, only by a decision."""
+        last = None
+        for d in self.decisions:
+            if d["state"] == "decided" and (ident in d["parks"] or ident in d["unparks"]):
+                last = d
+        return last if last and ident in last["parks"] else None
+
     def _question_state(self, q):
         if q.get("dropped") or self._goal_of(q).get("dropped"):
             return "dropped"
         if q.get("answer") in ("yes", "no"):
             return q["answer"]
+        if self.parked_by(q["id"]):
+            return "parked"
         return "open" if self.settled(q) else "under discussion"
 
     def _reach(self):
@@ -854,6 +878,8 @@ class Lab:
             return f"{g['id']} is {g['state']}"
         if q["state"] == "under discussion":
             return f"the decision {q.get('from') or 'it comes from'} to be settled"
+        if q["state"] == "parked":
+            return f"{q['id']} is parked by {self.parked_by(q['id'])['id']}: a decision that unparks it comes first"
         if q["state"] != "open":
             return f"{q['id']} is {'answered ' + q['state'] if q['state'] in ('yes', 'no') else q['state']}"
         for need in x.get("needs") or []:

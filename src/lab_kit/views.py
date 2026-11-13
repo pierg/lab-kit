@@ -23,6 +23,9 @@ def decision_text(lab, d):
     about = ", ".join(f"{i} {lab.nodes[i]['title']}" if i in lab.nodes else f"the resource {i}" for i in d["about"] if i in lab.nodes or i in lab.resources)
     when = f"decided {d['decided'].get('date')} with {d['decided'].get('with')}" if d["decided"] else "open: to discuss with the operator"
     out = [f"{d['id']} {d['title']} (raised {d.get('date')}, {when})" + (f"\nAbout: {about}" if about else "")]
+    for key, verb in (("parks", "Parks"), ("unparks", "Brings back")):
+        if d[key]:
+            out += [f"{verb}: " + ", ".join(f"{i} {lab.nodes[i]['title']}" if i in lab.nodes else i for i in d[key])]
     out += [f"{slot}. {R.flat(d['slots'][slot])}" for slot in ("Seen", "Options", "Recommendation", "Decided") if R.flat(d["slots"].get(slot, ""))]
     if d["state"] == "open":
         held = lab.held_by(d)
@@ -69,7 +72,7 @@ def _now(lab):
     going = [f"- {x['id']} {x['title']}: {r['id']}, started {r['started']}" for x in lab.experiments for r in x["runs"] + x["trials"] if r["state"] == "running" and not r["orphan"]]
     out += ["" if not waiting else None, "Running"] + (going or ["- nothing"])
     out += ["", "Yours next"] + ([f"- {x['id']} {x['title']} ({x['type']}): {x['next']}" for x in lab.yours()] or ["- nothing"])
-    held = [f"- {x['id']} {x['title']}: on {x['next']}" for x in lab.items if x["state"] == "waiting" or (x["state"] == "planned" and not x["mine"])]
+    held = [f"- {x['id']} {x['title']}: on {x['next']}" for x in lab.pursued() if x["state"] == "waiting" or (x["state"] == "planned" and not x["mine"])]
     out += ["", "Not yours to move yet"] + (held or ["- nothing"])
     out += ["", "Questions"]
     for q in lab.live(lab.questions):
@@ -78,6 +81,12 @@ def _now(lab):
             key = x["outcome"] if x["state"] == "done" and x.get("outcome") else x["state"]
             counts[key] = counts.get(key, 0) + 1
         out += [f"- {q['id']} ({q['state']}): {q['title']} [{', '.join(f'{n} {k}' for k, n in counts.items()) or 'nothing under it'}]"]
+    aside = lab.set_aside()
+    if any(aside.values()):
+        out += ["", "Set aside"] + [f"- {q['id']} (parked by {lab.parked_by(q['id'])['id']}): {q['title']}" for q in aside["parked"]]
+        rest = [f"{len(aside['dropped'])} question{'' if len(aside['dropped']) == 1 else 's'} dropped"] if aside["dropped"] else []
+        rest += [f"{len(aside['goals'])} goal{'' if len(aside['goals']) == 1 else 's'} closed ({', '.join(g['id'] + ' ' + g['state'] for g in aside['goals'])})"] if aside["goals"] else []
+        out += [f"- {', '.join(rest)}: lab show <id>"] if rest else []
     if lab.resources:
         out += ["", "Resources"] + [resource_line(lab, name) for name in lab.resources]
     stuck = [f"- {r['id']}: {r['unpublished'].splitlines()[0]}" for r in lab.runs if r["unpublished"]]
@@ -133,6 +142,8 @@ def _show(lab, ident):
     decisions = ["", "Decisions about it"] + [f"- {d['id']} ({d['state']}): {d['title']}" for d in raised] if raised else []
     if n["type"] == "question":
         out = [f"{n['id']} ({n['state']}): {n['title']}", f"Asks: {n['asks']}", n["description"]] + came(n) + [""]
+        by = lab.parked_by(n["id"]) if n["state"] == "parked" else None
+        out += [f"Parked by {by['id']} {by['title']}: nothing under it moves until a decision brings it back (`unparks:`).", ""] if by else []
         out += [f"{slot}. {lab.fill(R.flat(n['slots'].get(slot, '')))}\n" for slot, _ in R.SLOTS["question"]]
         out += ["Under it"] + ([f"- {x['id']} {x['type']} ({state(x)}): {x['title']}" + (f". Next: {x['next']}" if x["mine"] else "") for x in n["items"]] or ["- nothing yet"])
         out += decisions

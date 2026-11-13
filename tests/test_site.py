@@ -190,7 +190,8 @@ def test_a_readings_page_says_it_is_exploratory_and_what_was_dropped_leaves_the_
     assert '<span class="kind">reading</span>' in q and "<ol><li><b>The sampler</b> flips a coin 100 times.</li>" in q and "Fix the seed." in q
     assert "The words this lab uses" in site.get("G1").main and "One share of heads, from one sample." in site.get("G1").main and "never shown" not in site.get("G1").main and "<b>The design.</b> Flip, count, compare." in site.get("G1").main
     assert "Who plays what" in site.get("G1").main and "It draws every estimate." in site.get("G1").main and "Dropped questions (1)" in site.get("G1").main
-    assert "A side question" not in site.get("").main and not any("A side question" in str(r) for r in site.rail()) and site.get("G1.Q2") is not None
+    home = site.get("").main  # off the working part of the front page; listed, folded, among what was set aside
+    assert "A side question" not in home.split("<h2>Set aside</h2>")[0] and "Dropped questions (1)" in home.split("<h2>Set aside</h2>")[1] and not any("A side question" in str(r) for r in site.rail()) and site.get("G1.Q2") is not None
 
 
 def test_an_experiments_page_lists_its_runs_in_order_with_what_changed(tmp_path):

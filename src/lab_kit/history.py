@@ -14,7 +14,7 @@ same place: what was committed under the old name is held under the new one.
 - A `results.tsv` that a review has passed keeps every committed row. Once a results review that passed is committed
   together with the rows it read, those rows stay, whatever the card and the file say later. Rows committed while
   the last passed review was of other rows, such as a draft row added after it, were never reviewed and are not held.
-- A settled decision keeps its `decided:`, its `about:` and its Decided text as first committed.
+- A settled decision keeps its `decided:`, its `about:`, its `parks:`, its `unparks:` and its Decided text as first committed.
 - A resource, once committed, is never removed. A metered resource's `granted`, `per_run` and `unit` change only together
   with `from`, which then names another settled decision that lists the resource. Its `other_use` rows only grow.
 - None of these files is deleted, and none changes its number.
@@ -140,8 +140,8 @@ def decisions(lab, versions=None, now=None):
             return None
         if not isinstance(fm, dict) or fm.get("decided") is None:
             return None
-        about = fm.get("about")
-        return str(fm.get("decided")), sorted(str(i) for i in (about if isinstance(about, list) else [about] if about is not None else [])), R.flat(slots.get("Decided", ""))
+        ids = lambda v: sorted(str(i) for i in (v if isinstance(v, list) else [v] if v is not None else []))
+        return str(fm.get("decided")), ids(fm.get("about")), ids(fm.get("parks")), ids(fm.get("unparks")), R.flat(slots.get("Decided", ""))
 
     for where, commits in sorted(versions.items()):
         if not DECISION.fullmatch(commits[-1][1]):
@@ -154,7 +154,7 @@ def decisions(lab, versions=None, now=None):
             if was:
                 mine = path if path in now[where] else now[where][0]
                 if settled(R.read(os.path.join(root, mine))) != was:
-                    bad(mine, f"was settled in {c[:8]}" + ("" if mine == path else f", as {path}") + ", and its `decided:`, its `about:` or its Decided text has changed since; a change of mind is a new decision")
+                    bad(mine, f"was settled in {c[:8]}" + ("" if mine == path else f", as {path}") + ", and what it parks or brings back, its `decided:`, its `about:` or its Decided text has changed since; a change of mind is a new decision")
                 break
     return problems
 

@@ -10,7 +10,7 @@ A lab is a tree, and the decisions that shaped it.
 | Thing | What it says | States |
 | --- | --- | --- |
 | **Goal** | A short name, what the lab wants to be able to say, and the claim: what we would report if the questions come out as expected, and against whose work. | active, reached, dropped |
-| **Question** | A short name, and a yes-or-no question under a goal, written in full: why we ask it, how we would know, what we expect, what would prove us wrong, what we know so far. | under discussion, open, yes, no, dropped |
+| **Question** | A short name, and a yes-or-no question under a goal, written in full: why we ask it, how we would know, what we expect, what would prove us wrong, what we know so far. | under discussion, open, parked, yes, no, dropped |
 | **Experiment** | One thing tried to answer a question. What it is for. Before the run: what is compared, each arm by name with what it is, the cases it runs on, what would confirm, what would refute. After: what was found, what it means. | planned, running, waiting, done (confirmed, refuted or unclear), review failed, replaced, dropped |
 | **Build** | One thing an experiment needs that has to be made first: what it is for, how it works in plain words, and how we know it works. | planned, in progress, built, dropped |
 | **Reading** | One look at what already exists: sealed runs, traces, the benchmark's own definitions. What it looks at; then what was seen and what that suggests. It sets no bar in advance, so it can suggest and never confirm. | planned, in progress, done, dropped |
@@ -237,12 +237,21 @@ the resources it sets need no further yes. Every goal and question names the dec
 nothing under a question is locked or run while that decision is still open. Nothing else asks for your
 approval: an experiment added later under a settled question is the agent's to plan and run.
 
+**Parking a question.** A question can be set aside without being dropped: not now, perhaps later. A settled
+decision parks it by listing it under `parks:`, and lists it under `about:` too. The decision's Decided text says
+why, and what would bring it back. A parked question leaves Now, the rail and the graph, as a dropped one does.
+Nothing under it moves: `lab new` refuses a step under it, and `lab lock` and `lab run` refuse its experiments. It
+comes back only by a later settled decision that lists it under `unparks:`. The last settled decision, by number,
+that parks or brings back a question has the say. An open decision parks nothing yet. Drop a question that will
+never come back, with `dropped: <why>` on its card; park one that may. A goal is closed by `reached: true` or
+`dropped: <why>`, and a dropped goal drops every question under it.
+
 You may also decide something nobody raised: add, change or drop an experiment or a build, reorder the
 work, stop a run. Say it, and the agent records it as a decision and follows it. Two things hold for
 you as for the agent: a locked plan is changed by a new experiment that replaces it, and an outcome is
 worked out from the results, not decided.
 
-**A settled decision stays as it was settled.** Its `decided:`, its `about:` and its Decided text never
+**A settled decision stays as it was settled.** Its `decided:`, its `about:`, its `parks:`, its `unparks:` and its Decided text never
 change once committed; a change of mind is a new decision. `lab check` holds this against the lab's
 history. So a decision cannot be made, afterwards, to be about something it never discussed.
 
@@ -390,8 +399,12 @@ where one exists, and said to be only the flow where none does. The goal's page 
 each role, states the design before the approximation, and lists its vocabulary: the words every card
 uses the same way, each drawn with the glossary's definition.
 
-**What was dropped** stays in the record: a dropped goal or question keeps its card and its page,
-and leaves Now, the rail and the graph.
+**What was set aside** stays in the record: a dropped goal or question, and a parked question, keeps its
+card and its page, and leaves Now, the rail and the graph. Now lists it apart, under Set aside: each parked
+question with the decision that parked it and the first sentence of what was decided, then the dropped
+questions and the closed goals, folded. A goal's page folds its parked and its dropped questions; a parked
+question's page says, at the top, which decision parked it and why. `lab now` lists the parked questions in
+one line each and counts the rest.
 
 **A goal's page** holds its claim and its story: one list, oldest first, of what was found, what got
 stuck, what the agent chose and what was decided with you, each decision with its text. It is the
@@ -445,7 +458,7 @@ and its sealed runs across as what they were.
 **A card** is front matter, then its description as a paragraph, then `## Slot` sections. It never
 holds an id, a state or an outcome. Every file of a lab is UTF-8 text; line ends of either kind
 read the same, and so hash the same where a review is bound to a file. The front matter sits between
-the first two lines that are exactly `---`. A key that holds a list (`needs`, `uses`, `see`, `about`, `holds`, `commits`,
+the first two lines that are exactly `---`. A key that holds a list (`needs`, `uses`, `see`, `about`, `holds`, `parks`, `unparks`, `commits`,
 `tests`) is written as one, `[a, b]`; every other key holds one value.
 
 | Card | Front matter | Slots (word budget) |
@@ -455,7 +468,7 @@ the first two lines that are exactly `---`. A key that holds a list (`needs`, `u
 | `experiment.md` | `title:`, `needs:`, `uses:` (resources), `override: {resource: cap}`, `cost:`, `replaces:` with `because:` (one sentence), `waiting_on:`, `dropped: <why>` | description (70), Compares: the comparison in a sentence (80), Arms (260), Cases (100), Confirmed if (150), Refuted if (110), Outcomes (200), Limits (120), Found (180), Means (150) |
 | `reading.md` | `title:`, `needs:`, `dropped: <why>` | description (70), Looks at: what, and where it is (110), Seen (320), Suggests (150) |
 | `build.md` | `title:`, `needs:`, `commits:`, `tests:`, `dropped: <why>` | description (60), How it works (200), Works when (80) |
-| `D<n>-<slug>.md` | `title:`, `about:` (the goals, questions, experiments or resources it concerns), `date:`, `holds:`; `decided: {date, with}` is written by `lab decide` | Seen (120), Options: a list, one option an item (200), Recommendation (80), Decided (120) |
+| `D<n>-<slug>.md` | `title:`, `about:` (the goals, questions, experiments or resources it concerns), `date:`, `holds:`; `parks:` and `unparks:` (questions, each also under `about:`); `decided: {date, with}` is written by `lab decide` | Seen (120), Options: a list, one option an item (200), Recommendation (80), Decided (120) |
 
 Any card may carry `see:`, a list of pages that explain it: pages of the lab's own library, and pages
 of another library its charter names, written as folio writes them (`pier-folio:/content/readings/...`),
@@ -593,7 +606,7 @@ in UTC. The file holds no other heading, and a line no other `|`. The kinds are 
 starting on and why now. A line written before the kit kept the time has none.
 
 **Worked-out states.** A question is under discussion while the decision it came from is open, then
-open, then yes or no; a page calls an open question with nothing under it "not started". A build is in
+open, then yes or no; it is parked while the last settled decision that parks or brings it back parks it; a page calls an open question with nothing under it "not started". A build is in
 progress once the log has a line about it, and built once it names its commits. An experiment whose
 results review failed shows as review failed until it is replaced or dropped.
 
