@@ -218,7 +218,10 @@ CSS = """
 .lv .slot.full{grid-column:1/-1}
 .lv .slot h5{margin:0 0 .3rem;font:650 .68rem var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
 .lv .slot p{margin:0}
-.lv .slot.key{border-left:3px solid var(--accent)}
+.lv .slot.key{border-left:3px solid var(--accent);background:var(--accent-soft)}
+.lv .slot .tw,.lv .slot table.t{margin:.6rem 0 .2rem}
+.lv .slot ul,.lv .slot ol{margin:.3rem 0;padding-left:1.3rem}
+.lv .slot p+p{margin-top:.5rem}
 .lv .box{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:.9rem 1.1rem;margin:0 0 1rem}
 .lv .box.decision{border-left:3px solid var(--warn);background:var(--warn-soft);margin:0 0 .8rem}
 .lv .box.decision.closed{border-left-color:var(--ok);background:var(--ok-soft)}
@@ -452,7 +455,7 @@ def decided_notes(lab, T, n):
     out = []
     for d in lab.decisions:
         if d["state"] == "decided" and n["id"] in d["about"] and L.flat(d["slots"].get("Note", "")):
-            out.append(f'<div class="box note"><b><a href="/{d["id"]}">{e(d["title"])}</a></b> {block(T, d["slots"]["Note"])}</div>')
+            out.append(f'<p><b>Decided in <a href="/{d["id"]}">{e(d["title"])} ({d["id"]})</a>:</b></p>{block(T, d["slots"]["Note"])}')
     return "".join(out)
 
 
@@ -1265,7 +1268,17 @@ def provider(library_root):
     return Provider(library_root)
 
 
-# ---- page style 2: the card's own headings, a picture at the top, the record folded ----
+# ---- page style 2: a picture at the top, results kept apart from the plan, the record folded ----
+
+def boxed(T, label, text, cls="full", home=None, extra=""):
+    """One slot in its box, under the template's fixed label. A heading line the card starts with is dropped:
+    the label is the heading, the same on every page."""
+    t = str(text or "").strip()
+    t = re.sub(r"^#{2,3} .+\n?", "", t).strip()
+    if not L.flat(t) and not extra:
+        return ""
+    return slot(label, block(T, t, home) + extra, cls)
+
 
 def record_box(lab, T, x, runs_html="", reviews_html=""):
     inner = runs_html + reviews_html + earlier(lab, T, x) + where_to_look(lab, [x]) + "<h3>Log</h3>" + log_html(lab, T, happened([l for l in lab.lines if l["about"] == x["id"]]), False)
@@ -1285,20 +1298,24 @@ def experiment_page(lab, T, x):
         body.append(f'<div class="box"><b>Replaced by</b> {named(lab, by["id"])}' + (f": {T(why)}" if why else ".") + "</div>")
     body.append(where_box(lab, T, x))
     body += [decision_box(lab, T, d) for d in lab.open_decisions() if x["id"] in d["about"] or x["id"] in d["holds"]]
-    body.append(decided_notes(lab, T, x))
     body.append(picture(lab, x))
+    # results and what changed since the lock: apart from the plan, above it
+    after = ""
     if x["state"] == "done":
-        body.append(section(T, s.get("Means", ""), "What it means", x["id"]) + section(T, s.get("Found", ""), "What was found", x["id"]))
-    body.append(section(T, s.get("Compares", ""), "What it compares"))
-    body.append(section(T, s.get("Arms", ""), "The arms"))
-    body.append(section(T, s.get("Cases", ""), "Run on"))
-    body.append(section(T, s.get("Outcomes", ""), "How the answer is read", extra=tick_rows(lab, x)))
-    body.append(section(T, s.get("Limits", ""), "What it cannot show"))
+        after += boxed(T, "What it means", s.get("Means", ""), "full key", x["id"]) + boxed(T, "What was found", s.get("Found", ""), "full key", x["id"])
+    after += boxed(T, "Since the plan was locked", s.get("Since the lock", ""), "full key", x["id"], "" if L.flat(s.get("Since the lock", "")) else decided_notes(lab, T, x))
+    if after:
+        body.append('<div class="slots">' + after + "</div>")
+    # the plan, as locked
+    body.append('<h2>The plan, as locked</h2><div class="slots">'
+                + boxed(T, "What it compares", s.get("Compares", ""), extra=arms_table(lab, T, x))
+                + boxed(T, "Run on", s.get("Cases", ""))
+                + boxed(T, "How the answer is read", s.get("Outcomes", ""), extra=tick_rows(lab, x))
+                + boxed(T, "What it cannot show", s.get("Limits", "")) + "</div>")
     if x["state"] != "done":
         body.append(cost_box(lab, T, [x], [x.get("cost") or ""]))
     if x["results"] and x["reviewed"]:
         body.append(results_tables(lab, T, x))
-    # the record: reuse the old page's runs and reviews, cut out of it
     old = _old_experiment_page(lab, T, x)["body"]
     m = re.search(r'(<ul class="runs">.*?</ul>)', old, flags=re.S)
     runs_html = ("<h3>Runs</h3>" + m.group(1)) if m else ""
@@ -1315,25 +1332,28 @@ def question_page(lab, T, q):
     if q["state"] == "parked":
         d = lab.parked_by(q["id"])
         body.append(f'<div class="box"><b>Set aside</b> by {named(lab, d["id"])}: nothing under it moves until a decision brings it back.</div>')
-    body.append(decided_notes(lab, T, q))
     body.append(picture(lab, q))
-    body.append(f'<div class="why">{block(T, q["description"])}</div>')
-    body.append(section(T, s.get("So far", ""), "What we know so far"))
-    body.append(section(T, s.get("How we would know", ""), "How it works"))
-    body.append(section(T, s.get("Example", ""), "One real case, step by step"))
-    body.append(section(T, s.get("We expect", ""), "We expect"))
-    body.append(section(T, s.get("Wrong if", ""), "Wrong if"))
+    before = [lab.nodes[i] for i in q["needs"] if i in lab.nodes]
+    head = ""
+    if before:
+        head += slot("Where we are coming from", "".join(f'<p>{named(lab, n["id"])} ({e(label(n))}).</p>' for n in before), "full")
+    head += boxed(T, "What we know so far", s.get("So far", ""), "full key", extra=decided_notes(lab, T, q))
+    body.append('<div class="slots">' + head + "</div>")
+    body.append('<h2>The question, as asked</h2><div class="slots">'
+                + boxed(T, "Why we ask", q["description"])
+                + boxed(T, "How it works", s.get("How we would know", ""))
+                + boxed(T, "One real case, step by step", s.get("Example", ""), "full example")
+                + boxed(T, "We expect", s.get("We expect", ""), "")
+                + boxed(T, "Wrong if", s.get("Wrong if", ""), "") + "</div>")
     talk = [d for d in lab.open_decisions() if any(a == q["id"] or a.startswith(q["id"] + ".") for a in d["about"] + d["holds"])]
     if talk:
         body.append("<h2>What is needed from you</h2>" + "".join(decision_box(lab, T, d) for d in talk))
-    if live:
-        body.append("<h2>The steps, and where each stands</h2>" + "".join(step_row(lab, T, x) for x in live))
+    body.append("<h2>The steps, and where each stands</h2>" + ("".join(step_row(lab, T, x) for x in live) if live else '<p class="muted">Not started: no experiment is planned yet.</p>'))
     tests = [x for x in live if x["type"] == "experiment"]
     body.append(cost_box(lab, T, tests, [x.get("cost") or "" for x in tests if x["state"] != "done"]))
     inner = where_to_look(lab, live) + "<h3>Log</h3>" + log_html(lab, T, happened([l for l in lab.lines if l["about"] == q["id"] or l["about"].startswith(q["id"] + ".")]))
     body.append(f'<details class="record"><summary>The record: files and log</summary>{inner}</details>')
     return frame(lab, q["title"], "".join(body), edges_panel(lab, q), [("/", "Now"), ("/" + q["goal"], lab.nodes[q["goal"]]["title"])])
-
 
 def glossary_page(lab, T):
     """Every term, by group, all open; each with its definition, its example and where it is explained."""
