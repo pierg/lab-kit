@@ -138,6 +138,8 @@ def new(lab, kind, parent, title, replaces=None, origin=None, about=(), because=
             ident, path = f"{p['id']}.Q{n}", f"{p['dir']}/Q{n}-{slug(title)}/question.md"
             text = CARDS["question"].format(title=quoted, origin=origin, asks=f"asks: {json.dumps(R.flat(asks), ensure_ascii=False)}\n" if R.flat(asks) else "")
         elif kind in R.STEPS:
+            if p["state"] == "parked":  # set aside by a decision: work under it starts again only once a decision brings it back
+                stop(f"{p['id']} is parked by {lab.parked_by(p['id'])['id']}: a decision that unparks it (`unparks: [{p['id']}]`) comes first")
             n = 1 + max([int(x["id"].split(".")[-1]) for x in p["items"]] or [0])
             ident, path = f"{p['id']}.{n}", f"{p['dir']}/{n}-{slug(title)}/{kind}.md"
             fill = {"title": quoted, "description": "", "extra": "", "Compares": "", "Arms": "- ", "Cases": "", "Confirmed if": "- ", "Refuted if": "- ", "Outcomes": "", "Limits": ""}

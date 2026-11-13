@@ -58,6 +58,11 @@ resource's new amount names the decision in `from`.
 `lab new decision "<what it is about>" --about <id>`, fill **Seen** with what prompted it, then
 `lab decide` as above, and do it.
 
+When they set a question aside: "not now, maybe later" parks it, "never" drops it. Ask which, if it is not
+clear. To park, list the question under `parks:` and `about:` on the decision before `lab decide`, and say in
+the Decided text why and what would bring it back. To bring one back, a new decision lists it under
+`unparks:`. To close a goal, put `reached: true` or `dropped: <why>` on its card, out of a decision.
+
 ## Rules
 
 - Never copy the operator's messages into the lab. The record says what was decided and why.

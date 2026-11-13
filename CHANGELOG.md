@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.1.0
+
+A question can be parked: set aside by a decision, not dropped, and brought back only by another. Before, a
+question the lab chose not to pursue now stayed open, with nothing to say it was set aside on purpose, or was
+dropped for good. The skills `lab-work` and `lab-talk` changed: run `lab init` in a lab after upgrading, or
+`lab check` reports that they differ from the installed kit.
+
+- A decision card may carry `parks: [<question>]` and `unparks: [<question>]`. Each question named is also
+  under `about:`. Once the decision is settled, the question is parked; a later settled decision that lists
+  it under `unparks:` brings it back. The last settled decision, by number, that names it has the say.
+- A parked question leaves Now, the rail and the graph. `lab new` refuses a step under it, and `lab lock` and
+  `lab run` refuse its experiments, each naming the decision that parked it.
+- `lab now` has a Set aside section: each parked question in one line with the decision that parked it, and a
+  count of the dropped questions and the closed goals. The site's front page has the same section, with the
+  first sentence of what was decided; a goal's page folds its parked questions; a parked question's page says
+  at the top which decision parked it and why; a decision shows what it parks or brings back.
+- Steps under a parked or dropped question, or a goal that is not active, no longer show under "Not yours to
+  move yet" or as what the idle front page names next.
+- `lab check` reports a `parks:` or `unparks:` that names something other than a question, a question not
+  under `about:`, and a question both parked and brought back by one decision. What a settled decision parks
+  or brings back is held against the lab's history, like its `about:`.
+
 ## 1.0.3
 
 A word is now defined in one place, `GLOSSARY.md`. Before, the glossary and the goal's Vocabulary

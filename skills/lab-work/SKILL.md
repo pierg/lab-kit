@@ -55,8 +55,13 @@ The operator reads every card on the site, usually days later and without you. W
 ## When to open a decision
 
 Open one when a question is answered or an experiment refutes what was expected, when a result
-changes what the next question should be, when you want to add, reword or drop a goal or a question,
+changes what the next question should be, when you want to add, reword, park or drop a goal or a question,
 or when the resources do not cover the settled work. Not for anything else.
+
+Park a question that may come back, drop one that will not. A decision parks a question by listing it
+under `parks:` and under `about:`; its Decided text says why, and what would bring it back. Nothing under
+a parked question moves until a later decision lists it under `unparks:`. Never start work under a
+parked question, and never take it up because it looks open: it is listed under Set aside in `lab now`.
 
 1. `lab new decision "<what it is about>" --about <the goals, questions or experiments it concerns>`.
 2. On its card write **Seen** (what was observed, naming results), **Options** (a list of two or

@@ -11,7 +11,7 @@ KEYS = {  # what a card's front matter may hold; a state is never among them
     "experiment": {"title", "needs", "uses", "override", "replaces", "because", "cost", "waiting_on", "dropped", "see"},
     "build": {"title", "needs", "commits", "tests", "dropped", "see"},
     "reading": {"title", "needs", "dropped", "see"},
-    "decision": {"title", "about", "date", "holds", "decided", "see"},
+    "decision": {"title", "about", "date", "holds", "parks", "unparks", "decided", "see"},
 }
 
 
@@ -123,6 +123,14 @@ def run(lab, rederive=True):
             for i in d[key]:
                 if nodes.get(i, {}).get("type") not in ("goal", "question") + R.STEPS and not (key == "about" and i in lab.resources):
                     bad("links", d["path"], f"{key} names {i!r}, which does not exist")
+        for key in ("parks", "unparks"):  # only a question is parked, and a decision that parks it or brings it back is about it
+            for i in d[key]:
+                if nodes.get(i, {}).get("type") != "question":
+                    bad("links", d["path"], f"{key} names {i!r}, which is not a question: only a question is parked")
+                elif i not in d["about"]:
+                    bad("links", d["path"], f"{key} names {i}, which is not under `about:`: a decision that parks a question or brings it back is about it")
+        for i in sorted(set(d["parks"]) & set(d["unparks"])):
+            bad("links", d["path"], f"both parks and unparks {i}")
         done = d["decided"]
         if done and not ({"date", "with"} <= set(done) and R.flat(d["slots"].get("Decided", ""))):
             bad("cards", d["path"], "a settled decision holds when, with whom, and what was decided and why under Decided")

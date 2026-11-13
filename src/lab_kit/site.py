@@ -13,7 +13,7 @@ GENERIC = {"model", "field", "source", "group", "stop", "case", "score", "port",
 e = html.escape
 TONES = {"active": "info", "reached": "ok", "under discussion": "warn", "open": "info", "yes": "ok", "no": "warn", "decided": "ok",
          "confirmed": "ok", "refuted": "bad", "unclear": "warn", "running": "info", "waiting": "warn", "in progress": "info", "built": "ok",
-         "review failed": "bad", "finished": "ok", "failed": "bad", "pass": "ok", "fail": "bad", "done": "ok"}
+         "review failed": "bad", "finished": "ok", "failed": "bad", "pass": "ok", "fail": "bad", "done": "ok", "parked": "plain"}
 
 
 def nice(day):
@@ -433,6 +433,7 @@ def decision_box(lab, T, d, link=True, title=True):
     rows = []
     if done:
         rows.append((f'Decided {nice(d["decided"].get("date"))}', block(T, d["slots"].get("Decided", ""))))
+    rows += [(verb if done else f"Would {verb.lower()}", "<br>".join(named(lab, i) if i in lab.nodes else e(i) for i in d[key])) for key, verb in (("parks", "Parks"), ("unparks", "Brings back")) if d[key]]
     rows += [(k, block(T, d["slots"][k])) for k in ("Seen", "Options", "Recommendation") if L.flat(d["slots"].get(k, ""))]
     if not done:
         held = lab.held_by(d)
@@ -596,7 +597,7 @@ def right_now(lab, T):
             rows.append(f'<p class="what">{pill("nobody is on it", "warn")} Nothing is running, and no agent has said it is working.</p>'
                         f'<p>The next step is the agent\'s: {named(lab, x["id"])}: {T(you(x["next"]))}.</p>')
         else:
-            waits = [x for x in lab.items if x["state"] == "waiting" or (x["state"] == "planned" and x["next"])]
+            waits = [x for x in lab.pursued() if x["state"] == "waiting" or (x["state"] == "planned" and x["next"])]
             rows.append(f'<p class="what">{pill("idle", "plain")} Nothing is running and nothing is the agent\'s to move.</p>'
                         + (f'<p>{named(lab, waits[0]["id"])} waits on {T(you(waits[0]["next"]))}.</p>' if waits else ""))
     last = lab.last_record()
@@ -644,7 +645,7 @@ def home(lab, T):
     out.append("<h2>To discuss with you</h2>" + ("".join(talk) or '<p class="muted">Nothing.</p>'))
     busy = lab.doing()["about"] if lab.doing() else None
     nxt = [x for x in lab.yours() if x["id"] != busy]
-    held = [x for x in lab.items if x["state"] == "waiting" or (x["state"] == "planned" and not x["mine"] and x["next"])]
+    held = [x for x in lab.pursued() if x["state"] == "waiting" or (x["state"] == "planned" and not x["mine"] and x["next"])]
     if nxt or held:
         out.append('<h2>Next</h2><table class="t"><tr><th>What</th><th>Who moves it</th><th>What happens next</th></tr>' + "".join(
             f'<tr><td>{named(lab, x["id"])}</td><td>{"the agent" if x["mine"] else "waits"}</td><td>{("" if x["mine"] else "on ") + T(you(x["next"]))}</td></tr>' for x in nxt + held) + "</table>")
@@ -652,11 +653,35 @@ def home(lab, T):
     for g in lab.live(lab.goals):
         out.append(f'<div class="goalhead">{dot(g)}<a href="/{g["id"]}">{e(g["title"])}</a></div><p class="goalwhy">{T(g["description"])}</p>'
                    + "".join(qcard(lab, T, q) for q in lab.live(g["questions"])))
+    out.append(set_aside_html(lab, T))
     latest = happened(lab.lines)[-5:]
     out.append('<h2>Latest</h2>' + log_html(lab, T, latest) + '<p style="font:.85rem var(--sans)"><a href="/log">The whole log</a></p>')
     if lab.resources:
         out.append('<h2>Resources</h2>' + resources_table(lab))
     return frame(lab, lab.cfg.get("title", lab.cfg["name"]), "".join(out))
+
+
+def parked_line(lab, T, q):
+    d = lab.parked_by(q["id"])
+    return f'<p>{named(lab, q["id"])}: parked by {named(lab, d["id"])}. {T(L.first_sentence(L.flat(d["slots"].get("Decided", ""))))}</p>'
+
+
+def set_aside_html(lab, T):
+    """What was set aside, apart from the work: each parked question with the decision that parked it, then what was
+    dropped and the goals that were closed, folded."""
+    aside = lab.set_aside()
+    if not any(aside.values()):
+        return ""
+    out = ["<h2>Set aside</h2>"]
+    if aside["parked"]:
+        out.append('<p class="muted" style="font:.84rem var(--sans)">Parked by a decision; each comes back only by another.</p>' + "".join(parked_line(lab, T, q) for q in aside["parked"]))
+    if aside["dropped"]:
+        out.append(f'<details class="old"><summary>Dropped questions ({len(aside["dropped"])})</summary>' + "".join(
+            f'<p>{named(lab, q["id"])}: {T(str(q.get("dropped") or lab.nodes[q["goal"]].get("dropped") or ""))}</p>' for q in aside["dropped"]) + "</details>")
+    if aside["goals"]:
+        out.append(f'<details class="old"><summary>Closed goals ({len(aside["goals"])})</summary>' + "".join(
+            f'<p>{named(lab, g["id"])}: {e(label(g))}{". " + T(str(g["dropped"])) if g.get("dropped") else ""}</p>' for g in aside["goals"]) + "</details>")
+    return "".join(out)
 
 
 def resources_table(lab):
@@ -689,6 +714,9 @@ def goal_page(lab, T, g):
         rows = "".join(f'<tr><td>{e(w["entry"]["term"] if w["entry"] else w["name"])}</td><td>' + (e(w["entry"]["definition"]) + avoid_note(w["entry"]) if w["entry"] else '<span class="muted">not in the glossary</span>') + "</td></tr>" for w in words)
         body.append('<h2>The words this lab uses</h2><table class="t roles"><tr><th>Word</th><th>What it means here, everywhere</th></tr>' + rows + "</table>")
     body.append("<h2>Questions</h2>" + "".join(qcard(lab, T, q) for q in lab.live(g["questions"])))
+    parked = [q for q in g["questions"] if q["state"] == "parked"]
+    if parked:
+        body.append(f'<details class="old"><summary>Parked questions ({len(parked)})</summary>' + "".join(parked_line(lab, T, q) for q in parked) + "</details>")
     gone = [q for q in g["questions"] if q["state"] == "dropped"]
     if gone:
         body.append(f'<details class="old"><summary>Dropped questions ({len(gone)})</summary>' + "".join(f'<p>{named(lab, q["id"])}: {T(str(q.get("dropped") or g.get("dropped") or ""))}</p>' for q in gone) + "</details>")
@@ -724,6 +752,9 @@ def question_page(lab, T, q):
     live = [x for x in q["items"] if x["state"] not in ("replaced", "dropped")]
     gone = [x for x in q["items"] if x["state"] == "dropped" or (x["state"] == "replaced" and not lab.replaced_by(x["id"]))]
     body = [f'<h1>{e(q["title"])}</h1>']
+    if q["state"] == "parked":
+        d = lab.parked_by(q["id"])
+        body.append(f'<div class="box"><b>Parked</b> by {named(lab, d["id"])}: nothing under it moves until a decision brings it back. {T(L.flat(d["slots"].get("Decided", "")))}</div>')
     before = [lab.nodes[i] for i in q["needs"] if i in lab.nodes]
     if before:
         body.append('<div class="slots">' + slot("Where we are coming from", "".join(f'<p>{named(lab, n["id"])} ({e(label(n))}).</p>{block(T, n["slots"].get("So far", ""))}' for n in before), "full") + "</div>")
