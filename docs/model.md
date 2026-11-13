@@ -30,8 +30,9 @@ for it.
 **Every page stands on its own.** The reader was not there. A list is short, and the page a list
 leads to is complete: it never points at something it does not explain ("the seven-arm run", "the
 reproduction's setting", "our loop") without saying what that is in the same place. An experiment
-names each arm and says what it is. A term is explained in the sentence that first uses it; the
-glossary is a second chance, not the explanation. A slot may hold paragraphs and a list when that
+names each arm and says what it is. Another page is named by its exact title, which the site turns into
+a link. A term is the glossary's: every use of it on a page links to its entry, with its definition on
+hover, and no card defines it again. A slot may hold paragraphs and a list when that
 is clearer than one long sentence. The word budgets are ceilings against sprawl, not targets. If a
 card needs its last words cut into fragments to fit, the card is saying too much for one slot or
 the budget is wrong, and full sentences win.
@@ -90,8 +91,8 @@ unclear when it is missed.
 The outcome is worked out, never written: confirmed when every confirmed-if line holds and no
 refuted-if line does, refuted when any refuted-if line holds, unclear in between. The page leads with
 what it means and what was found, then says how many bars were met and names the one that decided the
-outcome. There are no confidence numbers, no score sheet and no "what it cannot show" section; a caveat
-that matters goes in *Means*.
+outcome. There are no confidence numbers and no score sheet. A caveat the results raise goes in
+*Means*; what the experiment could never show is its Limits, written before the run.
 
 A build has no lock, no lines and no result. It ends as built, naming its commits and its tests.
 
@@ -113,9 +114,12 @@ Each arrow is a command that refuses when the step before it is missing. You see
 - **Trial run.** A run before the lock, to test that the apparatus works. It is sealed like any run,
   listed when the plan is locked, and never gives a result. On a metered resource it comes after the
   review of the plan, like the run itself.
-- **Lock.** What the experiment demands is hashed: what it compares, each arm, the cases, the bars,
-  what each outcome would mean, and its limits. That never changes. To change it, the agent starts a
-  new experiment that replaces the old one and says why in one sentence (`because:`). The replaced
+- **Lock.** What the experiment demands is held in machine terms: each bar's role, its result, its
+  comparison and its number, on its side; the name of each arm; and the resources it uses. That never changes. The
+  words of the plan around them (what it compares, what each arm is, the cases, what each outcome
+  would mean, its limits, each bar's sentence) may be made clearer after the lock, and must keep
+  their meaning: that is the review's to judge, not a command's. To change what it demands, the agent
+  starts a new experiment that replaces the old one and says why in one sentence (`because:`). The replaced
   one stays in the tree with its results, folded under the new one with that sentence, and off the
   Now page. The lock also records the hash of `plan/` as it was locked, which is the plan the
   reviewer read: the first run is held against it as every later run is held against the run before.
@@ -129,8 +133,8 @@ Each arrow is a command that refuses when the step before it is missing. You see
   one sentence what changed and why (`lab run --changed`); `lab run` refuses a changed `plan/`
   without it, for the first run too, whose "before" is the plan that was locked. `plan/` holds files
   and no links: what a link points at would not be pinned. The test for "another run or a new
-  experiment" is whether the comparison, the arms, the cases and the bars can stay word for word as
-  they are locked.
+  experiment" is whether the comparison, the arms, the cases and the bars can stay, in what they
+  demand, as they are locked.
   **Every run is listed.** The store is outside git, so the experiment's folder keeps `runs.tsv`, in
   git: one row when a run or a trial starts, and one when it ends, with how it ended and its seal.
   Rows are only added. `lab run` reads that list as well as the store, so a clone without the store
@@ -335,7 +339,8 @@ Seven rules:
 
 1. Say what would refute it before you run.
 2. A number counts only as a reviewed result of a locked plan.
-3. A miss is recorded like a hit, and nothing locked or recorded is edited.
+3. A miss is recorded like a hit, and nothing recorded is edited. What a locked plan demands is never
+   changed; its words may be made clearer.
 4. Write for a reader who was not there: every page stands on its own, in plain words and the
    glossary's terms, and a number is said once.
 5. Decide everything that is not direction or resources, and never wait idle. For those two, open a
@@ -383,12 +388,38 @@ docs/                     the folio library: explanatory pages, and the site
 .ignore                   keeps plan/ and runs/ out of default searches
 ```
 
+Beside the card of a goal, a question or a step, `picture.svg` is its picture (section 9).
+
 A folder is named after its card's title, so a short title gives a short path.
 
 ## 7. The site
 
 Now, Graph, a page per goal, question, experiment, build, reading and decision, Decisions, Log,
 Resources, Glossary. Every page has the copy-path control.
+
+**How a page of a card reads.** Every page of a goal, a question or a step reads in the same order:
+
+1. The title, and the lead: a step's or a goal's description, a question's `asks:` line.
+2. Its picture, when the card has one, drawn inline (section 9). On a narrow screen it scrolls
+   sideways rather than shrink its words.
+3. **What we know so far**, in a tinted box: everything observed (section 9), and on a finished
+   experiment what it means and what was found, above it, with the bar that decided the outcome.
+4. The plan, under one heading: "The plan, as locked" on an experiment ("not locked yet" before its
+   lock), "The question, as asked" on a question. Each slot is in its own box, under the same fixed
+   label on every page: on an experiment *What it compares* (with the arms as a table), *Run on*,
+   *How the answer is read* (with the bars, each ticked once the results are reviewed) and *What it
+   cannot show*; on a question *Why we ask*, *How it works*, *One real case, step by step*, *We
+   expect* and *Wrong if*. A heading line a card starts a slot with is not drawn: the label is the
+   heading. A goal's Claim, Example and Approach, a build's slots and a reading's slots are boxed the
+   same way.
+5. What is worked out: what is needed from you, the steps, what it costs, the results.
+6. The record, folded at the bottom: runs, reviews, earlier plans, where to look, the log.
+
+In prose, a slot may hold paragraphs, lists, tables written with pipes, and `### ` heading lines. A
+node's exact title of two words or more, with its id in brackets after it or not, is one link to
+its page; and every glossary term is a link to its entry (section 9), inside bold and italic text
+too. A decision's page keeps its own order: what is to discuss or what was decided, then its Note,
+then what was seen, the options and the recommendation.
 
 **A question's page is its briefing.** The question is the unit the operator follows, so its page
 joins everything under it, in the order they ask: where we are coming from (what the questions it
@@ -475,11 +506,40 @@ the first two lines that are exactly `---`. A key that holds a list (`needs`, `u
 | Card | Front matter | Slots (word budget) |
 | --- | --- | --- |
 | `goal.md` | `title:`, `from:` (its decision); `reached: true`; `dropped: <why>` | description (70), Claim (90), Example: the idea in one case, from the reader's own domain (260), Approach: the design, how this lab approximates it, and where it knowingly differs (340), Roles: a list, `- <role>: <who plays it and what it does>` (170), Vocabulary: a list of names only, `- <term>`, the few words every card uses the same way; each is a term of `GLOSSARY.md`, which defines it (260) |
-| `question.md` | `title:` (a short name), `asks:` (the question in full), `from:`, `needs:`; `dropped: <why>`; `answer:` and `answered:` are written by `lab answer` | description: why we ask (130), How we would know (150), Example: one case step by step, a numbered list (380), We expect (70), Wrong if (70), So far (180) |
-| `experiment.md` | `title:`, `needs:`, `uses:` (resources), `override: {resource: cap}`, `cost:`, `replaces:` with `because:` (one sentence), `waiting_on:`, `dropped: <why>` | description (70), Compares: the comparison in a sentence (80), Arms (260), Cases (100), Confirmed if (150), Refuted if (110), Outcomes (200), Limits (120), Found (180), Means (150) |
-| `reading.md` | `title:`, `needs:`, `dropped: <why>` | description (70), Looks at: what, and where it is (110), Seen (320), Suggests (150) |
+| `question.md` | `title:` (a short name), `asks:` (the question in full), `from:`, `needs:`; `dropped: <why>`; `answer:` and `answered:` are written by `lab answer` | description: why we ask (150), How we would know (180), Example: one case step by step, a numbered list (380), We expect (70), Wrong if (70), So far (220) |
+| `experiment.md` | `title:`, `needs:`, `uses:` (resources), `override: {resource: cap}`, `cost:`, `replaces:` with `because:` (one sentence), `waiting_on:`, `dropped: <why>` | description (80), So far: optional, everything observed since the plan was written (300), Compares: the comparison, in a sentence or a numbered list of the whole work (300), Arms (260), Cases (120), Confirmed if (150), Refuted if (110), Outcomes (260), Limits (160), Found (180), Means (150) |
+| `reading.md` | `title:`, `needs:`, `dropped: <why>` | description (70), Looks at: what, and where it is (120), Seen (360), Suggests (150) |
 | `build.md` | `title:`, `needs:`, `commits:`, `tests:`, `dropped: <why>` | description (60), How it works (200), Works when (80) |
-| `D<n>-<slug>.md` | `title:`, `about:` (the goals, questions, experiments or resources it concerns), `date:`, `holds:`; `parks:` and `unparks:` (questions, each also under `about:`); `order:` (goals, questions and steps, first to last); `decided: {date, with}` is written by `lab decide` | Seen (120), Options: a list, one option an item (200), Recommendation (80), Decided (120) |
+| `D<n>-<slug>.md` | `title:`, `about:` (the goals, questions, experiments or resources it concerns), `date:`, `holds:`; `parks:` and `unparks:` (questions, each also under `about:`); `order:` (goals, questions and steps, first to last); `decided: {date, with}` is written by `lab decide` | Seen (150), Options: a list, one option an item (200), Recommendation (80), Decided (150), Note: optional, what a reader of the pages it is about must know from it (60) |
+
+**Why these budgets.** A budget is a ceiling. In 1.3.0 the budgets of the slots that hold a table or a
+numbered list (an experiment's Compares, Cases, Outcomes and So far, a question's So far and How we
+would know) were raised, and so were those where several cards of a working lab sat exactly at the
+ceiling (a question's and an experiment's description, a reading's Seen and Looks at, a decision's
+Seen and Decided): a card that sits at its ceiling has usually been cut to fit, and full sentences
+win. The slots that are one bar or one claim (We expect, Wrong if, Claim, the lines) kept theirs.
+
+**What we know so far.** A question's So far and an experiment's So far hold everything observed:
+where it stands, what was learned after the plan was written, later decisions and how they change
+the reading, reference runs. The plan holds nothing observed. An experiment's So far is outside its
+plan, so it may change after the lock; a card written before 1.3.0 may leave it out. A decision may
+carry a Note: one or two sentences a reader of the pages it is about must know. While a card's So far
+says nothing, its page shows there the Notes of the settled decisions about it.
+
+**A picture.** Any goal, question, experiment, build or reading may have a `picture.svg` beside its
+card. It is drawn inline at the top of its page, after the title and the lead. It shows the whole
+work as numbered steps: what goes in, who does what, the checks, the tools, how it is counted, the
+reference. It shows only what the card states, and no result. It uses the site's colours (`var(--ink)`,
+`var(--accent)`, `var(--surface)`, `var(--rule)`), so it reads in light and dark. It is parsed as XML
+and written again from an allowlist, so nothing outside its one `<svg>` element reaches the page:
+the drawing elements (`svg`, `g`, `defs`, `marker`, `rect`, `circle`, `ellipse`, `line`, `path`,
+`polygon`, `polyline`, `text`, `tspan`, `title`, `desc`, `style`), each with its geometry and
+presentation attributes; no event handler, a link only to `#` inside the picture, no `url(` but
+`url(#id)`, and no value that reads `javascript:` once its entities and spaces are taken out. An
+element that is not allowed is left out with everything inside it. A `<style>` is kept only when it
+has no at-rule, no `url(` to anything outside, no markup and no `expression`, and every selector is a
+class selector; each rule is then kept to the picture (`figure.pic .name`). A file that does not
+parse, that is not one `<svg>`, or that declares a document type is not drawn, and the page says so.
 
 Any card may carry `see:`, a list of pages that explain it: pages of the lab's own library, and pages
 of another library its charter names, written as folio writes them (`pier-folio:/content/readings/...`),
@@ -503,14 +563,19 @@ The part that reads every call and refuses the ones the contract forbids.
 - code: kna.gate:Guard
 - avoid: gate, filter, policy
 - see: entries/kna-gate
+- example: a call that writes to a file the contract does not name is refused
+- also: guards
 ```
 
-`code:` is where the term is in the code. `avoid:` lists, separated by commas, the words not to use
+`example:` is one concrete case of the term, with nothing observed in it: a result is never an
+example. `also:` lists, separated by commas, other names the cards use for the same thing; each links
+to this entry as the term does. `code:` is where the term is in the code. `avoid:` lists, separated by commas, the words not to use
 for this thing. `see:` names a page that explains the concept: a page of the lab's own library
 (`entries/kna-gate`) or of a library the charter names (`pier-folio:/content/concepts/lora/`), the
-same targets a card's `see:` takes. `lab define <term>` prints all of it. The glossary page shows the
-definition, the code, the page as a link and the avoid words in small type; the hover on a term in
-prose is the definition alone.
+same targets a card's `see:` takes. `lab define <term>` prints all of it. The glossary page shows every group open, and each
+entry with its definition, its example, the code, the page as a link, its other names and the avoid
+words in small type. In prose, every time a term or one of its other names is written, on every
+page, it is a link to its entry, and the hover on it is the definition alone.
 
 A word is defined once, in the glossary. A card that needs a word adds it there first, then uses it;
 no card defines a word of its own. A concept that is not this lab's own (a method, a paper's idea) gets
@@ -530,8 +595,9 @@ never seen it knows what was run.
 - contract only: the gate's planning request, then a guard that reads every call and refuses nothing
 ```
 
-The lock holds Compares, Arms, Cases, the lines, Outcomes and Limits, and refuses an experiment with
-no arm or no cases.
+`lab lock` refuses an experiment with no arm or no cases. What it then holds is in section 3: the
+role, result, comparison and number of each line, the name of each arm and `uses:`; the words may be made
+clearer later.
 
 **What a bar is for.** A confirmed-if line may open with its role: `answer:` for the one comparison
 the experiment exists to make, `readable:` for a bar without which that comparison says nothing (the
@@ -541,7 +607,7 @@ so the reader sees which line is the answer. The outcome is worked out as before
 
 **Outcomes** is a list: each outcome the bars allow, what it would mean, and what would be done
 next. **Limits** is a list of the two or three things the experiment cannot show that a reader
-would otherwise assume. Both are written before the run and held by the lock. `cost:` in the front
+would otherwise assume. Both are written before the run, and what they mean does not change after the lock. `cost:` in the front
 matter is one or two sentences on how large the run is and why it needs the resource it uses; the
 amounts used and still allowed are worked out beside it.
 
@@ -575,10 +641,27 @@ sentences), `retired` (why, once it is no longer used), and for a metered resour
 outside any run, such as a machine woken when nothing ran, is a line the agent adds under
 `other_use`: `{date, amount, what}`. What is used is the runs' use plus these lines.
 
+**What a lock holds.** `lab lock` writes `lock.json` once, and nothing writes it again. Besides the
+hash of the whole plan as it was locked (`card`: Compares, Arms, Cases, the lines, Outcomes and
+Limits), a lock made by 1.3.0 or later holds `terms`: one hash of the plan's machine terms, which are
+the result, comparison and number of every confirmed-if and refuted-if line, by side, and the name
+of every arm, each list sorted, so that putting the lines or the arms in another order changes
+nothing. A line's role (`answer:`, `readable:`, `counts:`, or none) is part of it: which bar is
+the answer is part of what the plan demands. A line with no test counts as one. The lock holds when `uses:` is what was locked and the
+terms of the card now hash to `terms`. A lock made before 1.3.0 has only `card`. Its terms are read
+from git: of the versions of the card that git holds, the one whose whole plan hashes to `card` is
+the card as it was locked, and its terms are the locked terms. No commit has to be trusted for it:
+the hash says which version it is. When git holds no such version (no repository, a shallow clone, a
+card changed before it was ever committed as it was locked), the whole plan is held as it was locked,
+word for word, as before 1.3.0. Every run records the `card` of the lock it ran under, and
+`lab check` holds it against the lock's `card`; neither changes when the words do, so a run stays a
+run under its lock after the words are made clearer.
+
 **A run's record**, `run.json`, holds the hash of `plan/` as it ran (`plan`) and what changed since
 the run before, or for the first run since the lock (`changed`). Its seal is one hash over that
 record, which lists the hash of every other file in the run's folder. `lock.json` holds the version of
-the kit that made it (`kit`), when the experiment was locked, the hash of the demand (`card`), the
+the kit that made it (`kit`), when the experiment was locked, the hash of the plan as it was locked
+(`card`), from 1.3.0 the hash of its machine terms (`terms`), the
 hash of `plan/` as it was locked (`plan`), the resources it uses (`uses`) and the trial runs that
 existed. A lock that names its kit and lacks one of these is not a lock the kit wrote, and
 `lab check` says so.

@@ -34,11 +34,12 @@ The operator reads every card on the site, usually days later and without you. W
   matter is the description: what it is and why it is there.
 - A page stands on its own. Never point at something the page does not explain: not "the seven-arm
   run", but what that run was; not "our loop", but "KNA's own agent loop, the one the gate plugs
-  into". Explain a term in the sentence that first uses it, even when the glossary has it.
+  into".
 - A paper, a method or a tool the reader may not know gets a few words saying what it is, and a
   link where it is first named: `[PISmith](pier-folio:/content/readings/...)` for a page of a
   library the charter names, or a web address. Put the same page under `see:`.
-- A word is defined once, in `GLOSSARY.md`, and nowhere else. Use the goal's vocabulary: the goal's
+- A word is defined once, in `GLOSSARY.md`, and nowhere else: the page links every use of a term to
+  its entry, with the definition on hover, so a card never explains a term itself. Use the goal's vocabulary: the goal's
   card lists, by name only (`- field`), the few words the lab uses for its own things; use those words,
   the same way, on every card, and read a term's `avoid:` words as the ones not to use for it. When a
   card needs a new word, add it to the glossary first, then list it on the goal if every card uses it.
@@ -53,6 +54,43 @@ The operator reads every card on the site, usually days later and without you. W
   into fragments to fit, the card is saying too much for one slot or the budget is wrong, and full
   sentences win.
 - Read the card as someone who was not there. If a question comes to mind, the card answers it.
+
+## The page style
+
+Every page reads in the same order: the title and the lead, a picture, **What we know so far**, then
+the plan in fixed boxes, then the steps and the record. Write the card for that page.
+
+- **A picture first.** Draw `picture.svg` beside the card of a question or an experiment before you
+  write its slots. It shows the whole work as numbered steps: what goes in, who does what, the
+  checks, the tools, how it is counted, and the reference. It shows only what the card states, and
+  no result: a number observed never goes in a picture. Use the site's colours (`var(--ink)`,
+  `var(--ink-2)`, `var(--accent)`, `var(--surface)`, `var(--rule)`, `var(--sans)`) and never a fixed
+  colour, so it reads in light and dark. Keep its text at least 12 pixels at its own width.
+- **What we know so far holds everything observed.** The card's `## So far`: where it stands, what
+  was learned after the plan was written, later decisions and what they change, reference runs. On
+  an experiment it sits outside the plan, so you keep it current after the lock. When a decision
+  changes how a node is read, give the decision a `## Note` of one or two sentences: a node whose So
+  far is empty shows it there.
+- **The plan holds nothing observed, and what it demands is not changed after the lock.** No status,
+  no result, no "since then" in Compares, Arms, Cases, the lines, Outcomes or Limits. After the lock
+  you may make their words clearer, slot by slot, keeping the meaning; never a bar's role, result,
+  comparison or number, an arm's name or `uses:` (`lab check` holds those). Have a reviewer read
+  every such rewording (the lab-review skill).
+- **Fixed boxed sections.** Each slot is drawn in its box under a fixed label: on an experiment *What
+  it compares*, *Run on*, *How the answer is read*, *What it cannot show*; on a question *Why we
+  ask*, *How it works*, *One real case, step by step*, *We expect*, *Wrong if*. Do not start a slot
+  with your own `### heading`: the label is the heading. Inside a slot, `### ` lines may split it.
+- **Name a page by its exact title.** Write "The rule pilot (G4.Q1.2)" or "The rule pilot", never
+  "the pilot" or "that experiment": the exact title, with its id in brackets or not, becomes a link.
+- **Glossary words are linked everywhere.** Every use of a term, and of each name under its `- also:`,
+  links to its entry. So add a term, with a `- example:` that shows one concrete case and nothing
+  observed, before you use it. Avoid a word whose everyday sense would link to the wrong lab meaning:
+  if "check" is a term, do not write "check" for "look at".
+- **Plain sentences, one idea each.** Short sentences. A sentence that carries two ideas becomes two.
+- **Tables where items are compared.** Write a pipe table (`| a | b |`, a dashes row under the header)
+  when several items are compared on the same points: the arms, the cases, the outcomes.
+- **Options are named in words, never letters.** "Read `sll` apart", not "(a)". A decision's options
+  are a list, each item opening with its name in bold.
 
 ## When to open a decision
 
@@ -134,8 +172,8 @@ until that decision is settled; after that it needs no further yes.
    the page then shows them with the number.
 8. Send a reviewer for the results.
 9. Once the review has passed, write **Found** and **Means** on the card. Name each result instead
-   of typing its number: `{attack-success}`. It is shown the way its row says it reads. Rewrite the
-   question's **So far** the same way, with full names: `{G1.Q1.2:attack-success}`.
+   of typing its number: `{attack-success}`. It is shown the way its row says it reads. Bring the
+   experiment's **So far** up to date, and rewrite the question's **So far** the same way, with full names: `{G1.Q1.2:attack-success}`.
 10. `lab log <experiment> result "<what was found, in a sentence, without numbers>" "<so what>"`.
 
 The outcome is worked out from the lines: you never write it.
@@ -149,14 +187,14 @@ An experiment is run until one run finishes. Read why the run failed, then:
   `lab run <experiment> --changed "<what changed since the last run, and why>" -- <command>`. Write
   that sentence for the operator: it is shown beside the run on the experiment's page.
 - **What it demands has to change** (the comparison, an arm, the cases, a bar): that is a new
-  experiment. The test is whether those can stay word for word as they are locked.
+  experiment. The test is whether those can stay, in what they demand, as they are locked.
 
 Never read a failed run's partial numbers to decide what to fix. Once one run has finished, the
 experiment takes no more, and `plan/` stays as that run ran it.
 
 ## When the experiment itself has to change
 
-What an experiment demands never changes once locked. `lab new experiment <question> "<title>"
+What an experiment demands never changes once locked; its words may only be made clearer. `lab new experiment <question> "<title>"
 --replaces <old> --because "<why>"` copies the old card and plan for you to change; the old one
 stays, folded under the new with that sentence. Write the reason for the operator: what was wrong
 with what the old one asked, in plain words. The same holds when a results review fails, and when

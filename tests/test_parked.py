@@ -58,7 +58,7 @@ def test_the_site_shows_what_was_set_aside_apart_from_the_work(tmp_path):
     assert "Set aside" in home and "parked by" in home and "The biased coin is parked" in home and "A biased sampler" not in home.split("Set aside")[0]
     assert "Parked questions (1)" in site.get("G1").main
     page = site.get("G1.Q2").main
-    assert "<b>Parked</b>" in page and "nothing under it moves" in page
+    assert "<b>Set aside</b>" in page and "nothing under it moves" in page
     assert "Parks" in site.get(d2).main
     assert not any("biased coin?" in str(r) for r in site.rail())
 
