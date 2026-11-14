@@ -79,6 +79,18 @@ def test_the_history_that_is_checked_is_the_labs_own_record(tmp_path):
             broken(f"{x}/{name}", drop, "a line committed in")
     broken("log.md", lambda full, kept: os.remove(full), "was committed and is gone")
     broken("log.md", drop, "a line committed in")
+    # the spaces at the end of a log line are not part of it: stripping or adding them is no change
+    log = f"{root}/log.md"
+    kept = open(log).read()
+    for spaced in ("\n".join(l + "  " for l in kept.split("\n")), kept.replace(" \n", "\n")):
+        open(log, "w").write(spaced)
+        assert "the record is sound" in lab(root, "check", "--no-rederive"), spaced
+    open(log, "w").write(kept.replace("- ", "-  ", 1))  # a space inside a line is still a change
+    assert "history: log.md: a line committed in" in lab(root, "check", "--no-rederive", ok=False)
+    open(log, "w").write(kept)
+    lab(root, "log", ident, "agent", "a line with no so what")
+    assert open(log).read().endswith("| a line with no so what |\n")  # `lab log` ends a line with no space
+    open(log, "w").write(kept)
     broken(os.path.relpath(glob.glob(f"{root}/decisions/D1-*.md")[0], root), lambda full, kept: os.remove(full), "was committed and is gone")
     assert "the record is sound" in lab(root, "check", "--strict")
 

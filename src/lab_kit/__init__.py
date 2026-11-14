@@ -1,2 +1,2 @@
 """lab-kit: a research lab's record, its method, and the command that keeps both."""
-__version__ = "1.3.0"
+__version__ = "1.3.1"
