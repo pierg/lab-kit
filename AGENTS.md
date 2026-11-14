@@ -44,4 +44,10 @@ Run it before every push; CI also runs it on every pull request.
 line, tool or agent name, "generated with" footer or session link appears in a commit message, a
 branch name or a pull request. The pre-push hook enforces it on every push, and a required `policy`
 check on every pull request.
+
+**Where work runs.** This repository belongs to the notes project (`registry/projects.yaml` in
+pierg/ops). Cloud threads: pier-folio pages, folio and lab-kit code and releases, and the bump PRs
+in their consumers. oddly-close-poodle: live notes in ~/libraries/pier-folio (the notes skill); the
+served sites (serve-folio). The Mac: Cloudflare and GitHub webhook steps that need Pier's sign-ins.
+The rules for every project are in pierg/ops `AGENTS.md`.
 <!-- ops:lanes:end -->
