@@ -698,6 +698,9 @@ anything else is refused when the run is sealed and reported by `lab check`. Its
 in UTC. The file holds no other heading, and a line no other `|`. The kinds are `decision`, `agent`, `result`, `stuck` and `doing`. `lab decide` writes the
 `decision` lines, each with the opening of what was decided. A `doing` line holds what the agent is
 starting on and why now. A line written before the kit kept the time has none.
+`lab log` ends a line with no space, even when the so what is empty. Spaces at the end of a log line
+are not part of it: `lab check` compares the committed lines of `log.md` with those spaces left out,
+so removing or adding them changes no committed line.
 
 **Worked-out states.** A question is under discussion while the decision it came from is open, then
 open, then yes or no; it is parked while the last settled decision that parks or brings it back parks it; a page calls an open question with nothing under it "not started". A build is in

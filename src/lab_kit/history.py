@@ -10,7 +10,8 @@ A file is known by the numbers in its path and not by the words, so a folder ren
 same place: what was committed under the old name is held under the new one.
 
 - A committed `lock.json` is byte for byte its first committed version.
-- `log.md`, `reviews.tsv` and `runs.tsv` only grow: no committed line is removed or changed.
+- `log.md`, `reviews.tsv` and `runs.tsv` only grow: no committed line is removed or changed. Spaces at the end of a
+  line of `log.md` are not part of it.
 - A `results.tsv` that a review has passed keeps every committed row. Once a results review that passed is committed
   together with the rows it read, those rows stay, whatever the card and the file say later. Rows committed while
   the last passed review was of other rows, such as a draft row added after it, were never reviewed and are not held.
@@ -40,11 +41,11 @@ def committed(root):
     return git(root, "rev-parse", "--is-inside-work-tree") is not None and git(root, "rev-parse", "HEAD") is not None
 
 
-def subsequence(old, new):
+def subsequence(old, new, same=lambda a, b: a == b):
     """The first line of `old` that `new` no longer holds in order, or None."""
     it = iter(new)
     for line in old:
-        if not any(line == x for x in it):
+        if not any(same(line, x) for x in it):
             return line
     return None
 
@@ -204,8 +205,9 @@ def check(lab):
             continue
         if name == "results.tsv":  # rows may change until a review passes them
             commits = commits[-1:] if mine(commits[-1][1]) in reviewed else []
+        same = (lambda a, b: a.rstrip(" ") == b.rstrip(" ")) if name == "log.md" else (lambda a, b: a == b)  # a log line's end spaces are not its
         for c, path in reversed(commits):
-            lost = subsequence((git(root, "show", f"{c}:./{path}") or "").splitlines(), R.read(os.path.join(root, mine(path))).splitlines())
+            lost = subsequence((git(root, "show", f"{c}:./{path}") or "").splitlines(), R.read(os.path.join(root, mine(path))).splitlines(), same)
             if lost is not None:
                 bad(mine(path), f"a line committed in {c[:8]}{named(path)} is gone or changed: {lost[:70]!r}")
                 break

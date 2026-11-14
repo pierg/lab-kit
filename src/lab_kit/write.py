@@ -197,7 +197,7 @@ def log(lab, about, kind, what, so="", _by_command=False):
     what, so = log_line(lab, about, kind, what, so, _by_command)
     path = os.path.join(lab.root, "log.md")
     text = R.read(path) if os.path.exists(path) else ""
-    line = f"- {clock()} | {about} | {kind} | {what} | {so}"
+    line = f"- {clock()} | {about} | {kind} | {what} | {so}".rstrip(" ")
     head = "" if re.findall(r"^## (\S+)", text, flags=re.M)[-1:] == [today()] else ("\n" if text.strip() else "") + f"## {today()}\n\n"
     with open(path, "a") as f:
         f.write(("" if not text or text.endswith("\n") else "\n") + head + line + "\n")

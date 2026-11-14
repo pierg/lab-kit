@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.1
+
+- **A log line's end spaces are not part of it.** `lab log` wrote a line ending in `| ` when the so what was
+  empty, which a lab's own whitespace check may refuse, while `lab check` refused the line once the space was
+  removed, as a committed line changed. `lab log` now ends a line with no space, and `lab check` compares the
+  committed lines of `log.md` with the spaces at their ends left out. Other files of the record are compared as
+  they were.
+
 ## 1.3.0
 
 A new page style, and a lock that holds what a plan demands rather than its words. Before, every page of a card
