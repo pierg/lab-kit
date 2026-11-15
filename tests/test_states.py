@@ -57,7 +57,11 @@ def test_so_far_older_than_a_result_under_it_is_stale(tmp_path):
     q = [q for q in L.questions if q["id"] == "G1.Q1"][0]
     diag = (q["state"], q["path"], git_out(root, "status", "--porcelain"), git_out(root, "log", "--format=%cI %s", "--", q["path"]),
             [(l["kind"], l["about"], l["at"]) for l in L.lines], history.stale_so_far(L))
-    assert f"So far was last committed before the result of {ident}" in lab(root, "check", "--no-rederive", ok=False), diag
+    import subprocess as sp, sys
+    from test_flow import SRC
+    p = sp.run([sys.executable, "-m", "lab_kit.cli", "check", "--no-rederive"], cwd=root, capture_output=True, text=True,
+               env={**os.environ, "PYTHONPATH": SRC, "LAB_TESTING": "1", "LAB_TODAY": "2026-01-02", "LAB_CLOCK": "09:30", "LAB_REVIEWER": "second-session"})
+    assert f"So far was last committed before the result of {ident}" in p.stdout + p.stderr, (diag, sys.version, os.environ.get("TZ"), p.stdout)
     fill(f"{qdir}/question.md", So_far="The error at 400 flips is {G1.Q1.1:ratio} of the error at 100.")
     commit(root, "So far brought up to date")
     assert "the record is sound" in lab(root, "check", "--no-rederive")
