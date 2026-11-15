@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.4.0
+
+Missions: a working note for carrying out a settled decision across many sessions. Before, starting or restarting
+the work on a decision meant pasting a long prompt that copied the decision's steps and the state of the machines,
+and went stale within hours. The method (rule 5), the skills `lab-work` and `lab-talk` changed and `lab-mission` is new: run `lab init`
+in a lab after upgrading, or `lab check` reports that they differ from the installed kit.
+
+- **A mission** is `missions/M<n>-<name>.md`: a title, the decision it carries (`carries:`), what it is for, its
+  Rules (what holds for this mission only) and a Log that only grows. It copies nothing the record holds: not the
+  steps, the order, the amounts, or which machine is free.
+- **`lab mission`**: `new "<title>" --carries <decision>` saves one as next; `launch [<id>]` makes one current
+  (with no id, the one saved last), and refuses while its decision is open; `log [<id>] "<what>"` adds a line;
+  `close [<id>] "<what it did>"` writes one `agent` line about the decision into `log.md` and removes the file.
+  Several missions may be current at once. `lab mission <id>` shows one with the steps its decision orders and
+  where each stands, and the other current missions. `lab now` names every mission.
+- **`lab check`** checks a mission's form and that it carries a decision, and that a current one's decision is
+  settled. A mission is not part of the record: it is not held against history and the site does not draw it.
+
 ## 1.3.1
 
 - **A log line's end spaces are not part of it.** `lab log` wrote a line ending in `| ` when the so what was

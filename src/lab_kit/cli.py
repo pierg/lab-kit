@@ -1,7 +1,7 @@
 """lab: the one interface to a lab, for the agent and for CI. See docs/model.md, section 5."""
 from __future__ import annotations
 
-import os, sys
+import os, re, sys
 
 from . import __version__, checks, runs, views, write
 from .record import Lab, amount, find_root
@@ -21,6 +21,12 @@ To write
   lab log <id> doing "<what you are starting on>" "<why now>"
   lab log <id> agent|result|stuck "<what happened>" ["<so what>"]
   lab answer <question> yes|no "<what the answer rests on>"
+To carry out a decision
+  lab mission [<mission>]                   every mission, or one whole: its rules, the steps its decision orders, its log
+  lab mission new "<title>" --carries <decision>         save a mission; it is next until launched
+  lab mission launch [<mission>]            make it current; with no id, the one saved last. Several may be current
+  lab mission log [<mission>] "<what happened>"          a line in a current mission's log
+  lab mission close [<mission>] "<what it did, or why it stopped>"   one line in log.md, and the file removed
 For evidence
   lab lock <experiment>
   lab run <experiment> [--trial] [--wait] [--changed "<what changed since the last run, and why>"] -- <command>
@@ -54,7 +60,8 @@ def main(argv=None):
         i = rest.index("--")
         rest, command = rest[:i], rest[i + 1:]
     held = None
-    if cmd in ("new", "log", "decide", "answer", "lock", "review"):  # one writer at a time, on the lab as it then is
+    looks = (cmd == "mission" and len(rest) <= 1 and (not rest or re.fullmatch(r"M\d+", rest[0]) is not None))  # `lab mission [<id>]` only reads
+    if cmd in ("new", "log", "decide", "answer", "lock", "review") or (cmd == "mission" and not looks):  # one writer at a time, on the lab as it then is
         held = runs.exclusive(find_root())
         held.__enter__()
     lab = Lab()
@@ -93,6 +100,27 @@ def main(argv=None):
         else:
             raise SystemExit(USAGE)
         print(f"made {ident}: {path}")
+    elif cmd == "mission":
+        carries = flag("--carries")
+        ident = lambda: rest.pop(1) if len(rest) == 3 or (rest[0] == "launch" and len(rest) == 2) else None
+        if looks:
+            print(views.mission(lab, rest[0] if rest else None))
+        elif rest[0] == "new" and len(rest) == 2:
+            made, path = write.mission_new(lab, rest[1], carries)
+            print(f"saved {made}: {path}. Say what it is for under the front matter, and its rules")
+        elif rest[0] == "launch" and len(rest) <= 2:
+            made, path = write.mission_launch(lab, ident())
+            print(f"launched {made}: {path}")
+        elif rest[0] in ("log", "close") and len(rest) == 2 and re.fullmatch(r"M\d+", rest[1]):
+            raise SystemExit(f'say what happened after the mission: lab mission {rest[0]} {rest[1]} "<what>"')
+        elif rest[0] == "log" and len(rest) in (2, 3):
+            m = ident()
+            print(f"added to {write.mission_log(lab, m, rest[1])}")
+        elif rest[0] == "close" and len(rest) in (2, 3):
+            m = ident()
+            print(f"closed: {write.mission_close(lab, m, rest[1])}")
+        else:
+            raise SystemExit(USAGE)
     elif cmd == "log":
         if not 3 <= len(rest) <= 4:
             raise SystemExit(USAGE)

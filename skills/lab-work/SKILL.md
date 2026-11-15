@@ -21,6 +21,10 @@ When a decision has set the order of the work, **Yours next** is already in that
 decision set it; follow it, and bring a change of order to the operator rather than skipping ahead.
 `lab show <id>` before you touch anything.
 
+When `lab now` lists a current mission and you were started to run it, or the operator asks to save,
+launch or resume one, follow the lab-mission skill: it starts sessions on the steps, and each of them
+works as this skill says.
+
 Then say what you are on, before the first edit: `lab log <id> doing "<what you are starting on>"
 "<why now>"`. Do it again each time you move to another card. This line is the top of the operator's
 front page: it is how they know the lab is alive without asking you. It ends by itself when you log a

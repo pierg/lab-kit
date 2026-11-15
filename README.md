@@ -22,6 +22,7 @@ Goal           what the lab wants to be able to say
       Run      one try at producing what the experiment demands; the first that finishes counts
       Result   one number from that run, with the command that prints it again
 Decision       something discussed with the operator: what was seen, the options, what was decided and why
+Mission        how a settled decision is being carried out: its rules, and a log a later session resumes from
 ```
 
 Every id spells the path: `G1.Q2.3`. Cards are small and written for the operator. Nothing computed is
@@ -45,7 +46,7 @@ uv tool install lab-kit-cli
 lab init
 ```
 
-Then ask your agent to follow `.agents/skills/lab-set-up/SKILL.md`. `lab --help` lists the fifteen
+Then ask your agent to follow `.agents/skills/lab-set-up/SKILL.md`. `lab --help` lists the sixteen
 commands.
 
 The command needs Python 3.10 or later and nothing of folio. The site does: install `lab-kit-cli[site]`
@@ -56,4 +57,4 @@ where folio serves the lab, which brings `folio-kb` 0.5.0 or later, and list `la
 
 - [docs/model.md](docs/model.md): the contract. What you read, how a number becomes a result, who decides, the commands, the files.
 - [method/METHOD.md](method/METHOD.md): the seven rules every lab keeps.
-- [skills/](skills/): lab-set-up, lab-work, lab-review and lab-talk. [agents/](agents/): the reviewer.
+- [skills/](skills/): lab-set-up, lab-work, lab-review, lab-talk and lab-mission. [agents/](agents/): the reviewer.

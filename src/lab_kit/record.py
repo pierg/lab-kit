@@ -27,6 +27,8 @@ OPTIONAL = {("experiment", "So far"), ("decision", "Note")}  # slots a card may 
 DECIDED = 150  # the word budget of what a decision says was decided and why, which `lab decide` writes
 # What a reader who was not there needs under every title. A question's is its motivation, so it gets room.
 DESCRIPTION = {"goal": 70, "question": 150, "experiment": 80, "build": 60, "reading": 70}
+MISSION_LINE = re.compile(r"^- (\d{4}-\d\d-\d\d) (\d\d:\d\d) \| ([^|]+)$")  # a line of a mission's log
+MISSION_BUDGET = {"description": 80, "Rules": 200}
 STEPS = ("experiment", "build", "reading")  # what sits under a question: a locked comparison, something made, a look at what already exists
 READS = ("", "percent", "points")  # how a result's value reads on a page
 BEFORE = ("Compares", "Arms", "Cases", "Confirmed if", "Refuted if", "Outcomes", "Limits")  # what an experiment says before it runs: its plan, which So far, Found and Means are not part of
@@ -321,6 +323,7 @@ class Lab:
         self.builds = [x for x in self.items if x["type"] == "build"]
         self.readings = [x for x in self.items if x["type"] == "reading"]
         self.decisions = self._decisions()
+        self.missions = self._missions()
         for n in self.goals + self.questions + self.items + self.decisions:
             n["title"], n["description"] = flat(n.get("title") or n["id"]), flat(n.get("description") or "")
             if n["type"] == "question":  # the question in full; a card without `asks:` has it as its title
@@ -634,6 +637,52 @@ class Lab:
             d["state"] = "decided" if d["decided"] else "open"
             out.append(d)
         return out
+
+    def _missions(self):
+        """Every mission, by number: `missions/M<n>-<name>.md`. A mission is next until its log says it was launched,
+        and current from then on, until it is closed and its file removed. It is a working note, not part of the record:
+        `lab check` checks only its form."""
+        out = []
+        for n, path in self._numbered(f"{self.root}/missions/*.md", r"/M(\d+)-[^/]+\.md$", {}, "M<n>-<name>.md"):
+            m = {"id": f"M{n}", "n": n, "path": self.rel(path), "title": "", "carries": "", "fm": {}, "slots": {}, "description": "", "log": [], "bad": [], "last_slot": ""}
+            try:
+                fm, slots, description = parse(read(path, self.problems, m["path"]))
+                if not isinstance(fm, dict):
+                    raise ValueError("its front matter is not a set of keys")
+            except Exception as err:  # reported by `lab check`; the views show what could be read
+                m["bad"].append(f"cannot be read as a mission: {err}")
+                m["state"] = "next"
+                out.append(m)
+                continue
+            body = split(read(path))[1]
+            m.update(fm=fm, slots=slots, description=description, title=flat(fm.get("title") or ""), carries=flat(fm.get("carries") or ""))
+            m["last_slot"] = (re.findall(r"^## (.+?)\s*$", body, flags=re.M) or [""])[-1]
+            for raw in slots.get("Log", "").split("\n"):
+                if raw.strip():
+                    hit = MISSION_LINE.match(raw.rstrip())
+                    m["log"].append({"day": hit.group(1), "time": hit.group(2), "what": hit.group(3).strip()} if hit else {"bad": raw.strip()})
+            m["state"] = "current" if any(l.get("what") == "launched" for l in m["log"]) else "next"
+            out.append(m)
+        return out
+
+    def mission(self, ident):
+        return next((m for m in self.missions if m["id"] == ident), None)
+
+    def mission_numbers(self):
+        """Every number a mission has had: those still in `missions/`, and those whose close the lab's log records."""
+        closed = [int(m.group(1)) for l in self.lines if l["kind"] == "agent" for m in [re.match(r"Mission closed: M(\d+)\b", l["what"])] if m]
+        return [m["n"] for m in self.missions] + closed
+
+    def mission_steps(self, mission):
+        """The steps a mission's decision orders, in its order, each with its state: what is left to carry out."""
+        d = self.nodes.get(mission["carries"]) if mission else None
+        if not d or d["type"] != "decision" or not d["order"]:
+            return []
+        place = {}
+        for i, ident in enumerate(d["order"]):
+            place.setdefault(ident, i)
+        rank = lambda x: next((place[i] for i in (x["id"], x["question"], x["goal"]) if i in place), None)
+        return sorted((x for x in self.pursued() if rank(x) is not None), key=rank)
 
     def _runs(self):
         out = []

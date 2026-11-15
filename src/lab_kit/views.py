@@ -67,6 +67,7 @@ def _now(lab):
     out += ["", "Right now, as the operator sees it"]
     out += [f"- on {d['about']} {lab.nodes[d['about']]['title']} since {d['day']} {d['time']}: {d['what']} Why now: {d['so']}"] if d else ["- no `doing` line is open: the site says nobody is on anything. When you start: lab log <id> doing \"<what>\" \"<why now>\""]
     out += [f"- last recorded activity: {last.strftime('%Y-%m-%d %H:%M')} UTC"] if last else []
+    out += [mission_line(lab, m).replace("- M", "- mission M", 1) for m in lab.missions]
     waiting = lab.open_decisions()
     out += ["", "To discuss with the operator"] + (["- nothing"] if not waiting else [])
     for d in waiting:
@@ -102,6 +103,60 @@ def _now(lab):
         out += ["", "Not committed yet (git holds nothing it has not been given)"] + [f"- {l}" for l in loose]
     out += ["", "Last events"] + ([line(l) for l in lab.lines if l["kind"] != "doing"][-4:] or ["- none"])
     return "\n".join([o for o in out if o is not None] + ["", "More: lab show <id or path>   lab since   lab runs   lab define <term>"])
+
+
+def mission_line(lab, m):
+    """One mission in a line: its id, whether it is current, its title, the decision it carries, its last log line."""
+    d = lab.nodes.get(m["carries"])
+    carries = f"carrying {d['id']} {d['title']}" if d and d["type"] == "decision" else ("cannot be read (`lab check` says why)" if m["bad"] else "carrying no decision (`lab check` says why)")
+    last = next((l for l in reversed(m["log"]) if "what" in l), None)
+    tail = f"; last: {last['day']} {last['time']} {last['what']}" if last else ""
+    return f"- {m['id']} ({m['state']}): {m['title'] or m['path']}, {carries}{tail}"
+
+
+def mission(lab, ident=None):
+    """Every mission in a line each, or one whole: what it is for, its rules, the steps its decision orders, its log."""
+    if ident is None:
+        lines = [mission_line(lab, m) for m in lab.missions]
+        if not lines:
+            return 'no mission: save one with lab mission new "<title>" --carries <decision>'
+        return "\n".join(lines + ["", "More: lab mission <id>"])
+    m = lab.mission(ident)
+    if not m:
+        return f"no mission {ident}: `lab mission` lists them"
+    d = lab.nodes.get(m["carries"])
+    out = [f"{m['id']} ({m['state']}): {m['title'] or m['path']} ({m['path']})"]
+    out += m["bad"]
+    if m["description"]:
+        out += [m["description"]]
+    if not d or d["type"] != "decision":
+        out += ["", f"It carries {m['carries'] or 'nothing'}, which is no decision of the lab."]
+    else:
+        out += ["", f"It carries {d['id']} {d['title']} ({'decided ' + str(d['decided'].get('date')) if d['decided'] else 'still open: settle it before launching'})"]
+        if R.flat(d["slots"].get("Decided", "")):
+            out += [f"Decided. {R.flat(d['slots']['Decided'])}"]
+    if R.flat(m["slots"].get("Rules", "")):
+        out += ["", "Rules of this mission", m["slots"]["Rules"].strip()]
+    others = [o for o in lab.missions if o["state"] == "current" and o["id"] != m["id"]]
+    if others:
+        out += ["", "Also current (read their rules before taking a machine)"] + [mission_line(lab, o) for o in others]
+    if d and d["type"] == "decision":
+        steps = lab.mission_steps(m)
+        if not d["order"]:
+            out += ["", f"{d['id']} orders no steps: what it decided says what to carry out."]
+        else:
+            open_ = [x for x in steps if x["state"] not in ("done", "built", "dropped", "replaced")]
+            out += ["", f"Steps {d['id']} orders, first to last, as they stand now ({len(steps) - len(open_)} of {len(steps)} finished)"]
+            for x in open_:
+                who = "yours" if x["mine"] else "not yours to move yet"
+                out += [f"- {x['id']} {x['title']} ({x['type']}, {state(x)}, {who}): {x['next']}"]
+            out += [] if open_ else ["- every step is finished: close the mission"]
+    out += ["", "Log"] + ([f"- {l['day']} {l['time']} {l['what']}" if "what" in l else f"- (not a log line) {l['bad']}" for l in m["log"]] or ["- nothing yet"])
+    if m["state"] == "current":
+        out += ["", f'To add a line: lab mission log {m["id"]} "<what happened>"   To end it: lab mission close {m["id"]} "<what it did>"']
+    else:
+        out += ["", f"To launch it: lab mission launch {m['id']}"]
+    return R.bare("\n".join(out))
 
 
 def tick(l):
