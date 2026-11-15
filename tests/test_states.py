@@ -8,6 +8,10 @@ from test_parked import park
 PAST = "2000-01-01T00:00:00+00:00"
 
 
+def git_out(root, *args):
+    return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True).stdout
+
+
 def git_env(root, *args, **env):
     subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args], cwd=root, check=True, capture_output=True, env={**os.environ, **env})
 
@@ -41,8 +45,10 @@ def test_so_far_older_than_a_result_under_it_is_stale(tmp_path):
     lab(root, "run", ident, "--wait", "--", *command)
     done(root, ident, d)
     fill(f"{qdir}/question.md", So_far="Nothing has been measured.")
-    commit(root, "the question")
-    git_env(root, "commit", "-q", "--amend", "--no-edit", "--date", PAST, GIT_COMMITTER_DATE=PAST)  # well before the result
+    git_env(root, "init", "-q")
+    git_env(root, "add", "-A")
+    git_env(root, "commit", "-qm", "the question", GIT_AUTHOR_DATE=PAST, GIT_COMMITTER_DATE=PAST)  # well before the result
+    assert git_out(root, "log", "-1", "--format=%cI").startswith("2000-01-01")
     out = lab(root, "log", ident, "result", "The error halves.", "It converges as the theory says.")
     assert "So far of G1.Q1" in out  # the command reminds the agent
     commit(root, "the result")
