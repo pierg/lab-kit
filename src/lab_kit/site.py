@@ -151,7 +151,8 @@ def word(k, title=""):
 def header_css():
     """folio's page header shows the view's status as a pill: draw it with the same mark and tone as everywhere else."""
     soft = {"ok": "ok-soft", "warn": "warn-soft", "bad": "bad-soft", "info": "info-soft"}
-    out = []
+    # The rail's answers: the letter boxed, as in a row of marks on a lab page.
+    out = ['.f-vsign[data-t="ink"]{border:1px solid var(--ink-3);border-radius:3px;padding:0 .2em;min-width:0;font-size:.62rem;line-height:1.2}']
     for k, (t, g) in LOOK.items():
         fg = {"plain": "ink-3", "gone": "ink-3", "ink": "ink"}.get(t, t)
         sel = f'.f-status[data-s="{MEANS.get(k, k)}"]'

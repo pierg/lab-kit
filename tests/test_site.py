@@ -453,7 +453,7 @@ def test_every_state_has_one_mark_on_every_page_and_an_answer_is_a_boxed_word(tm
     assert '<span class="ans" title="answered no">no</span>' in tile and "answered no</span>" not in tile  # the tile on Now: the answer, boxed
     assert site.get("G1.Q1").status == "answered no" and 'data-s="answered no"' in S.header_css()  # the page header draws the same mark
     assert 'class="legend"' not in now and site.rail()[-1]["title"] != "Key"  # no key: every mark names itself on hover
-    assert S.mark("no") == '<span class="sg t-ink" title="answered no">N</span>' and "::before{display:none}" in S.header_css()
+    assert S.mark("no") == '<span class="sg t-ink" title="answered no">N</span>' and "::before{display:none}" in S.header_css() and '.f-vsign[data-t="ink"]{border' in S.header_css()
     assert len({S.LOOK[k] for k in ("open", "waiting", "running", "parked", "done", "dropped", "to discuss")}) == 7  # no two states share a mark
     busy = {"type": "question", "state": "open", "items": [{"id": "G1.Q1.2", "state": "running"}]}
     assert S.key(busy) == "running" and "G1.Q1.2 running" in S.dot(busy) and " live" in S.dot(busy)  # a question with a running step pulses
