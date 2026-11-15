@@ -17,7 +17,10 @@ session reads to pick the work up where the last one stopped, so the operator ne
 a long prompt to start or restart the work.
 
 A mission is a file, `missions/M<n>-<name>.md`. It is **next** from when it is saved, and
-**current** once it is launched. Several may be current at once. `lab mission` lists them, and
+**current** once it is launched, and **done** or **stopped** once it is closed; its `status:` says
+which, and the commands write it. A closed mission stays in `missions/`: its log is the only account
+of how the decision was carried out. Several may be current at once. `lab mission` lists the open
+ones (`--all` the closed too), and
 `lab mission <id>` shows one whole: what it is for, its rules, the steps its decision orders with
 where each stands now, the other current missions, and its log.
 
@@ -82,8 +85,10 @@ When asked how it is going, answer from `lab mission <id>` and `lab now`, as lab
 ## Close: when every step is finished, or the operator stops it
 
 1. Check `lab mission <id>`: every step it lists is finished, or the operator said to stop.
-2. `lab mission close <id> "<what it did, or why it stopped>"`. This writes one line in the lab's
-   `log.md` about the decision, and removes the mission's file; git keeps it.
+2. `lab mission close <id> "<what it did>"`, or `lab mission close <id> --stopped "<why it
+   stopped>"` when the operator ended it before its work was done. Its status becomes done or
+   stopped, its log gets a last line, and the lab's `log.md` one line about the decision. The file
+   stays: never remove it.
 3. Commit, and tell the operator in a sentence what was carried out. If another mission is next,
    say so; it is launched when they say to.
 

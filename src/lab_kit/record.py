@@ -29,6 +29,7 @@ DECIDED = 150  # the word budget of what a decision says was decided and why, wh
 DESCRIPTION = {"goal": 70, "question": 150, "experiment": 80, "build": 60, "reading": 70}
 MISSION_LINE = re.compile(r"^- (\d{4}-\d\d-\d\d) (\d\d:\d\d) \| ([^|]+)$")  # a line of a mission's log
 MISSION_BUDGET = {"description": 80, "Rules": 200}
+MISSION_STATES = ("next", "current", "done", "stopped")  # a mission's `status:`; done and stopped are closed, and the file is kept
 STEPS = ("experiment", "build", "reading")  # what sits under a question: a locked comparison, something made, a look at what already exists
 READS = ("", "percent", "points")  # how a result's value reads on a page
 BEFORE = ("Compares", "Arms", "Cases", "Confirmed if", "Refuted if", "Outcomes", "Limits")  # what an experiment says before it runs: its plan, which So far, Found and Means are not part of
@@ -639,9 +640,9 @@ class Lab:
         return out
 
     def _missions(self):
-        """Every mission, by number: `missions/M<n>-<name>.md`. A mission is next until its log says it was launched,
-        and current from then on, until it is closed and its file removed. It is a working note, not part of the record:
-        `lab check` checks only its form."""
+        """Every mission, by number: `missions/M<n>-<name>.md`, with its `status:` (next, current, done, stopped), which
+        the commands write. A file written by 1.4.0 has none: it is current once its log says it was launched, else next.
+        A mission is a working note, not part of the record: `lab check` checks only its form."""
         out = []
         for n, path in self._numbered(f"{self.root}/missions/*.md", r"/M(\d+)-[^/]+\.md$", {}, "M<n>-<name>.md"):
             m = {"id": f"M{n}", "n": n, "path": self.rel(path), "title": "", "carries": "", "fm": {}, "slots": {}, "description": "", "log": [], "bad": [], "last_slot": ""}
@@ -661,7 +662,8 @@ class Lab:
                 if raw.strip():
                     hit = MISSION_LINE.match(raw.rstrip())
                     m["log"].append({"day": hit.group(1), "time": hit.group(2), "what": hit.group(3).strip()} if hit else {"bad": raw.strip()})
-            m["state"] = "current" if any(l.get("what") == "launched" for l in m["log"]) else "next"
+            status = flat(fm.get("status") or "")
+            m["state"] = status if status in MISSION_STATES else ("current" if any(l.get("what") == "launched" for l in m["log"]) else "next")
             out.append(m)
         return out
 
@@ -669,8 +671,9 @@ class Lab:
         return next((m for m in self.missions if m["id"] == ident), None)
 
     def mission_numbers(self):
-        """Every number a mission has had: those still in `missions/`, and those whose close the lab's log records."""
-        closed = [int(m.group(1)) for l in self.lines if l["kind"] == "agent" for m in [re.match(r"Mission closed: M(\d+)\b", l["what"])] if m]
+        """Every number a mission has had: those in `missions/`, closed ones included, and those whose close the lab's
+        log records (a mission closed by 1.4.0 had its file removed)."""
+        closed = [int(m.group(1)) for l in self.lines if l["kind"] == "agent" for m in [re.match(r"Mission (?:closed|done|stopped): M(\d+)\b", l["what"])] if m]
         return [m["n"] for m in self.missions] + closed
 
     def mission_steps(self, mission):

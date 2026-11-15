@@ -67,7 +67,7 @@ def _now(lab):
     out += ["", "Right now, as the operator sees it"]
     out += [f"- on {d['about']} {lab.nodes[d['about']]['title']} since {d['day']} {d['time']}: {d['what']} Why now: {d['so']}"] if d else ["- no `doing` line is open: the site says nobody is on anything. When you start: lab log <id> doing \"<what>\" \"<why now>\""]
     out += [f"- last recorded activity: {last.strftime('%Y-%m-%d %H:%M')} UTC"] if last else []
-    out += [mission_line(lab, m).replace("- M", "- mission M", 1) for m in lab.missions]
+    out += [mission_line(lab, m).replace("- M", "- mission M", 1) for m in lab.missions if m["state"] in ("next", "current")]
     waiting = lab.open_decisions()
     out += ["", "To discuss with the operator"] + (["- nothing"] if not waiting else [])
     for d in waiting:
@@ -114,13 +114,15 @@ def mission_line(lab, m):
     return f"- {m['id']} ({m['state']}): {m['title'] or m['path']}, {carries}{tail}"
 
 
-def mission(lab, ident=None):
+def mission(lab, ident=None, everything=False):
     """Every mission in a line each, or one whole: what it is for, its rules, the steps its decision orders, its log."""
     if ident is None:
-        lines = [mission_line(lab, m) for m in lab.missions]
+        lines = [mission_line(lab, m) for m in lab.missions if everything or m["state"] in ("next", "current")]
+        closed = sum(m["state"] in ("done", "stopped") for m in lab.missions)
+        more = [] if everything or not closed else [f"{closed} closed mission{'' if closed == 1 else 's'}: lab mission --all"]
         if not lines:
-            return 'no mission: save one with lab mission new "<title>" --carries <decision>'
-        return "\n".join(lines + ["", "More: lab mission <id>"])
+            return "\n".join(['no open mission: save one with lab mission new "<title>" --carries <decision>'] + more)
+        return "\n".join(lines + more + ["", "More: lab mission <id>"])
     m = lab.mission(ident)
     if not m:
         return f"no mission {ident}: `lab mission` lists them"
@@ -137,7 +139,7 @@ def mission(lab, ident=None):
             out += [f"Decided. {R.flat(d['slots']['Decided'])}"]
     if R.flat(m["slots"].get("Rules", "")):
         out += ["", "Rules of this mission", m["slots"]["Rules"].strip()]
-    others = [o for o in lab.missions if o["state"] == "current" and o["id"] != m["id"]]
+    others = [] if m["state"] in ("done", "stopped") else [o for o in lab.missions if o["state"] == "current" and o["id"] != m["id"]]
     if others:
         out += ["", "Also current (read their rules before taking a machine)"] + [mission_line(lab, o) for o in others]
     if d and d["type"] == "decision":
@@ -153,7 +155,9 @@ def mission(lab, ident=None):
             out += [] if open_ else ["- every step is finished: close the mission"]
     out += ["", "Log"] + ([f"- {l['day']} {l['time']} {l['what']}" if "what" in l else f"- (not a log line) {l['bad']}" for l in m["log"]] or ["- nothing yet"])
     if m["state"] == "current":
-        out += ["", f'To add a line: lab mission log {m["id"]} "<what happened>"   To end it: lab mission close {m["id"]} "<what it did>"']
+        out += ["", f'To add a line: lab mission log {m["id"]} "<what happened>"   To end it: lab mission close {m["id"]} [--stopped] "<what it did>"']
+    elif m["state"] in ("done", "stopped"):
+        out += ["", f"Closed ({m['state']}): its log above is the record of how {m['carries']} was carried out."]
     else:
         out += ["", f"To launch it: lab mission launch {m['id']}"]
     return R.bare("\n".join(out))

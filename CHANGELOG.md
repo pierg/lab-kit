@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.5.0
+
+A closed mission is kept. In 1.4.0 `lab mission close` removed the mission's file, and with it the only account of
+how its decision was carried out: which sessions started, what stalled, what was restarted. The skill `lab-mission`
+changed: run `lab init` in a lab after upgrading.
+
+- **`status:`** on a mission, written by the commands: `next` when saved, `current` when launched, `done` or
+  `stopped` when closed. `lab check` asks for it. A file 1.4.0 wrote is still read (current once its log says
+  `launched`), and `lab check` asks for the status to be written.
+- **`lab mission close [<id>] [--stopped] "<what>"`** sets the status, adds a last line to the mission's log, writes
+  one line about the decision in `log.md` (`Mission done:` or `Mission stopped:`), and keeps the file.
+- **`lab mission`** lists the open missions and counts the closed; `--all` lists them all. `lab now` names only the
+  open ones.
+
 ## 1.4.0
 
 Missions: a working note for carrying out a settled decision across many sessions. Before, starting or restarting

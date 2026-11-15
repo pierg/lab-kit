@@ -364,7 +364,7 @@ def rederive(lab, only=None):
 
 # ---------------------------------------------------------------- missions: carrying out a settled decision
 
-MISSION = "---\ntitle: {title}\ncarries: {carries}\n---\n\n\n\n## Rules\n\n\n## Log\n\n{line}\n"
+MISSION = "---\ntitle: {title}\nstatus: next\ncarries: {carries}\n---\n\n\n\n## Rules\n\n\n## Log\n\n{line}\n"
 
 
 def _mission_line(what):
@@ -382,6 +382,14 @@ def _mission_append(lab, m, line):
     text = R.read(path)
     with open(path, "a") as f:
         f.write(("" if text.endswith("\n") else "\n") + line + "\n")
+
+
+def _mission_status(lab, m, status):
+    """Write a mission's `status:` in its front matter, in place of the one there, or as its second line."""
+    path = os.path.join(lab.root, m["path"])
+    fm, body = R.split(R.read(path))
+    fm = re.sub(r"^status:.*\n", f"status: {status}\n", fm, flags=re.M) if re.search(r"^status:", fm, flags=re.M) else re.sub(r"^(title:.*\n)", rf"\1status: {status}\n", fm, count=1, flags=re.M) if re.search(r"^title:", fm, flags=re.M) else f"status: {status}\n" + fm
+    open(path, "w").write(R.join(fm, body))
 
 
 def pick_mission(lab, ident, state):
@@ -430,6 +438,7 @@ def mission_launch(lab, ident=None):
     if not m["description"]:
         stop(f"{m['path']}: say what the mission is for, in the paragraph under the front matter")
     _mission_append(lab, m, _mission_line("launched"))
+    _mission_status(lab, m, "current")
     return m["id"], m["path"]
 
 
@@ -439,8 +448,9 @@ def mission_log(lab, ident, what):
     return m["path"]
 
 
-def mission_close(lab, ident, what):
-    """End a current mission: one line in the lab's log about the decision it carried, and its file removed."""
+def mission_close(lab, ident, what, stopped=False):
+    """End a current mission: its status becomes done (or stopped), a last line in its log, and one line in the lab's
+    log about the decision it carried. The file is kept: its log is the record of how the decision was carried out."""
     m = pick_mission(lab, ident, "current")
     if lab.nodes.get(m["carries"], {}).get("type") != "decision":
         stop(f"{m['path']}: `carries:` names no decision; fix it before closing, so the lab's log says what was carried out")
@@ -448,7 +458,10 @@ def mission_close(lab, ident, what):
     if not what or "|" in what:
         stop("say what the mission did, or why it stopped, with no |")
     title = (m["title"] or "untitled").replace("|", "/")
-    line = log_line(lab, m["carries"], "agent", f"Mission closed: {m['id']} {title}", what, _mission=True)  # validated before anything is written
-    os.remove(os.path.join(lab.root, m["path"]))
+    status = "stopped" if stopped else "done"
+    line = log_line(lab, m["carries"], "agent", f"Mission {status}: {m['id']} {title}", what, _mission=True)  # validated before anything is written
+    mine = _mission_line(f"{status}: {what}")
+    _mission_append(lab, m, mine)  # refuses a file it cannot add to, before anything is written
+    _mission_status(lab, m, status)
     log(lab, m["carries"], "agent", *line, _mission=True)
-    return f"log.md, and removed {m['path']} (git keeps it)"
+    return f"{m['path']} ({status}, kept), and log.md"

@@ -299,7 +299,7 @@ def run(lab, rederive=True):
         kind = nodes.get(l["about"], {}).get("type")
         if l["kind"] == "doing" and not l["so"]:
             bad("log", where, "a `doing` line says why now, after what the agent is starting on")
-        closes = l["kind"] == "agent" and kind == "decision" and l["what"].startswith("Mission closed: ")  # written by `lab mission close`
+        closes = l["kind"] == "agent" and kind == "decision" and l["what"].startswith(("Mission closed: ", "Mission done: ", "Mission stopped: "))  # written by `lab mission close`
         if kind is None or ((kind == "decision") != (l["kind"] == "decision") and not closes):
             bad("log", where, f"is about {l['about']!r}: a decision line is about its decision, as is the line that closes a mission, any other about a goal, a question, an experiment, a build or a reading")
 
@@ -310,8 +310,10 @@ def run(lab, rederive=True):
             bad("missions", where, b)
         if m["bad"]:
             continue
-        for key in sorted({str(k) for k in m["fm"]} - {"title", "carries"}):
-            bad("missions", where, f"`{key}:` is not something a mission holds: only `title:` and `carries:`")
+        for key in sorted({str(k) for k in m["fm"]} - {"title", "status", "carries"}):
+            bad("missions", where, f"`{key}:` is not something a mission holds: only `title:`, `status:` and `carries:`")
+        if str(m["fm"].get("status") or "") not in R.MISSION_STATES:
+            bad("missions", where, f"`status:` is one of {', '.join(R.MISSION_STATES)}; it is {m['fm'].get('status')!r}")
         if not m["title"]:
             bad("missions", where, "has no title")
         d = nodes.get(m["carries"])

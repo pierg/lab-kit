@@ -333,9 +333,11 @@ It copies nothing the decision or the record holds: not the steps, the order or 
 works out, such as which runs are going or which machine is free.
 
 Each mission is a file, `missions/M<n>-<slug>.md`, numbered as decisions are. `lab mission new` gives the next
-number after every mission in `missions/` and every one whose close `log.md` records; a file removed by hand,
-without `lab mission close`, leaves no trace, and its number may be given again. A mission is **next** from when it is saved, and **current** once
-its log says it was launched. Several may be current at once, each carrying its own decision or its own part of one;
+number after every mission in `missions/` and every one whose close `log.md` records; a file removed by hand
+leaves no trace, and its number may be given again. Its `status:` says where it is: **next** from when it is saved,
+**current** once it is launched, and **done** or **stopped** once it is closed. A closed mission stays in
+`missions/`: its log is the one account of how its decision was carried out (which sessions started, what stalled,
+what was restarted), which neither the decision nor the lab's log holds. Several may be current at once, each carrying its own decision or its own part of one;
 they share the lab's resources, so each one's rules say what it takes, and a session reads the other current
 missions before it takes a machine.
 
@@ -343,14 +345,15 @@ missions before it takes a machine.
 - `lab mission launch [<mission>]` makes one current: the one named, or with no id the one saved last. It refuses
   while the decision it carries is open, and while the mission does not say what it is for.
 - `lab mission log [<mission>] "<what happened>"` adds a line to a current mission's log. Lines are only added.
-- `lab mission close [<mission>] "<what it did, or why it stopped>"` ends a current mission: it writes one `agent`
-  line about the decision it carried into `log.md`, `Mission closed: M<n> <title>`, and removes the file. Git
-  keeps it.
-- `lab mission` lists every mission in a line; `lab mission <mission>` shows one whole, with the steps its decision
-  orders and where each stands now, and the other current missions.
+- `lab mission close [<mission>] [--stopped] "<what it did, or why it stopped>"` ends a current mission: its status
+  becomes done (stopped, with `--stopped`, when it ended before its work did), its log ends with that line, and one
+  `agent` line about the decision it carried goes into `log.md`, `Mission done: M<n> <title>`. The file is kept.
+- `lab mission` lists the open missions, next and current, in a line each, and counts the closed; `--all` lists
+  those too. `lab mission <mission>` shows one whole, with the steps its decision orders and where each stands now,
+  and the other current missions.
 
 `log` and `close` may leave out the mission while only one is current, and refuse to guess when several are.
-`lab now` names every mission under **Right now**. A mission is not part of the record: `lab check` checks its
+`lab now` names every open mission under **Right now**. A mission is not part of the record: `lab check` checks its
 form (section 9) and that it carries a decision, and does not hold it against history; the site does not draw
 it; its log is not the lab's log. The lab-mission skill says what to do on each step.
 
@@ -404,7 +407,7 @@ written, and only one of them writes at a time.
 ```
 lab.toml  AGENTS.md  GLOSSARY.md  resources.toml  log.md
 decisions/D1-<slug>.md    what was discussed and decided
-missions/M1-<slug>.md     a mission: how a settled decision is being carried out, until it is closed
+missions/M1-<slug>.md     a mission: how a settled decision is carried out, and once closed, how it was
 goals/G1-<slug>/
   goal.md
   Q1-<slug>/
@@ -732,7 +735,8 @@ in UTC. The file holds no other heading, and a line no other `|`. The kinds are 
 `decision` lines, each with the opening of what was decided. A `doing` line holds what the agent is
 starting on and why now. A line written before the kit kept the time has none.
 A line is about a goal, a question or a step, and a `decision` line about its decision. The one other line
-about a decision is the `agent` line `lab mission close` writes when a mission that carried it ends.
+about a decision is the `agent` line `lab mission close` writes when a mission that carried it ends (`Mission done:`
+or `Mission stopped:`, and `Mission closed:` as 1.4.0 wrote it).
 `lab log` ends a line with no space, even when the so what is empty. Spaces at the end of a log line
 are not part of it: `lab check` compares the committed lines of `log.md` with those spaces left out,
 so removing or adding them changes no committed line.
@@ -742,6 +746,7 @@ so removing or adding them changes no committed line.
 ```
 ---
 title: "The first wave"
+status: current
 carries: D4
 ---
 
@@ -757,9 +762,11 @@ What the mission is for, in a sentence or two (80 words).
 - 2026-11-15 09:40 | launched
 ```
 
-The front matter holds `title:` and `carries:` (a decision) and nothing else. Rules is a list, each rule a line
+The front matter holds `title:`, `status:` (next, current, done or stopped, which the commands write) and `carries:`
+(a decision), and nothing else. Rules is a list, each rule a line
 `- <rule>`, possibly empty (200 words). Log is the last slot, and each line is `- <date> <time> | <what happened>` in UTC, holding no other
-`|`. No other file sits in `missions/`. A mission whose log holds the line `launched` is current. `lab check`
+`|`. No other file sits in `missions/`. A file 1.4.0 wrote has no `status:`; it is read as current when its log
+holds the line `launched`, else next, and `lab check` asks for the status to be written. `lab check`
 reports a mission that breaks any of this, one whose `carries:` is not a decision, and a current mission whose
 decision is still open.
 
