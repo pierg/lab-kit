@@ -234,9 +234,15 @@ def answer(lab, target, verdict, text):
     """The agent's answer to a question, once its experiments are done."""
     n = lab.nodes.get(target)
     if verdict not in R.ANSWERS:
-        stop("an answer is yes, no or mixed: mixed when part of what was expected held and part did not, saying which")
+        stop("an answer is yes, no or mixed for a test (mixed when part of what was expected held and part did not, saying which), or found for an estimate")
     if not n or n["type"] != "question":
         stop(f"no question {target}")
+    kind = R.question_kind(n)
+    if kind not in R.KINDS_OF_QUESTION:
+        stop(f"{target} has `kind: {kind}`: a question is a test or an estimate")
+    if verdict not in R.KINDS_OF_QUESTION.get(kind, ()):
+        stop(f"{target} is an estimate: it is answered `found`, with the finding itself" if kind == "estimate"
+             else f"{target} is a test: it is answered yes, no or mixed; an estimate (`kind: estimate` on its card) is answered found")
     if not R.flat(text):
         stop("an answer says what it rests on")
     if n["state"] != "open":

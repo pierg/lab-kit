@@ -436,3 +436,27 @@ def test_a_table_with_no_rows_and_a_title_that_ends_in_a_mark_are_drawn(tmp_path
     assert "What we know so far" in page
     other = Provider(root).get("G1.Q1.3").main
     assert '<a class="page" href="/lab/G1.Q1/"' in other and ">Does the error halve when the sample quadruples?</a>" in other
+
+
+def test_every_state_has_one_mark_on_every_page_and_now_carries_the_key(tmp_path):
+    from lab_kit import site as S
+    root, ident, d, command = locked(tmp_path)
+    lab(root, "run", ident, "--wait", "--", *command)
+    from test_integrity import done
+    done(root, ident, d)
+    lab(root, "answer", "G1.Q1", "no", "It halves at 400 flips, so the law does not need a correction.")
+    site = Provider(root)
+    question = next(r for r in site.rail() if r.get("kind") == "goal")["items"][0]
+    no = S.LOOK["no"]
+    assert (question["status"], question["tone"], question["sign"]) == ("answered no", no[0], no[1])  # the rail
+    now = site.get("").main
+    tile = now[now.index('class="tile'):]
+    assert f'<span class="stw t-{no[0]}"' in tile and f">{no[1]}</span>answered no" in tile  # the tile on Now: the same mark and word
+    assert site.get("G1.Q1").status == "answered no" and 'data-s="answered no"' in S.header_css()  # the page header draws the same mark
+    assert '<div class="legend">' in now and now.index('<div class="legend">') < now.index('class="goalrow"')
+    assert all(k in S.LOOK and k in S.MEANS for _, keys in S.LEGEND for k in keys)
+    assert len({S.LOOK[k] for k in ("open", "waiting", "running", "parked", "done", "dropped", "to discuss")}) == 7  # no two states share a mark
+    busy = {"type": "question", "state": "open", "items": [{"id": "G1.Q1.2", "state": "running"}]}
+    assert S.key(busy) == "running" and "G1.Q1.2 running" in S.dot(busy) and " live" in S.dot(busy)  # a question with a running step pulses
+    assert S.key({"type": "goal", "state": "open", "questions": [busy]}) == "running"
+    assert S.key({**busy, "state": "parked"}) == "parked"

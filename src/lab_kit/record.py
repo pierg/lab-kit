@@ -32,10 +32,11 @@ MISSION_BUDGET = {"description": 80, "Rules": 200}
 MISSION_STATES = ("next", "current", "done", "stopped")  # a mission's `status:`; done and stopped are closed, and the file is kept
 STEPS = ("experiment", "build", "reading")
 # One set of states for every goal, question and step (the model, section 1). A type uses only those it can be in. On
-# done, a question carries its answer (yes, no or mixed) and an experiment its outcome (confirmed, refuted, unclear or
+# done, a question carries its answer (yes, no or mixed for a test, found for an estimate) and an experiment its outcome (confirmed, refuted, unclear or
 # void) as its label.
 STATES = ("open", "waiting", "running", "parked", "done", "replaced", "dropped")
-ANSWERS = ("yes", "no", "mixed")
+ANSWERS = ("yes", "no", "mixed", "found")
+KINDS_OF_QUESTION = {"test": ("yes", "no", "mixed"), "estimate": ("found",)}  # what each kind of question may be answered
 CLOSED = ("done", "replaced", "dropped")  # a step in one of these will not move again  # what sits under a question: a locked comparison, something made, a look at what already exists
 READS = ("", "percent", "points")  # how a result's value reads on a page
 BEFORE = ("Compares", "Arms", "Cases", "Confirmed if", "Refuted if", "Outcomes", "Limits")  # what an experiment says before it runs: its plan, which So far, Found and Means are not part of
@@ -55,7 +56,7 @@ HASH = 2  # how a folder is hashed in the locks and runs made now; one without t
 NUMBER = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?")
 LISTS = {"goal": ("see",), "question": ("needs", "see"), "experiment": ("needs", "uses", "see"), "build": ("needs", "commits", "tests", "see"),
          "reading": ("needs", "see"), "decision": ("about", "holds", "parks", "unparks", "drops", "order", "see")}  # the front matter keys that hold a list
-TEXTS = ("title", "asks", "from", "replaces", "because", "cost", "waiting_on", "dropped", "answered")  # and those that hold one value
+TEXTS = ("title", "asks", "kind", "from", "replaces", "because", "cost", "waiting_on", "dropped", "answered")  # and those that hold one value
 
 
 def complement(a, b):
@@ -194,6 +195,11 @@ def tree_hash(folder, how=HASH, cache=False):
 
 def seal_of(record):
     return hashlib.sha256(json.dumps({k: v for k, v in record.items() if k != "seal"}, sort_keys=True).encode()).hexdigest()
+
+
+def question_kind(q):
+    """A question's kind: a test, answered yes, no or mixed, unless its card says it is an estimate, answered found."""
+    return str(q.get("kind") or "test")
 
 
 def flat(text):
@@ -1021,7 +1027,7 @@ class Lab:
         if q["state"] == "parked":
             return f"{q['id']} is parked by {self.parked_by(q['id'])['id']}: a decision that unparks it comes first"
         if q["state"] != "open":
-            return f"{q['id']} is {'answered ' + q['label'] if q['state'] == 'done' else q['state']}"
+            return f"{q['id']} is {('answered ' + q['label']) if q['state'] == 'done' and q['label'] != 'found' else 'answered with what was found' if q['state'] == 'done' else q['state']}"
         for need in x.get("needs") or []:
             n = self.nodes.get(need)
             if n and x["id"] in self.reach.get(need, {need} if need == x["id"] else ()):  # a circle of needs: nothing in it moves

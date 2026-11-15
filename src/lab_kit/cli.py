@@ -20,7 +20,7 @@ To write
   lab new experiment|build|reading <question> "<title>" [--replaces <experiment> --because "<why>"]
   lab log <id> doing "<what you are starting on>" "<why now>"
   lab log <id> agent|result|stuck "<what happened>" ["<so what>"]
-  lab answer <question> yes|no|mixed "<what the answer rests on>"
+  lab answer <question> yes|no|mixed|found "<what the answer rests on>"   (found: for an estimate, the finding)
 To carry out a decision
   lab mission [<mission>] [--all]           the open missions (--all: the closed too), or one whole: its rules, its steps, its log
   lab mission new "<title>" --carries <decision>         save a mission; it is next until launched

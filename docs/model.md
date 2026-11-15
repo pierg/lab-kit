@@ -10,7 +10,7 @@ A lab is a tree, and the decisions that shaped it.
 | Thing | What it says | States |
 | --- | --- | --- |
 | **Goal** | A short name, what the lab wants to be able to say, and the claim: what we would report if the questions come out as expected, and against whose work. | open, done, dropped |
-| **Question** | A short name, and a question under a goal, answered yes, no or mixed, written in full: why we ask it, how we would know, what we expect, what would prove us wrong, what we know so far. | open, waiting, parked, done (yes, no or mixed), dropped |
+| **Question** | A short name, and a question under a goal, written in full: why we ask it, how we would know, what we expect, what would prove us wrong, what we know so far. A test is answered yes, no or mixed; an estimate is answered with what was found. | open, waiting, parked, done (yes, no, mixed or found), dropped |
 | **Experiment** | One thing tried to answer a question. What it is for. Before the run: what is compared, each arm by name with what it is, the cases it runs on, what would confirm, what would refute. After: what was found, what it means. | open, waiting, running, done (confirmed, refuted, unclear or void), replaced, dropped |
 | **Build** | One thing an experiment needs that has to be made first: what it is for, how it works in plain words, and how we know it works. | open, waiting, running, done, dropped |
 | **Reading** | One look at what already exists: sealed runs, traces, the benchmark's own definitions. What it looks at; then what was seen and what that suggests. It sets no bar in advance, so it can suggest and never confirm. | open, waiting, running, done, dropped |
@@ -31,10 +31,22 @@ seven words, and each type uses only those it can be in:
 | replaced | redone by a newer experiment | | | yes | | |
 | dropped | will not be done | yes | yes | yes | yes | yes |
 
-Two types carry a label on done. A question's is its answer: **yes**, **no** or **mixed**, the answer to
-the question as asked, with one sentence on what it rests on. Mixed says which part held and which did
-not, and usually leads to a narrower question. An answer is a finding, never good or bad: no is not a
-failure. A question has no "unclear": while the evidence cannot answer it, it is open. An experiment's
+Two types carry a label on done. A question's is its answer, and what it can be depends on the
+question's kind, set when it is written (`kind:`):
+
+- **A test** (the default) asks whether something holds: "Does the error halve when the sample
+  quadruples?" Its answer is **yes**, **no** or **mixed**, read against its We expect and Wrong if, with
+  one sentence on what it rests on. Mixed says which part held and which did not, and usually leads to
+  a narrower question.
+- **An estimate** asks how much, which or what: "How little feedback does a session need?", "What did
+  the solver's search depend on?" Its answer is **found**, with the finding itself in one or two
+  sentences: a number with its range, or a short description, and what it rests on. Its We expect says
+  roughly what size or shape is expected, and its Wrong if what would surprise. An estimate is never
+  squeezed into yes or no, which would throw away the size and how sure it is.
+
+Either kind is answered only from done experiments that are not void; the bars that confirm or refute
+stay on the experiments. An answer is a finding, never good or bad: no is not a failure. A question has
+no "unclear": while the evidence cannot answer it, it is open. An experiment's
 label is its outcome: **confirmed**, **refuted** or **unclear**, read against the bars set before the
 run, or **void** when its results review failed, so that its numbers cannot be cited. A decision is open,
 then done; a mission's `status:` (next, current, done, stopped) reads on the pages as open, running,
@@ -297,8 +309,8 @@ change once committed; a change of mind is a new decision. `lab check` holds thi
 history. So a decision cannot be made, afterwards, to be about something it never discussed.
 
 The agent decides everything else and records each choice in the log. It drops an experiment or a
-build that will not be done, saying why. It answers a question itself, yes, no or mixed, with `lab answer`, and
-the command refuses while an experiment of that question is neither done, replaced nor dropped, and
+build that will not be done, saying why. It answers a question itself with `lab answer`: a test yes, no or mixed, an estimate found. The command refuses the other kind's answers, and
+it refuses while an experiment of that question is neither done, replaced nor dropped, and
 when no experiment of it is done: a reading alone answers nothing. `lab check` asks the same of every
 answered question, and that the log holds the line `lab answer` wrote. It never asks you to check
 its work, which is the review's job, and it never opens a decision for something that is its own to
@@ -470,6 +482,18 @@ place and marked, with its goal, its question and its siblings in view. A questi
 dropped steps fold into one line at its end; a goal's parked and dropped questions into one line at
 its end.
 
+**One mark for each state, everywhere.** Every word a page uses for where something stands has one
+mark, a shape in a colour, and it is the same on Now, in the rail, in the page header, in a list of
+steps and in a list of runs: open ○, waiting ‖, running ● (it pulses), parked ◇, done ✓, replaced and
+dropped –; a question answered yes, no, mixed or found Y, N, M, F, all in the ink's colour, since an answer is a
+finding and never good or bad; an experiment confirmed ✓, refuted ✗, unclear ?, void !; a decision to
+discuss ◆ or decided ✓; a run running, finished ✓ or failed ✗, and a review passed ✓ or failed ✗. The
+shape carries the meaning, so colour is never the only signal. Where a page writes a state out, it
+writes the mark and the word, in the mark's colour. A goal or a question that is open or waiting with a
+step running under it shows as running, its mark pulsing, with the running steps named on hover; its
+state in the record does not change. A log line's kind (found, stuck, decided) is a kind of event, not
+a state, and is drawn without colour. Now carries the key, and so does the rail, folded.
+
 **How a page of a card reads.** Every page of a goal, a question or a step reads in the same order:
 
 1. The title, and the lead: a step's or a goal's description, a question's `asks:` line.
@@ -506,8 +530,9 @@ and the answer in chat cannot differ. An experiment's page is the evidence behin
 what is live at this moment (each run going, the current mission with the last line of its log, what
 the agent says it is on), each with a pulsing mark, and when the record last moved; what needs you (the
 open decisions) and what is next for the agent, in the agreed order of the work; the map, one row per
-goal with how many of its questions are answered, and one tile per live question with its state, its
-answer and one mark per step in tree order; what each resource has used of its grant, as a bar; the
+goal with its mark and how many of its questions are answered, and one tile per live question with its
+mark and its state written out (its answer once answered) and one mark per step in tree order, above
+them the key; what each resource has used of its grant, as a bar; the
 latest events. There is no graph page: the rail is the tree and Now is the map.
 
 **An example on every question.** A question's page carries one case, step by step, as a numbered
@@ -581,7 +606,7 @@ the first two lines that are exactly `---`. A key that holds a list (`needs`, `u
 | Card | Front matter | Slots (word budget) |
 | --- | --- | --- |
 | `goal.md` | `title:`, `from:` (its decision); `reached: true`; `dropped: <why>` | description (70), Claim (90), Example: the idea in one case, from the reader's own domain (260), Approach: the design, how this lab approximates it, and where it knowingly differs (340), Roles: a list, `- <role>: <who plays it and what it does>` (170), Vocabulary: a list of names only, `- <term>`, the few words every card uses the same way; each is a term of `GLOSSARY.md`, which defines it (260) |
-| `question.md` | `title:` (a short name), `asks:` (the question in full), `from:`, `needs:`; `dropped: <why>`; `answer:` (yes, no or mixed) and `answered:` are written by `lab answer` | description: why we ask (150), How we would know (180), Example: one case step by step, a numbered list (380), We expect (70), Wrong if (70), So far (220) |
+| `question.md` | `title:` (a short name), `asks:` (the question in full), `kind:` (test, the default, or estimate), `from:`, `needs:`; `dropped: <why>`; `answer:` (yes, no or mixed for a test, found for an estimate) and `answered:` are written by `lab answer` | description: why we ask (150), How we would know (180), Example: one case step by step, a numbered list (380), We expect (70), Wrong if (70), So far (220) |
 | `experiment.md` | `title:`, `needs:`, `uses:` (resources), `override: {resource: cap}`, `cost:`, `replaces:` with `because:` (one sentence), `waiting_on:` (something outside the lab; never a goal, question, step or decision of the lab, which go under `needs:` and are waited on by themselves), `dropped: <why>` | description (80), So far: optional, everything observed since the plan was written (300), Compares: the comparison, in a sentence or a numbered list of the whole work (300), Arms (260), Cases (120), Confirmed if (150), Refuted if (110), Outcomes (260), Limits (160), Found (180), Means (150) |
 | `reading.md` | `title:`, `needs:`, `waiting_on:`, `dropped: <why>` | description (70), Looks at: what, and where it is (120), Seen (360), Suggests (150) |
 | `build.md` | `title:`, `needs:`, `waiting_on:`, `commits:`, `tests:`, `dropped: <why>` | description (60), How it works (200), Works when (80) |

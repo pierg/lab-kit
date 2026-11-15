@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.7.0
+
+Two kinds of question, and the site draws every state with one mark, the same on every page.
+
+- **A question is a test or an estimate** (`kind:` on its card; test is the default). A test asks whether something
+  holds and is answered yes, no or mixed. An estimate asks how much, which or what, and is answered `found`, with
+  the finding itself: `lab answer <question> found "<the finding, with its range, and what it rests on>"`. `lab
+  answer` and `lab check` refuse the other kind's answers. Its mark is F. The skill `lab-work` changed: run `lab
+  init` in a lab after upgrading.
+- **One mark per state and label,** on Now, in the rail, in the page header, in the lists of steps, runs and reviews:
+  the shape carries the meaning and the colour follows it. Waiting is ‖, parked ◇, a decision to discuss ◆; a run or a
+  review that failed is ✗. Where a page writes a state out, it shows the mark and the word together, in its colour.
+- **A goal or a question with a step running under it shows as running,** its mark pulsing, on Now and in the rail.
+- **Now has the key** above the map of the lab, grouped by the kind of card; the rail's key is the same.
+- A log line's kind is drawn without colour: colour is kept for states.
+
 ## 1.6.0
 
 One set of states for every card, and the checks that keep a card from saying what the record does not. The site's

@@ -11,19 +11,29 @@ from . import record as L
 
 GENERIC = {"model", "field", "source", "group", "stop", "case", "score", "port", "step", "pass", "run", "result"}
 e = html.escape
-TONES = {"running": "info", "finished": "ok", "failed": "bad", "pass": "ok", "fail": "bad"}  # a run's state and a review's verdict, as pills
 # How every state and label is drawn, on every page, on Now and in the rail: its tone (the colour) and its sign (the
 # shape), so that colour is never the only signal. On done the label decides, and an answer is a finding, never good or
 # bad: yes, no and mixed share one neutral tone.
-LOOK = {"open": ("plain", "\u25cb"), "waiting": ("warn", "\u2016"), "parked": ("plain", "\u2016"), "running": ("info", "\u25cf"),
+LOOK = {"open": ("plain", "\u25cb"), "waiting": ("warn", "\u2016"), "parked": ("plain", "\u25c7"), "running": ("info", "\u25cf"),
         "done": ("ok", "\u2713"), "confirmed": ("ok", "\u2713"), "unclear": ("warn", "?"), "refuted": ("bad", "\u2717"), "void": ("bad", "!"),
-        "yes": ("ink", "Y"), "no": ("ink", "N"), "mixed": ("ink", "M"), "replaced": ("gone", "\u2013"), "dropped": ("gone", "\u2013"),
-        "to discuss": ("warn", "\u25cf"), "decided": ("ok", "\u2713")}
-ORDER = ("running", "waiting", "open", "done", "confirmed", "yes", "no", "mixed", "unclear", "refuted", "void", "parked", "replaced", "dropped")  # how counts are listed
+        "yes": ("ink", "Y"), "no": ("ink", "N"), "mixed": ("ink", "M"), "found": ("ink", "F"), "replaced": ("gone", "\u2013"), "dropped": ("gone", "\u2013"),
+        "to discuss": ("warn", "\u25c6"), "decided": ("ok", "\u2713"),
+        "finished": ("ok", "\u2713"), "failed": ("bad", "\u2717"), "pass": ("ok", "\u2713"), "fail": ("bad", "\u2717")}
+ORDER = ("running", "waiting", "open", "done", "confirmed", "yes", "no", "mixed", "found", "unclear", "refuted", "void", "parked", "replaced", "dropped")  # how counts are listed
 MARK = {"goal": "G", "question": "Q", "experiment": "E", "build": "B", "reading": "R", "decision": "D"}
 MEANS = {"running": "running", "waiting": "waiting", "open": "open", "done": "done", "confirmed": "confirmed", "yes": "answered yes", "no": "answered no",
-         "mixed": "answered mixed", "unclear": "unclear", "refuted": "refuted", "void": "void: its results review failed", "parked": "parked",
-         "replaced": "replaced", "dropped": "dropped"}
+         "mixed": "answered mixed", "found": "found", "unclear": "unclear", "refuted": "refuted", "void": "void", "parked": "parked",
+         "replaced": "replaced", "dropped": "dropped", "to discuss": "to discuss", "decided": "decided",
+         "finished": "finished", "failed": "failed", "pass": "passed", "fail": "failed"}
+# The key, on Now and in the rail: one group per kind of card, each word with the mark it has everywhere.
+LEGEND = (("Any card", ("open", "waiting", "running", "parked", "done", "replaced", "dropped")),
+          ("A question, answered", ("yes", "no", "mixed", "found")),
+          ("An experiment, done", ("confirmed", "refuted", "unclear", "void")),
+          ("A decision", ("to discuss", "decided")),
+          ("A run, a review", ("running", "finished", "pass", "failed")))
+HINT = {"running": "work under way; on a goal or a question, a step under it is running", "waiting": "held by a step it needs, a decision or something outside the lab",
+        "parked": "set aside by a decision", "void": "its results review failed: its numbers are never used", "replaced": "redone by a newer experiment",
+        "dropped": "will not be done", "to discuss": "open: waits for you", "found": "an estimate, answered with what was found", "failed": "a run that stopped with an error, or a review that did not pass"}
 
 
 def nice(day):
@@ -68,20 +78,36 @@ def ordinal(n):
     return {1: "first", 2: "second", 3: "third", 4: "fourth", 5: "fifth", 6: "sixth"}.get(n, f"{n}th")
 
 
+def running_under(n):
+    """The steps running under a goal or a question, in tree order."""
+    if n.get("type") == "question":
+        return [x for x in n.get("items") or [] if x["state"] == "running"]
+    if n.get("type") == "goal":
+        return [x for q in n.get("questions") or [] for x in running_under(q)]
+    return []
+
+
 def key(n):
-    """The word a node's look is read from: its label on done (an answer, an outcome), else its state."""
+    """The word a node's look is read from: its label on done (an answer, an outcome), else its state. A goal or a
+    question that is open or waiting with a step running under it reads as running, so that the work shows at every
+    level of the tree; its state in the record is unchanged."""
     if n.get("type") == "decision":
         return "decided" if n["state"] == "done" else "to discuss"
+    if n.get("state") in ("open", "waiting") and running_under(n):
+        return "running"
     return n["label"] if n.get("state") == "done" and n.get("label") else n["state"]
 
 
 def label(n):
-    """A node's state as the operator reads it: on done, a question shows its answer and an experiment its outcome."""
-    if n.get("type") == "decision":
-        return "decided" if n["state"] == "done" else "open"
-    if n["state"] == "done" and n.get("label"):
-        return f"answered {n['label']}" if n["type"] == "question" else n["label"]
-    return n["state"]
+    """A node's state as the operator reads it, in the words of the key: on done, a question shows its answer and an
+    experiment its outcome."""
+    return MEANS.get(key(n), key(n))
+
+
+def hint(n):
+    """What a mark says on hover: the word, and for a goal or a question shown as running, what runs under it."""
+    under = running_under(n) if n.get("type") in ("goal", "question") and key(n) == "running" else []
+    return label(n) + (": " + ", ".join(x["id"] for x in under) + " running" if under else "")
 
 
 def tone(n):
@@ -101,9 +127,48 @@ def pill(text, t="plain"):
     return f'<span class="pill t-{t}">{e(str(text))}</span>'
 
 
-def dot(n):
-    """A node's state as a sign in its tone: the same shape and colour as in the rail. A running step's sign pulses."""
-    return f'<span class="sg t-{tone(n)}{" live" if n.get("state") == "running" else ""}" title="{e(label(n))}">{sign(n)}</span>'
+def mark(k, title=""):
+    """The mark of a word of the key: its sign in its tone, the same shape and colour on every page and in the rail.
+    Running pulses."""
+    t, g = LOOK.get(k, ("plain", "\u25cb"))
+    return f'<span class="sg t-{t}{" live" if k == "running" else ""}" title="{e(title or MEANS.get(k, k))}">{g}</span>'
+
+
+def dot(n, title=""):
+    """A node's mark."""
+    return mark(key(n), title or hint(n))
+
+
+def status(n):
+    """A node's mark and its word, in its tone: how a state is written out wherever a page names it."""
+    h = hint(n)
+    return word(key(n), h if h != label(n) else "")
+
+
+def word(k, title=""):
+    """A word of the key written out: its mark and the word, in its tone."""
+    t = LOOK.get(k, ("plain", ""))[0]
+    return f'<span class="stw t-{t}" title="{e(title or HINT.get(k, MEANS.get(k, k)))}">{mark(k, title)}{e(MEANS.get(k, k))}</span>'
+
+
+def legend_html():
+    """The key on Now: every mark the site draws, by the kind of card it is on."""
+    rows = "".join(f'<div><b>{e(group)}</b>' + "".join(word(k) for k in keys) + "</div>" for group, keys in LEGEND)
+    return f'<div class="legend">{rows}</div>'
+
+
+def header_css():
+    """folio's page header shows the view's status as a pill: draw it with the same mark and tone as everywhere else."""
+    soft = {"ok": "ok-soft", "warn": "warn-soft", "bad": "bad-soft", "info": "info-soft"}
+    out = []
+    for k, (t, g) in LOOK.items():
+        fg = {"plain": "ink-3", "gone": "ink-3", "ink": "ink"}.get(t, t)
+        sel = f'.f-status[data-s="{MEANS.get(k, k)}"]'
+        out.append(f'{sel}{{background:var(--{soft.get(t, "sunk")});color:var(--{fg})}}'
+                   f'{sel}::before{{content:"{g}";width:auto;height:auto;border-radius:0;background:none;opacity:1;font-weight:700}}')
+        if k == "running":
+            out.append(f"@media (prefers-reduced-motion:no-preference){{{sel}::before{{animation:lv-pulse 1.6s ease-in-out infinite}}}}")
+    return "".join(out)
 
 
 def libraries(lab):
@@ -326,6 +391,11 @@ CSS = """
 .lv .t-ink{background:var(--sunk);color:var(--ink)}
 .lv .t-gone{background:none;color:var(--ink-3);text-decoration:line-through}
 .lv .live{animation:lv-pulse 1.6s ease-in-out infinite}
+.lv .stw{display:inline-flex;gap:.25rem;align-items:baseline;background:none;font:600 .78rem/1.4 var(--sans);white-space:nowrap}
+.lv .stw.t-plain,.lv .stw.t-gone{color:var(--ink-3);text-decoration:none}.lv .stw.t-ink{color:var(--ink)}
+.lv .legend{display:flex;flex-wrap:wrap;gap:.35rem 1.4rem;margin:.2rem 0 .8rem;padding:.5rem .8rem;border:1px solid var(--rule);border-radius:8px;background:var(--surface);font:400 .78rem var(--sans)}
+.lv .legend>div{display:flex;flex-wrap:wrap;gap:.2rem .7rem;align-items:baseline}
+.lv .legend b{font:650 .66rem var(--sans);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin-right:.1rem}
 @keyframes lv-pulse{0%,100%{opacity:1}50%{opacity:.3}}
 @media (prefers-reduced-motion:reduce){.lv .live{animation:none}}
 .lv .dash-live{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--info);border-radius:8px;padding:.7rem 1rem;margin:.2rem 0 1rem;font:400 .95rem/1.5 var(--sans)}
@@ -346,7 +416,7 @@ CSS = """
 .lv .tile:hover{border-color:var(--accent)}
 .lv .tile.t-done{background:var(--sunk)}
 .lv .tile .top{display:flex;gap:.4rem;align-items:baseline}
-.lv .tile .id{font:500 .74rem var(--mono);color:var(--ink-3)}
+.lv .tile .id{font:500 .74rem var(--mono);color:var(--ink-3);white-space:nowrap}
 .lv .tile .ttl{font-weight:600;color:var(--ink)}
 .lv .tile .st{margin:.15rem 0 .3rem;font-size:.78rem;color:var(--ink-3)}
 .lv .tile .marks{display:flex;flex-wrap:wrap;gap:.15rem .3rem;font-size:.95rem}
@@ -645,11 +715,10 @@ def log_html(lab, T, lines, with_about=True):
         return '<p class="muted">Nothing yet.</p>'
     out = ['<ul class="log">']
     for l in reversed(lines):
-        kind_tone = {"result": "ok", "stuck": "bad", "decision": "info", "agent": "plain", "doing": "plain"}.get(l["kind"], "plain")
         who = {"decision": "decided", "agent": "agent", "doing": "started"}.get(l["kind"], l["kind"])
         so = f'<span class="so">{T(l["so"])}</span>' if l["so"] else ""
         about = ref(lab, l["about"]) if with_about else ""
-        out.append(f'<li><span class="d">{clock(l["at"])}</span><span>{pill(who, kind_tone)}</span><span>{about}</span><span>{T(l["what"])}{so}</span></li>')
+        out.append(f'<li><span class="d">{clock(l["at"])}</span><span>{pill(who)}</span><span>{about}</span><span>{T(l["what"])}{so}</span></li>')
     return "".join(out) + "</ul>"
 
 
@@ -814,7 +883,7 @@ def qcard(lab, T, q):
     body = asks + (block(T, q["slots"].get("So far", "")) if live else f'<p class="muted">{T(q["description"])}</p>')
     count = f"{done} of {len(live)} steps done" if live else ""
     return (f'<div class="qrow"><div><h3>{dot(q)} <a href="/{q["id"]}">{e(q["title"])}</a></h3>{body}</div>'
-            f'<div class="side">{pill(label(q), tone(q))}<br>{count}</div></div>')
+            f'<div class="side">{status(q)}<br>{count}</div></div>')
 
 
 def live_box(lab, T):
@@ -823,15 +892,15 @@ def live_box(lab, T):
     for x in lab.experiments:
         for r in x["runs"] + x["trials"]:
             if r["state"] == "running" and not r["orphan"]:
-                rows.append(f'<p><span class="who">running</span><span class="sg t-info live">\u25cf</span> {named(lab, x["id"])}, since {clock(r["started"])}'
+                rows.append(f'<p><span class="who">running</span>{mark("running")} {named(lab, x["id"])}, since {clock(r["started"])}'
                             + (f' on {e(", ".join(x["uses"]))}' if x["uses"] else "") + ".</p>")
     for m in [m for m in lab.missions if m["state"] == "current"]:
         last = next((l for l in reversed(m["log"]) if l.get("what")), None)
-        rows.append(f'<p><span class="who">mission</span><span class="sg t-info live">\u25cf</span> {e(m["id"])} {e(m["title"])}'
+        rows.append(f'<p><span class="who">mission</span>{mark("running")} {e(m["id"])} {e(m["title"])}'
                     + (f' <span class="muted">last, {nice(last["day"])} {e(last["time"])}: {T(last["what"])}</span>' if last else "") + "</p>")
     d = lab.doing()
     if d:
-        rows.append(f'<p><span class="who">the agent</span><span class="sg t-info live">\u25cf</span> on {named(lab, d["about"])}: {T(d["what"])} <span class="muted">Why now:</span> {T(d["so"])} <span class="muted">Since {clock(d["at"])}.</span></p>')
+        rows.append(f'<p><span class="who">the agent</span>{mark("running")} on {named(lab, d["about"])}: {T(d["what"])} <span class="muted">Why now:</span> {T(d["so"])} <span class="muted">Since {clock(d["at"])}.</span></p>')
     elif rows:
         rows.append('<p><span class="who">the agent</span><span class="muted">has not said it is on anything.</span></p>')
     if not rows:
@@ -872,11 +941,11 @@ def tile(lab, T, q):
     """A question on Now: its state and answer, and one sign per step in tree order; what was replaced or dropped is a count."""
     live = [x for x in q["items"] if x["state"] not in ("replaced", "dropped")]
     gone = len(q["items"]) - len(live)
-    marks = "".join(f'<span class="sg t-{tone(x)}{" live" if x["state"] == "running" else ""}" title="{e(x["id"])} {e(x["title"])}: {e(label(x))}">{sign(x)}</span>' for x in live)
+    marks = "".join(dot(x, f'{x["id"]} {x["title"]}: {label(x)}') for x in live)
     marks += f'<span class="gone" title="replaced or dropped">\u2013{gone}</span>' if gone else ""
     marks = marks or '<span class="muted" style="font-size:.78rem">nothing under it yet</span>'
-    return (f'<a class="tile t-{q["state"]}" href="/{q["id"]}" title="{e(q["asks"])}"><div class="top">{dot(q)}<span class="id">{e(q["id"].split(".")[-1])}</span>'
-            f'<span class="ttl">{e(q["title"])}</span></div><div class="st">{e(label(q))}</div><div class="marks">{marks}</div></a>')
+    return (f'<a class="tile t-{q["state"]}" href="/{q["id"]}" title="{e(q["asks"])}"><div class="top"><span class="id">{e(q["id"].split(".")[-1])}</span>'
+            f'<span class="ttl">{e(q["title"])}</span></div><div class="st">{status(q)}</div><div class="marks">{marks}</div></a>')
 
 
 def lab_map(lab, T):
@@ -931,7 +1000,7 @@ def home(lab, T):
     talk = [decision_box(lab, T, d) for d in lab.open_decisions()]
     if talk:
         out.append("<h2>To discuss with you</h2>" + "".join(talk))
-    out.append("<h2>The lab</h2>" + lab_map(lab, T))
+    out.append("<h2>The lab</h2>" + legend_html() + lab_map(lab, T))
     if lab.resources:
         out.append('<h2>Resources</h2>' + resources_table(lab))
     latest = happened(lab.lines)[-5:]
@@ -959,7 +1028,7 @@ def set_aside_html(lab, T):
             f'<p>{named(lab, q["id"])}: {T(str(q.get("dropped") or lab.nodes[q["goal"]].get("dropped") or ""))}</p>' for q in aside["dropped"]) + "</details>")
     if aside["goals"]:
         out.append(f'<details class="old"><summary>Closed goals ({len(aside["goals"])})</summary>' + "".join(
-            f'<p>{named(lab, g["id"])}: {e(label(g))}{". " + T(str(g["dropped"])) if g.get("dropped") else ""}</p>' for g in aside["goals"]) + "</details>")
+            f'<p>{named(lab, g["id"])}: {status(g)}{". " + T(str(g["dropped"])) if g.get("dropped") else ""}</p>' for g in aside["goals"]) + "</details>")
     return "".join(out)
 
 
@@ -1020,7 +1089,7 @@ def step_row(lab, T, x):
     tries = len(lab.chain(x)) + 1 if x["type"] == "experiment" else 1
     tag = f'<span class="tries">{ordinal(tries)} plan</span>' if tries > 1 else ""
     tag = f'<span class="kind">{x["type"]}</span>' + tag
-    return (f'<details class="row"><summary>{dot(x)}<b>{e(x["title"])}{tag}</b><span>{pill(label(x), tone(x))}</span><span>{item_line(lab, T, x) or T(x["description"])}</span></summary>'
+    return (f'<details class="row"><summary>{dot(x)}<b>{e(x["title"])}{tag}</b><span>{status(x)}</span><span>{item_line(lab, T, x) or T(x["description"])}</span></summary>'
             f'<div class="in"><p class="desc">{T(x["description"])}</p>{slot_text(lab, T, x)}{earlier(lab, T, x) if x["type"] == "experiment" else ""}<a href="/{x["id"]}" style="font:.85rem var(--sans)">Open {x["id"]}</a></div></details>')
 
 
@@ -1034,12 +1103,15 @@ def question_page(lab, T, q):
     body = [f'<h1>{e(q["title"])}</h1>']
     if q.get("asks") and q["asks"] != q["title"]:
         body.append(f'<p class="lead">{T(q["asks"])}</p>')
+    kind = ("An estimate: answered with what was found, a number with its range or a description." if L.question_kind(q) == "estimate"
+            else "A test: answered yes, no or mixed, against what we expect and what would prove us wrong.")
+    body.append(f'<p class="muted" style="font:.84rem var(--sans);margin-top:-.4rem">{kind}</p>')
     if q["state"] == "parked":
         d = lab.parked_by(q["id"])
         body.append(f'<div class="box"><b>Set aside</b> by {named(lab, d["id"])}: nothing under it moves until a decision brings it back. {T(L.flat(d["slots"].get("Decided", "")))}</div>')
     body.append(picture(lab, q))
     before = [lab.nodes[i] for i in q["needs"] if i in lab.nodes]
-    body.append(slots(slot("Where we are coming from", "".join(f'<p>{named(lab, n["id"])} ({e(label(n))}).</p>' for n in before), "full") if before else "",
+    body.append(slots(slot("Where we are coming from", "".join(f'<p>{named(lab, n["id"])} {status(n)}</p>' for n in before), "full") if before else "",
                       so_far(lab, T, q)))
     body.append("<h2>The question, as asked</h2>" + slots(
         boxed(T, "Why we ask", q["description"]),
@@ -1148,7 +1220,7 @@ def runs_html(lab, T, x):
         changed = f'<br><span class="lbl">Changed since {since}</span> {T(r["changed"])}' if r.get("changed") else ""
         if r["missing"] and not r["lost"]:
             how += ' <span class="muted">It is listed in the experiment\'s record of runs, and its folder is not in the store here.</span>'
-        rows.append(f'<li><b>{name}</b> <span class="muted">{clock(r["started"])} UTC' + (f' on {e(", ".join(x["uses"]))}' if x["uses"] else "") + f'</span><br>{pill(r["state"], TONES.get(r["state"], "plain"))} {how}{changed}{folder}</li>')
+        rows.append(f'<li><b>{name}</b> <span class="muted">{clock(r["started"])} UTC' + (f' on {e(", ".join(x["uses"]))}' if x["uses"] else "") + f'</span><br>{word(r["state"])} {how}{changed}{folder}</li>')
     note = ('<p class="muted" style="font:.84rem var(--sans)">An experiment is run until one run finishes. Between runs the apparatus may be fixed, and each run says what changed; '
             "what the experiment demands stays as it was locked. The first run that finishes is the only source of its results. "
             "A run's folder is in the lab's store, outside git.</p>") if n > 1 else ""
@@ -1159,7 +1231,7 @@ def reviews_html(x):
     if not x["reviews"]:
         return ""
     return ('<h3>Reviews</h3><table class="t"><tr><th>Reviewed</th><th>What</th><th>Verdict</th><th>By</th><th>Note</th></tr>' + "".join(
-        f'<tr><td>{nice(r["date"])}</td><td>the {e(r["stage"])}</td><td>{pill(r["verdict"], TONES.get(r["verdict"], "plain"))}</td><td>{e(r["by"])}</td><td>{review_note(r["note"])}</td></tr>' for r in x["reviews"]) + "</table>")
+        f'<tr><td>{nice(r["date"])}</td><td>the {e(r["stage"])}</td><td>{word(r["verdict"])}</td><td>{e(r["by"])}</td><td>{review_note(r["note"])}</td></tr>' for r in x["reviews"]) + "</table>")
 
 
 def experiment_page(lab, T, x):
@@ -1181,7 +1253,7 @@ def experiment_page(lab, T, x):
     body.append(picture(lab, x))
     if x["state"] == "done" and x["label"] != "void":  # what was observed comes first, apart from the plan
         body.append(slots(boxed(T, "What it means", s.get("Means", ""), "full key", x["id"]), boxed(T, "What was found", s.get("Found", ""), "full key", x["id"])))
-        body.append(f'<p class="outcome-line">{pill(x["outcome"], tone(x))} {e(decided_by(lab, x))}</p>')
+        body.append(f'<p class="outcome-line">{status(x)} {e(decided_by(lab, x))}</p>')
     body.append(slots(so_far(lab, T, x, x["id"])))
     body.append(("<h2>The plan, as locked</h2>" if x["lock"] else "<h2>The plan, not locked yet</h2>") + slots(
         boxed(T, "What it compares", s.get("Compares", ""), extra=arms_table(lab, T, x)),
@@ -1391,7 +1463,7 @@ class Provider:
         body = re.sub(r"<h1>.*?</h1>", "", page["body"], count=1, flags=re.S)
         panels = [(title, _links(f'<div class="lv panelbox">{block}</div>')) for title, block in re.findall(r"<h4>(.*?)</h4>(.*?)(?=<h4>|$)", page["panel"], flags=re.S)]
         return View(title=page["title"], main=_links(f'<div class="lv">{body}</div>'), description=L.flat(description),
-                    genre=genre, status=status, head=f"<style>{CSS}</style>", panels=panels, path=path)
+                    genre=genre, status=status, head=f"<style>{CSS}{header_css()}</style>", panels=panels, path=path)
 
     def rail(self):
         """The lab as a tree: each goal, its questions, each question's steps. Each row has the mark of its kind, its short
@@ -1401,7 +1473,7 @@ class Provider:
 
         def row(n, short):
             return {"title": n["title"], "url": f"/lab/{n['id']}/", "id": short, "kind": n["type"], "status": label(n), **({"mark": MARK[n["type"]]} if n["type"] in L.STEPS else {}),
-                    "tone": tone(n), "sign": sign(n), "pulse": n["state"] == "running", "gone": n["state"] in ("replaced", "dropped")}
+                    "tone": tone(n), "sign": sign(n), "pulse": key(n) == "running", "gone": n["state"] in ("replaced", "dropped")}
 
         def summary(steps):
             out = {}  # done and confirmed share a sign: one count
@@ -1429,7 +1501,9 @@ class Provider:
                 questions.append({"title": f"set aside ({len(aside)})", "key": f"{g['id']}:aside", "fold": True, "items": [row(q, q["id"].split(".")[-1]) for q in aside]})
             out.append({**row(g, g["id"]), "items": questions, "summary": summary(under)})
         legend = [{"mark": MARK[k], "text": k} for k in L.STEPS]
-        legend += [{"sign": LOOK[k][1], "tone": LOOK[k][0], "status": MEANS[k], "text": MEANS[k]} for k in ORDER]
+        seen = set()
+        for _, keys in LEGEND:
+            legend += [{"sign": LOOK[k][1], "tone": LOOK[k][0], "status": MEANS[k], "text": MEANS[k] + (f": {HINT[k]}" if k in HINT else "")} for k in keys if not (k in seen or seen.add(k))]
         out.append({"title": "Key", "legend": legend})
         return out
 
