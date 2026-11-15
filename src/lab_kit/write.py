@@ -421,6 +421,8 @@ def mission_new(lab, title, carries):
 def mission_launch(lab, ident=None):
     """Make a mission current: the one named, or the one saved last. Other missions may be current too."""
     m = pick_mission(lab, ident, "next")
+    if m["bad"]:
+        stop(f"{m['path']}: {m['bad'][0]}")
     if lab.nodes.get(m["carries"], {}).get("type") != "decision":
         stop(f"{m['path']}: `carries:` names no decision")
     if lab.nodes[m["carries"]]["state"] != "decided":
@@ -446,6 +448,7 @@ def mission_close(lab, ident, what):
     if not what or "|" in what:
         stop("say what the mission did, or why it stopped, with no |")
     title = (m["title"] or "untitled").replace("|", "/")
-    log(lab, m["carries"], "agent", f"Mission closed: {m['id']} {title}", what, _mission=True)
+    line = log_line(lab, m["carries"], "agent", f"Mission closed: {m['id']} {title}", what, _mission=True)  # validated before anything is written
     os.remove(os.path.join(lab.root, m["path"]))
+    log(lab, m["carries"], "agent", *line, _mission=True)
     return f"log.md, and removed {m['path']} (git keeps it)"

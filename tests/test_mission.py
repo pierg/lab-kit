@@ -106,3 +106,37 @@ def test_the_site_draws_the_line_that_closes_a_mission(tmp_path):
     lab(root, "mission", "close", "The first question is open and its work has started.")
     site = Provider(root)
     assert "Mission closed: M1 A mission" in site.get("D1").main + site.get("log").main
+
+
+def test_the_refusals_a_mission_command_holds(tmp_path):
+    root = str(tmp_path)
+    open_question(root)
+    lab(root, "mission", "new", "No purpose yet", "--carries", "D1")
+    assert "say what the mission is for" in lab(root, "mission", "launch", ok=False)  # a mission says what it is for before it is launched
+    path = mission_file(root, "M1")
+    text = open(path).read().replace("\n---\n\n\n\n", "\n---\n\nTo start the first question.\n\n", 1)
+    open(path, "w").write(text)
+    lab(root, "mission", "launch")
+    # an id with no message is not taken as the message
+    assert 'say what happened after the mission: lab mission close M1 "<what>"' in lab(root, "mission", "close", "M1", ok=False)
+    assert "say what happened after the mission" in lab(root, "mission", "log", "M1", ok=False)
+    assert os.path.exists(path) and "Mission closed" not in open(f"{root}/log.md").read()
+
+
+def test_lab_check_holds_a_missions_slots(tmp_path):
+    root = str(tmp_path)
+    open_question(root)
+    _, path = saved(root, "A mission", "D1", what=" ".join(["word"] * 81))
+    text = open(path).read().replace("## Rules\n\n", "## Rules\n\nnot a list item\n\n## Notes\n\nextra\n\n", 1)
+    open(path, "w").write(text + "\n## After\n\nx\n")
+    out = lab(root, "check", "--no-rederive", ok=False)
+    assert "its description is 81 words, budget 80" in out
+    assert "Rules is a list" in out
+    assert "holds the slot 'After'" in out or "holds the slot 'Notes'" in out
+    assert "Log is the last slot" in out
+    open(path, "w").write("---\ntitle: [unclosed\n---\n\nx\n")
+    out = lab(root, "check", "--no-rederive", ok=False)
+    assert "cannot be read as a mission" in out
+    assert "cannot be read" in lab(root, "mission")
+    open(path, "w").write("---\ntitle: Short\ncarries: D1\n---\n\nFor the first question.\n\n## Log\n\n- 2026-01-02 09:30 | saved, carrying D1\n")
+    assert "missing slot Rules" in lab(root, "check", "--no-rederive", ok=False)

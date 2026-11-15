@@ -332,8 +332,9 @@ machines at once, what each session is given), and a log of what was started, wh
 It copies nothing the decision or the record holds: not the steps, the order or the amounts, and nothing `lab now`
 works out, such as which runs are going or which machine is free.
 
-Each mission is a file, `missions/M<n>-<slug>.md`, numbered as decisions are; a number is never given twice,
-counting the missions whose close `log.md` records. A mission is **next** from when it is saved, and **current** once
+Each mission is a file, `missions/M<n>-<slug>.md`, numbered as decisions are. `lab mission new` gives the next
+number after every mission in `missions/` and every one whose close `log.md` records; a file removed by hand,
+without `lab mission close`, leaves no trace, and its number may be given again. A mission is **next** from when it is saved, and **current** once
 its log says it was launched. Several may be current at once, each carrying its own decision or its own part of one;
 they share the lab's resources, so each one's rules say what it takes, and a session reads the other current
 missions before it takes a machine.
@@ -756,8 +757,8 @@ What the mission is for, in a sentence or two (80 words).
 - 2026-11-15 09:40 | launched
 ```
 
-The front matter holds `title:` and `carries:` (a decision) and nothing else. Rules is a list, possibly empty
-(200 words). Log is the last slot, and each line is `- <date> <time> | <what happened>` in UTC, holding no other
+The front matter holds `title:` and `carries:` (a decision) and nothing else. Rules is a list, each rule a line
+`- <rule>`, possibly empty (200 words). Log is the last slot, and each line is `- <date> <time> | <what happened>` in UTC, holding no other
 `|`. No other file sits in `missions/`. A mission whose log holds the line `launched` is current. `lab check`
 reports a mission that breaks any of this, one whose `carries:` is not a decision, and a current mission whose
 decision is still open.

@@ -329,6 +329,8 @@ def run(lab, rederive=True):
                 bad("missions", where, f"missing slot {slot}")
         if len(m["slots"].get("Rules", "").split()) > R.MISSION_BUDGET["Rules"]:
             bad("missions", where, f"Rules is {len(m['slots']['Rules'].split())} words, budget {R.MISSION_BUDGET['Rules']}")
+        if any(r.strip() and not r.startswith(("- ", "  ")) for r in m["slots"].get("Rules", "").split("\n")):
+            bad("missions", where, "Rules is a list: each rule a line `- <rule>`")
         if set(m["slots"]) - {"Rules", "Log"}:
             bad("missions", where, f"holds the slot {sorted(set(m['slots']) - {'Rules', 'Log'})[0]!r}; a mission has Rules and Log")
         if "Log" in m["slots"] and m["last_slot"] != "Log":

@@ -108,7 +108,7 @@ def _now(lab):
 def mission_line(lab, m):
     """One mission in a line: its id, whether it is current, its title, the decision it carries, its last log line."""
     d = lab.nodes.get(m["carries"])
-    carries = f"carrying {d['id']} {d['title']}" if d and d["type"] == "decision" else "carrying no decision (`lab check` says why)"
+    carries = f"carrying {d['id']} {d['title']}" if d and d["type"] == "decision" else ("cannot be read (`lab check` says why)" if m["bad"] else "carrying no decision (`lab check` says why)")
     last = next((l for l in reversed(m["log"]) if "what" in l), None)
     tail = f"; last: {last['day']} {last['time']} {last['what']}" if last else ""
     return f"- {m['id']} ({m['state']}): {m['title'] or m['path']}, {carries}{tail}"
