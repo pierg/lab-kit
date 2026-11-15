@@ -97,7 +97,7 @@ def _start(lab, ident, command, trial, changed):
     if not x or x["type"] != "experiment":
         stop(f"no experiment {ident}")
     if x["state"] in ("dropped", "replaced") or x.get("outcome") == "void":
-        stop(f"{ident} is {'void: its results review failed, so it is replaced or dropped, never run again' if x.get('outcome') == 'void' else x['state']}")
+        stop(f"{ident} is {'void: its results review failed, so it never runs again; a new experiment replaces it' if x.get('outcome') == 'void' else x['state']}")
     why = lab._blocked(x)
     if why:
         stop(f"{ident} waits on {why}")

@@ -62,6 +62,7 @@ def test_an_answer_is_yes_no_or_mixed_and_never_rests_on_a_void_experiment(tmp_p
     lab(root, "review", ident, "results", "fail", "The seed was fixed after a first look.")
     assert f"{ident} experiment (done, void)" in lab(root, "show", ident)
     assert "has no finished experiment to rest an answer on" in lab(root, "answer", "G1.Q1", "yes", "It halves.", ok=False)
+    assert "void: its results review failed, so it never runs again" in lab(root, "run", ident, "--wait", "--", *command, ok=False)
     again, d2, command2 = experiment(root, title="The same, with the seed fixed first", command=WRITES % "0.5")
     lab(root, "lock", again)
     lab(root, "run", again, "--wait", "--", *command2)
@@ -79,6 +80,8 @@ def test_a_decision_drops_what_it_names_once_it_is_settled(tmp_path):
     assert f"{ident} experiment (open)" in lab(root, "show", ident)  # an open decision drops nothing yet
     lab(root, "decide", dn, "--with", "Ada", "Drop it: one size answers the question.")
     assert f"{ident} experiment (dropped)" in lab(root, "show", ident)
+    front(card, about="[G1.Q1]")
+    assert f"drops names {ident}, which is not under `about:`" in lab(root, "check", "--no-rederive", ok=False)
     front(card, about="[G1.Q1]", drops="[G1.Q9.9]")
     assert "drops names 'G1.Q9.9', which is not a question or a step of the lab" in lab(root, "check", "--no-rederive", ok=False)
 
@@ -95,6 +98,8 @@ def test_a_need_is_met_by_what_a_replaced_experiment_made(tmp_path):
     describe(reading, "Reads the files the first run left.")
     front(reading, needs=f"[{ident}]")
     assert f"{ident} experiment (replaced)" in lab(root, "show", ident) and "G1.Q1.3 reading (open)" in lab(root, "show", "G1.Q1.3")
+    front(f"{d}/experiment.md", dropped='"Dropped too: the seed is fixed in the next one."')
+    assert f"{ident} experiment (dropped)" in lab(root, "show", ident) and "G1.Q1.3 reading (open)" in lab(root, "show", "G1.Q1.3")  # dropped, with a finished run: still met
     never = glob.glob(f"{root}/goals/G1-*/Q1-*/2-*/experiment.md")[0]
     front(reading, needs="[G1.Q1.2]")
     front(never, dropped='"Not needed after all."')  # dropped with no finished run: what needs it waits for ever
