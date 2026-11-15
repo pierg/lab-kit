@@ -94,6 +94,8 @@ def items(text):
 def moment(text):
     """A recorded day or time as a UTC datetime, or None."""
     text = str(text or "").strip()
+    if text[-1:] in ("Z", "z"):
+        text = text[:-1] + "+00:00"  # git and others write UTC as Z, which Python before 3.11 does not read
     try:
         d = datetime.datetime.fromisoformat(text if len(text) > 10 else text + "T00:00:00")
     except ValueError:

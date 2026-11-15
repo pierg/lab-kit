@@ -1,6 +1,8 @@
 """One set of states for every kind of card, and the rules that keep a card from saying something the record does not."""
 import glob, os, subprocess
 
+from lab_kit import record
+
 from test_flow import describe, experiment, fill, folder, front, lab, open_question, results
 from test_integrity import WRITES, commit, done
 from test_parked import park
@@ -37,6 +39,10 @@ def test_so_far_says_what_was_learned_and_never_where_a_step_stands(tmp_path):
     assert "So far says 'is running'" in lab(root, "check", "--no-rederive", ok=False)
 
 
+def test_a_time_in_utc_written_with_z_is_read():  # git 2.56 writes UTC as Z; Python 3.10 reads only +00:00
+    assert record.moment("2000-01-01T00:00:00Z") == record.moment("2000-01-01T00:00:00+00:00") is not None
+
+
 def test_so_far_older_than_a_result_under_it_is_stale(tmp_path):
     root = str(tmp_path)
     qdir = open_question(root)
@@ -52,16 +58,7 @@ def test_so_far_older_than_a_result_under_it_is_stale(tmp_path):
     out = lab(root, "log", ident, "result", "The error halves.", "It converges as the theory says.")
     assert "So far of G1.Q1" in out  # the command reminds the agent
     commit(root, "the result")
-    from lab_kit import history, record
-    L = record.Lab(root)
-    q = [q for q in L.questions if q["id"] == "G1.Q1"][0]
-    diag = (q["state"], q["path"], git_out(root, "status", "--porcelain"), git_out(root, "log", "--format=%cI %s", "--", q["path"]),
-            [(l["kind"], l["about"], l["at"]) for l in L.lines], history.stale_so_far(L))
-    import subprocess as sp, sys
-    from test_flow import SRC
-    p = sp.run([sys.executable, "-m", "lab_kit.cli", "check", "--no-rederive"], cwd=root, capture_output=True, text=True,
-               env={**os.environ, "PYTHONPATH": SRC, "LAB_TESTING": "1", "LAB_TODAY": "2026-01-02", "LAB_CLOCK": "09:30", "LAB_REVIEWER": "second-session"})
-    assert f"So far was last committed before the result of {ident}" in p.stdout + p.stderr, (diag, sys.version, os.environ.get("TZ"), p.stdout)
+    assert f"So far was last committed before the result of {ident}" in lab(root, "check", "--no-rederive", ok=False)
     fill(f"{qdir}/question.md", So_far="The error at 400 flips is {G1.Q1.1:ratio} of the error at 100.")
     commit(root, "So far brought up to date")
     assert "the record is sound" in lab(root, "check", "--no-rederive")
