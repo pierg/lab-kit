@@ -33,6 +33,7 @@ def test_a_parked_question_leaves_the_work_and_comes_back_only_by_a_decision(tmp
     lab(root, "decide", d2, "--with", "Ada", "The biased coin is parked: the fair coin answers what the lab needs first. It comes back if the law holds.")
     now = lab(root, "now")
     assert "Set aside" in now and f"G1.Q2 (parked by {d2})" in now and "A biased sampler" not in now.split("Set aside")[0]
+    assert "G1.Q2" not in now.split("Yours next")[1].split("Not yours")[0]  # parked: never listed as one to settle
     assert f"Parked by {d2}" in lab(root, "show", "G1.Q2")
     refused = lab(root, "new", "reading", "G1.Q2", "What the biased runs said", ok=False)
     assert f"parked by {d2}" in refused and "unparks" in refused and not glob.glob(f"{root}/goals/G1-*/Q2-*/2-*")

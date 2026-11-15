@@ -336,7 +336,8 @@ def test_a_step_that_needs_a_later_one_reads_on_every_page_as_it_does_in_the_com
     ident, d, later_card = across(root)  # a reading, a build and an experiment under Q1, each needing a done reading under Q2
     site = Provider(root)
     front_page = site.get("").main
-    assert agents_next(front_page) == 3 and "wait:" not in front_page
+    assert agents_next(front_page) == 4 and "wait:" not in front_page  # the three steps, and Q2, whose only step is done
+    assert "no step is left under it and no experiment finished" in front_page
     for step in ("G1.Q1.1", "G1.Q1.2", ident):
         assert "Next, for the agent:" in site.get(step).main and "Waiting on" not in site.get(step).main, step
     assert "Waiting on" not in site.get("G1.Q1").main and site.get("G1.Q1").main.count("Next: ") == 3

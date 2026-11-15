@@ -779,7 +779,7 @@ class Lab:
         place = {}
         for i, ident in enumerate(d["order"]):
             place.setdefault(ident, i)
-        rank = lambda x: next((place[i] for i in (x["id"], x["question"], x["goal"]) if i in place), len(d["order"]))
+        rank = lambda x: next((place[i] for i in (x["id"], x.get("question"), x.get("goal")) if i in place), len(d["order"]))
         return sorted(steps, key=rank)  # a stable sort: what shares a place keeps the order of the tree
 
     def set_aside(self):
@@ -1155,8 +1155,40 @@ class Lab:
         return sum(v for v in ((r.get("used") or {}).get(name, 0) for r in x["runs"] + x["trials"]) if amount(v))
 
     def yours(self):
-        """Every experiment and build the agent can move now, with what is next on each."""
-        return self.in_order([x for x in self.items if x["mine"]])
+        """Everything the agent can move now, with what is next on each: the steps, then the questions and goals that
+        have nothing left under them to move."""
+        return self.in_order([x for x in self.items if x["mine"]] + self.to_settle())
+
+    def to_settle(self):
+        """The open questions with no step open, waiting or running under them, and the open goals whose every question
+        is settled or that have none yet, each with what is next on it. Only someone reading the question can tell whether what finished
+        answers it, so nothing here is worked out into an answer: it is listed so that it is never left in silence.
+        What an open decision holds waits on the decision and is not listed. The text goes on the node as its `next`,
+        as a step's does; a Lab is read afresh for every command."""
+        out = []
+        for g in self.goals:
+            if g["state"] != "open" or self.holding(g["id"]):
+                continue
+            for q in g["questions"]:
+                if q["state"] != "open" or self.holding(q["id"]) or any(x["state"] not in CLOSED for x in q["items"]):
+                    continue
+                usable = [x["id"] for x in q["items"] if x["type"] == "experiment" and x["state"] == "done" and x.get("outcome") != "void"]
+                if usable:
+                    q["next"] = (f"every step under it is closed and {', '.join(usable)} finished: answer it (lab answer {q['id']} ...), "
+                                 "add the next experiment, or bring parking it to the operator in a decision")
+                elif q["items"]:
+                    q["next"] = ("no step is left under it and no experiment finished that is not void: add an experiment, "
+                                 "or bring parking or dropping it to the operator in a decision")
+                else:
+                    q["next"] = f"nothing under it yet: plan its first experiment (lab new experiment {q['id']} \"<title>\")"
+                out.append(q)
+            if not g["questions"]:
+                g["next"] = "no question under it yet: bring its first question to the operator in a decision"
+                out.append(g)
+            elif all(q["state"] in ("done", "parked", "dropped") for q in g["questions"]):
+                g["next"] = "every question under it is answered, parked or dropped: bring closing it (reached or dropped) to the operator in a decision"
+                out.append(g)
+        return out
 
     def since(self, day=None):
         """What happened since the last decision was recorded, or since a day."""

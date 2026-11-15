@@ -239,7 +239,7 @@ repository, tests first. When it works, put `commits:` and `tests:` on the card 
 
 ## When all experiments of a question are done
 
-Decide whether they answer it. For a test, `lab answer <question> yes|no|mixed "<what the answer rests
+`lab now` lists such a question under **Yours next**, and a goal whose questions are all settled. Decide whether they answer it. For a test, `lab answer <question> yes|no|mixed "<what the answer rests
 on>"`: yes and no say whether what the question expected held; mixed says part held and part did not,
 and the sentence says which. For an estimate, `lab answer <question> found "<the finding, with its range
 or its shape, and what it rests on>"`. Then bring **So far** up to date. An answer rests on a done experiment that is not

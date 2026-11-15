@@ -289,6 +289,16 @@ never come back, with `dropped: <why>` on its card; park one that may.
 its reason, whether or not its card says so: the card needs no edit, and none can be forgotten. A goal is closed by `reached: true` or
 `dropped: <why>`, and a dropped goal drops every question under it.
 
+**Nothing is left in silence.** An answer is never worked out from the experiments: everything under a
+question being done can mean that it is answered or that the next experiment is due, and only someone reading
+the question can tell. So `lab now` ("Yours next") and Now's "Next for the agent" list, after the steps the
+agent can move, every open question that no open decision holds and that has no step open, waiting or running
+under it, with what is next on it: to answer it, add the next experiment or bring parking it to you when an
+experiment under it finished and is not void; to add an experiment, or bring parking or dropping it to you,
+when none did; to plan its first experiment when nothing is under it yet. An open goal whose every question is
+answered, parked or dropped is listed too: closing it is brought to you in a decision; and so is an open goal
+with no question yet, whose first question is brought to you in a decision.
+
 **The order of the work.** What the agent takes up first is agreed with you, and a settled decision records
 it: `order:` lists goals, questions and steps, first to last. `lab now` ("Yours next", "Not yours to move yet")
 and the site's Now page list steps in that order. A step takes the place of its own id where the order names it,
