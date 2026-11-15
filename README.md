@@ -15,7 +15,7 @@ record to the operator as a live site: `lab_kit.site` draws the pages, and nothi
 
 ```
 Goal           what the lab wants to be able to say
-  Question     a yes-or-no question: what we expect, what would prove us wrong, what we know so far
+  Question     a question answered yes, no or mixed: what we expect, what would prove us wrong, what we know so far
     Build      something an experiment needs that has to be made first
     Reading    a look at what already exists: it suggests, and never confirms
     Experiment what is compared, what would confirm, what would refute; then what was found

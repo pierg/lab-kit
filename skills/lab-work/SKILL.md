@@ -70,7 +70,7 @@ the plan in fixed boxes, then the steps and the record. Write the card for that 
   no result: a number observed never goes in a picture. Use the site's colours (`var(--ink)`,
   `var(--ink-2)`, `var(--accent)`, `var(--surface)`, `var(--rule)`, `var(--sans)`) and never a fixed
   colour, so it reads in light and dark. Keep its text at least 12 pixels at its own width.
-- **What we know so far holds everything observed.** The card's `## So far`: where it stands, what
+- **What we know so far holds everything observed.** The card's `## So far`: what was learned, what
   was learned after the plan was written, later decisions and what they change, reference runs. On
   an experiment it sits outside the plan, so you keep it current after the lock. When a decision
   changes how a node is read, give the decision a `## Note` of one or two sentences: a node whose So
@@ -178,6 +178,10 @@ until that decision is settled; after that it needs no further yes.
 9. Once the review has passed, write **Found** and **Means** on the card. Name each result instead
    of typing its number: `{attack-success}`. It is shown the way its row says it reads. Bring the
    experiment's **So far** up to date, and rewrite the question's **So far** the same way, with full names: `{G1.Q1.2:attack-success}`.
+   So far says what was learned, never where a step stands ("is running", "is next", "no result yet"):
+   the pages draw each step's state. `lab check` reports a question's So far that was last committed
+   before a result under it, or one it names. Give each result a label that says what it counts and
+   of how many, in a set of cases the lab names once ("of the 20 checks the solver leaves open").
 10. `lab log <experiment> result "<what was found, in a sentence, without numbers>" "<so what>"`.
 
 The outcome is worked out from the lines: you never write it.
@@ -232,8 +236,10 @@ repository, tests first. When it works, put `commits:` and `tests:` on the card 
 
 ## When all experiments of a question are done
 
-Decide whether they answer it. `lab answer <question> yes|no "<what the answer rests on>"`, and bring
-**So far** up to date. If they do not answer it, add the next experiment. An answer usually changes
+Decide whether they answer it. `lab answer <question> yes|no|mixed "<what the answer rests on>"`, and
+bring **So far** up to date. Yes and no say whether what the question expected held; mixed says part
+held and part did not, and the sentence says which. An answer rests on a done experiment that is not
+void. If they do not answer it, add the next experiment. An answer usually changes
 what should come next: open a decision.
 
 ## When something is in the way
@@ -241,9 +247,15 @@ what should come next: open a decision.
 - **It is yours to decide.** Decide, `lab log <id> agent "<what you decided>" "<why>"`, go on.
 - **It is the operator's** (direction or resources). Open a decision, then work on what it does not
   hold.
-- **It waits on something outside the lab.** Put `waiting_on: <what>` on the card, log a `stuck`
-  line, and remove both when it clears.
-- **It will not be done.** Put `dropped: <why>` on the card and log it.
+- **It waits on something outside the lab** (an account, a person, a machine being repaired). Put
+  `waiting_on: <what>` on the card, log a `stuck` line, and remove both when it clears. A wait on the
+  lab's own work is a `needs:`, or a decision's `holds:`: `lab check` refuses a `waiting_on:` that
+  names a goal, question, step or decision.
+- **It will not be done.** Put `dropped: <why>` on the card and log it. When a decision drops it,
+  the decision lists it under `drops:`, and the card needs nothing more.
+- **A later step uses what a replaced or void step made** (a frozen program, a data set). Put the
+  step under `needs:`: a need is met by a done step, and by a replaced or dropped experiment whose
+  run finished.
 - **A run's process died.** `lab runs close <run> "<why>"`. It stops whatever the run left going and
   reads the run's `used.json`. If the run used a metered resource and wrote none, say what it used:
   `--used <resource>=<amount>`.

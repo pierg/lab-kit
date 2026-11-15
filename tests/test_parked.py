@@ -60,7 +60,10 @@ def test_the_site_shows_what_was_set_aside_apart_from_the_work(tmp_path):
     page = site.get("G1.Q2").main
     assert "<b>Set aside</b>" in page and "nothing under it moves" in page
     assert "Parks" in site.get(d2).main
-    assert not any("biased coin?" in str(r) for r in site.rail())
+    def shown(items):  # what the rail shows unfolded: a parked question sits only in its goal's folded "set aside"
+        return [i for i in items if not i.get("fold")] + [j for i in items if not i.get("fold") for j in shown(i.get("items", []))]
+    assert not any("biased coin?" in i.get("title", "") for i in shown(site.rail()))
+    assert any(i.get("fold") and "biased coin?" in str(i["items"]) for r in site.rail() for g in r.get("items", []) for i in [g] + g.get("items", []))
 
 
 def test_parking_names_a_question_the_decision_is_about_and_stays_as_settled(tmp_path):
@@ -77,4 +80,4 @@ def test_parking_names_a_question_the_decision_is_about_and_stays_as_settled(tmp
     git(root, "add", ".")
     git(root, "commit", "-qm", "settled")
     front(card, parks="[]")  # what a settled decision parked cannot be taken back by editing it
-    assert "and what it parks or brings back, the order it sets, its `decided:`" in lab(root, "check", "--no-rederive", ok=False)
+    assert "and what it parks, drops or brings back, the order it sets, its `decided:`" in lab(root, "check", "--no-rederive", ok=False)

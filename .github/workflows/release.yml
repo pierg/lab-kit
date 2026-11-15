@@ -22,7 +22,7 @@ jobs:
         with:
           python-version: "3.12"
       # Never publish untested: the same gate CI runs, and here the site's tests must run too, so
-      # folio-kb 0.5.0 or later has to be on PyPI before lab-kit is released.
+      # folio-kb 0.7.0 or later has to be on PyPI before lab-kit is released.
       - run: python -m pip install -e ".[dev,site]"
       - run: python -m pytest -q -rs
         env:

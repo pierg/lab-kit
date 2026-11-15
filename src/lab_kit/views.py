@@ -11,7 +11,7 @@ def num(x):
 
 
 def state(n):
-    return n["state"] + (f", {n['outcome']}" if n.get("outcome") and n["state"] == "done" else "")
+    return n["state"] + (f", {n['label']}" if n.get("label") and n["state"] == "done" else "")
 
 
 def line(l):
@@ -23,7 +23,7 @@ def decision_text(lab, d):
     about = ", ".join(f"{i} {lab.nodes[i]['title']}" if i in lab.nodes else f"the resource {i}" for i in d["about"] if i in lab.nodes or i in lab.resources)
     when = f"decided {d['decided'].get('date')} with {d['decided'].get('with')}" if d["decided"] else "open: to discuss with the operator"
     out = [f"{d['id']} {d['title']} (raised {d.get('date')}, {when})" + (f"\nAbout: {about}" if about else "")]
-    for key, verb in (("parks", "Parks"), ("unparks", "Brings back")):
+    for key, verb in (("parks", "Parks"), ("unparks", "Brings back"), ("drops", "Drops")):
         if d[key]:
             out += [f"{verb}: " + ", ".join(f"{i} {lab.nodes[i]['title']}" if i in lab.nodes else i for i in d[key])]
     if d["order"]:
@@ -77,20 +77,20 @@ def _now(lab):
     by = lab.ordered_by()
     order = f" (in the order {by['id']} set)" if by else ""
     out += ["", "Yours next" + order] + ([f"- {x['id']} {x['title']} ({x['type']}): {x['next']}" for x in lab.yours()] or ["- nothing"])
-    held = [f"- {x['id']} {x['title']}: on {x['next']}" for x in lab.pursued() if x["state"] == "waiting" or (x["state"] == "planned" and not x["mine"])]
+    held = [f"- {x['id']} {x['title']}: on {x['next']}" for x in lab.pursued() if x["state"] == "waiting" or (x["state"] == "open" and not x["mine"])]
     out += ["", "Not yours to move yet" + order] + (held or ["- nothing"])
     out += ["", "Questions"]
     for q in lab.live(lab.questions):
         counts = {}
         for x in q["items"]:
-            key = x["outcome"] if x["state"] == "done" and x.get("outcome") else x["state"]
+            key = x["label"] if x["state"] == "done" and x.get("label") else x["state"]
             counts[key] = counts.get(key, 0) + 1
-        out += [f"- {q['id']} ({q['state']}): {q['title']} [{', '.join(f'{n} {k}' for k, n in counts.items()) or 'nothing under it'}]"]
+        out += [f"- {q['id']} ({state(q)}): {q['title']} [{', '.join(f'{n} {k}' for k, n in counts.items()) or 'nothing under it'}]"]
     aside = lab.set_aside()
     if any(aside.values()):
         out += ["", "Set aside"] + [f"- {q['id']} (parked by {lab.parked_by(q['id'])['id']}): {q['title']}" for q in aside["parked"]]
         rest = [f"{len(aside['dropped'])} question{'' if len(aside['dropped']) == 1 else 's'} dropped"] if aside["dropped"] else []
-        rest += [f"{len(aside['goals'])} goal{'' if len(aside['goals']) == 1 else 's'} closed ({', '.join(g['id'] + ' ' + g['state'] for g in aside['goals'])})"] if aside["goals"] else []
+        rest += [f"{len(aside['goals'])} goal{'' if len(aside['goals']) == 1 else 's'} closed ({', '.join(g['id'] + ' ' + ('reached' if g['state'] == 'done' else g['state']) for g in aside['goals'])})"] if aside["goals"] else []
         out += [f"- {', '.join(rest)}: lab show <id>"] if rest else []
     if lab.resources:
         out += ["", "Resources"] + [resource_line(lab, name) for name in lab.resources]
@@ -147,7 +147,7 @@ def mission(lab, ident=None, everything=False):
         if not d["order"]:
             out += ["", f"{d['id']} orders no steps: what it decided says what to carry out."]
         else:
-            open_ = [x for x in steps if x["state"] not in ("done", "built", "dropped", "replaced")]
+            open_ = [x for x in steps if x["state"] not in R.CLOSED]
             out += ["", f"Steps {d['id']} orders, first to last, as they stand now ({len(steps) - len(open_)} of {len(steps)} finished)"]
             for x in open_:
                 who = "yours" if x["mine"] else "not yours to move yet"
@@ -196,7 +196,7 @@ def _show(lab, ident):
     raised = [d for d in lab.decisions if ident in d["about"]]
     if n["type"] == "goal":
         out = [f"{n['id']} ({n['state']}): {n['title']}", n["description"]] + came(n) + ["", f"Claim. {R.flat(n['slots'].get('Claim', '')) or 'not written yet'}", "", "Questions"]
-        out += [f"- {q['id']} ({q['state']}): {q['title']}. {q['description']}" for q in n["questions"]]
+        out += [f"- {q['id']} ({state(q)}): {q['title']}. {q['description']}" for q in n["questions"]]
         words = lab.vocabulary(n)
         if words:  # the names are the card's; each is drawn with the glossary's definition
             out += ["", "Vocabulary (defined in GLOSSARY.md)"] + [entry_text(w["entry"], "- ") if w["entry"] else f"- {w['name']}: not in the glossary" for w in words]
@@ -204,7 +204,7 @@ def _show(lab, ident):
     about = [l for l in lab.lines if l["about"] == ident or l["about"].startswith(ident + ".")]
     decisions = ["", "Decisions about it"] + [f"- {d['id']} ({d['state']}): {d['title']}" for d in raised] if raised else []
     if n["type"] == "question":
-        out = [f"{n['id']} ({n['state']}): {n['title']}", f"Asks: {n['asks']}", n["description"]] + came(n) + [""]
+        out = [f"{n['id']} ({state(n)}): {n['title']}", f"Asks: {n['asks']}", n["description"]] + came(n) + [""]
         by = lab.parked_by(n["id"]) if n["state"] == "parked" else None
         out += [f"Parked by {by['id']} {by['title']}: nothing under it moves until a decision brings it back (`unparks:`).", ""] if by else []
         out += [f"{slot}. {lab.fill(R.flat(n['slots'].get(slot, '')))}\n" for slot, _ in R.SLOTS["question"]]

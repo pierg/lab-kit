@@ -20,7 +20,7 @@ To write
   lab new experiment|build|reading <question> "<title>" [--replaces <experiment> --because "<why>"]
   lab log <id> doing "<what you are starting on>" "<why now>"
   lab log <id> agent|result|stuck "<what happened>" ["<so what>"]
-  lab answer <question> yes|no "<what the answer rests on>"
+  lab answer <question> yes|no|mixed "<what the answer rests on>"
 To carry out a decision
   lab mission [<mission>] [--all]           the open missions (--all: the closed too), or one whole: its rules, its steps, its log
   lab mission new "<title>" --carries <decision>         save a mission; it is next until launched
@@ -128,6 +128,9 @@ def main(argv=None):
         if not 3 <= len(rest) <= 4:
             raise SystemExit(USAGE)
         print(f"added to {write.log(lab, rest[0], rest[1], rest[2], rest[3] if len(rest) == 4 else '')}")
+        q = lab.question_of(rest[0]) if rest[1] == "result" else None
+        if q and q["id"] != rest[0]:
+            print(f"now bring So far of {q['id']} {q['title']} up to date with what this result taught: `lab check` reports it until then")
     elif cmd == "decide":
         with_ = flag("--with")
         if len(rest) != 2:

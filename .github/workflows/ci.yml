@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      # The site's tests need folio's views hook, in folio-kb 0.5.0 and later: the `site` extra brings it.
+      # The site's tests need folio's views hook, in folio-kb 0.7.0 and later: the `site` extra brings it.
       - name: Install lab-kit, and folio for the site's tests
         run: |
           python -m pip install --upgrade pip
