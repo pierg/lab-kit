@@ -320,8 +320,38 @@ that resource, under `about:`.
   stopped and the command says so. `lab runs lost` records a run that started and whose folder is
   gone for good.
 - **Once:** `lab init`. Run again, it restores the method, the skills and the reviewer role.
+- **To carry out a decision:** `lab mission` (below).
 
-That is fifteen commands. `lab --help` lists them the same way.
+That is sixteen commands. `lab --help` lists them the same way.
+
+**A mission.** A settled decision says what is done and why: the questions, the order, the resources. Carrying
+it out can take many sessions, each starting sessions or runs of its own and watching them, and a session that
+starts later has to know where the work stands. A mission is that working note. It says which settled decision it
+carries out (`carries:`), what it is for, the rules of running it that hold for this mission only (how many
+machines at once, what each session is given), and a log of what was started, what ended and what was reviewed.
+It copies nothing the decision or the record holds: not the steps, the order or the amounts, and nothing `lab now`
+works out, such as which runs are going or which machine is free.
+
+Each mission is a file, `missions/M<n>-<slug>.md`, numbered as decisions are; a number is never given twice,
+counting the missions whose close `log.md` records. A mission is **next** from when it is saved, and **current** once
+its log says it was launched. Several may be current at once, each carrying its own decision or its own part of one;
+they share the lab's resources, so each one's rules say what it takes, and a session reads the other current
+missions before it takes a machine.
+
+- `lab mission new "<title>" --carries <decision>` saves a mission, as next.
+- `lab mission launch [<mission>]` makes one current: the one named, or with no id the one saved last. It refuses
+  while the decision it carries is open, and while the mission does not say what it is for.
+- `lab mission log [<mission>] "<what happened>"` adds a line to a current mission's log. Lines are only added.
+- `lab mission close [<mission>] "<what it did, or why it stopped>"` ends a current mission: it writes one `agent`
+  line about the decision it carried into `log.md`, `Mission closed: M<n> <title>`, and removes the file. Git
+  keeps it.
+- `lab mission` lists every mission in a line; `lab mission <mission>` shows one whole, with the steps its decision
+  orders and where each stands now, and the other current missions.
+
+`log` and `close` may leave out the mission while only one is current, and refuse to guess when several are.
+`lab now` names every mission under **Right now**. A mission is not part of the record: `lab check` checks its
+form (section 9) and that it carries a decision, and does not hold it against history; the site does not draw
+it; its log is not the lab's log. The lab-mission skill says what to do on each step.
 
 The log is one file. Every line carries its time. A line is one of five kinds: a decision was
 recorded, the agent decided, a result, something is stuck, and what the agent is starting on now.
@@ -332,8 +362,9 @@ since when), and the time of the last recorded activity. A `doing` line stands u
 about the same card, or the card being finished, ends it. When there is none, the page says that
 nobody is on anything and names the next step. Nothing is inferred from a session being open.
 
-Four skills: `lab-set-up`, `lab-work`, `lab-review`, and `lab-talk` (tell you where things stand, bring
-a decision to you, record what was decided). One role: the reviewer.
+Five skills: `lab-set-up`, `lab-work`, `lab-review`, `lab-talk` (tell you where things stand, bring
+a decision to you, record what was decided), and `lab-mission` (save, launch, resume and close a mission). One
+role: the reviewer.
 
 Seven rules:
 
@@ -372,6 +403,7 @@ written, and only one of them writes at a time.
 ```
 lab.toml  AGENTS.md  GLOSSARY.md  resources.toml  log.md
 decisions/D1-<slug>.md    what was discussed and decided
+missions/M1-<slug>.md     a mission: how a settled decision is being carried out, until it is closed
 goals/G1-<slug>/
   goal.md
   Q1-<slug>/
@@ -475,7 +507,7 @@ The pages are written for a reader, and the agent's detail stays in the files an
 | Predictions with confidence, decision rules, score sheet, limits | Confirmed-if and refuted-if lines, each testing one result and saying what it is for; what each outcome would mean; two or three limits; the outcome is worked out |
 | A protocol document of several thousand words | The card for the reader, and `plan/` (the configuration and the code) for the reviewer |
 | An outcome written by hand on an experiment | Worked out from its lines and its results |
-| Missions approved one by one, and a review memo before a change of direction | A decision: something discussed with you, with options and a recommendation, closed by what was decided and why |
+| Missions approved one by one, and a review memo before a change of direction | A decision: something discussed with you, with options and a recommendation, closed by what was decided and why. A mission (1.4.0) approves nothing: it carries out a settled decision |
 | Two audits per experiment | One review; a second only before a run that uses a metered resource |
 | Budgets, allowance per question, grant history, ledger | One resources file for the lab, an optional override per experiment; each run records what it used |
 | Local rules about machines and keys in `AGENTS.md` | The rules of each resource, in the resources file |
@@ -485,7 +517,7 @@ The pages are written for a reader, and the agent's detail stays in the files an
 | `rests_on` lists and number matching | A card names the result instead of typing the number |
 | A log per goal and per question, ten kinds of line | One log, five kinds of line |
 | Everything under a question is an experiment | Three kinds of step: an experiment (bars set in advance), a build, and a reading (a look at what exists, which suggests and never confirms) |
-| Sixteen rules, six skills, twenty-one commands | Seven rules, four skills, fifteen commands |
+| Sixteen rules, six skills, twenty-one commands | Seven rules, five skills, sixteen commands |
 | Asking the agent in chat whether it is working | The front page says what is running, what the agent is on and since when, and when the record last moved |
 | `lab.yaml`, and the record kept as folio documents: questions, claims, results, protocols, a journal | `lab.toml`, and cards in `goals/` and `decisions/`. folio draws the site from them through `lab_kit.site` and stores no page |
 | folio as a requirement of the command | The command needs no folio; only the site does |
@@ -698,9 +730,37 @@ anything else is refused when the run is sealed and reported by `lab check`. Its
 in UTC. The file holds no other heading, and a line no other `|`. The kinds are `decision`, `agent`, `result`, `stuck` and `doing`. `lab decide` writes the
 `decision` lines, each with the opening of what was decided. A `doing` line holds what the agent is
 starting on and why now. A line written before the kit kept the time has none.
+A line is about a goal, a question or a step, and a `decision` line about its decision. The one other line
+about a decision is the `agent` line `lab mission close` writes when a mission that carried it ends.
 `lab log` ends a line with no space, even when the so what is empty. Spaces at the end of a log line
 are not part of it: `lab check` compares the committed lines of `log.md` with those spaces left out,
 so removing or adding them changes no committed line.
+
+**A mission**, `missions/M<n>-<slug>.md`, is front matter, a description, then two slots:
+
+```
+---
+title: "The first wave"
+carries: D4
+---
+
+What the mission is for, in a sentence or two (80 words).
+
+## Rules
+
+- At most four machines awake at once.
+
+## Log
+
+- 2026-11-15 09:12 | saved, carrying D4
+- 2026-11-15 09:40 | launched
+```
+
+The front matter holds `title:` and `carries:` (a decision) and nothing else. Rules is a list, possibly empty
+(200 words). Log is the last slot, and each line is `- <date> <time> | <what happened>` in UTC, holding no other
+`|`. No other file sits in `missions/`. A mission whose log holds the line `launched` is current. `lab check`
+reports a mission that breaks any of this, one whose `carries:` is not a decision, and a current mission whose
+decision is still open.
 
 **Worked-out states.** A question is under discussion while the decision it came from is open, then
 open, then yes or no; it is parked while the last settled decision that parks or brings it back parks it; a page calls an open question with nothing under it "not started". A build is in

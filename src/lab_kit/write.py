@@ -62,7 +62,8 @@ AGENTS = """# {name}
 
 Run `lab now` first, then `lab show <id>` for what you work on. The method is `.lab/METHOD.md`. The skills are in
 `.agents/skills/`: lab-work to move the work, lab-review to check someone else's, lab-talk whenever the operator
-asks where things stand or what something is, and whenever there is a decision to bring to them.
+asks where things stand or what something is, and whenever there is a decision to bring to them, and lab-mission
+to save, launch, resume or close a mission (`missions/`), which carries out a settled decision.
 
 ## Local rules
 
@@ -177,13 +178,13 @@ def new(lab, kind, parent, title, replaces=None, origin=None, about=(), because=
     return ident, path
 
 
-def log_line(lab, about, kind, what, so="", _by_command=False):
+def log_line(lab, about, kind, what, so="", _by_command=False, _mission=False):
     """A log line, validated: (what, so) as they will be written. Nothing is written here."""
     if kind not in R.KINDS:
         stop(f"kind is one of: {', '.join(k for k in R.KINDS if k != 'decision')}")
     if kind == "decision" and not _by_command:
         stop("a decision is recorded with `lab decide`, on its card: what was decided and why")
-    if about not in lab.nodes or (lab.nodes[about]["type"] == "decision") != (kind == "decision"):
+    if about not in lab.nodes or (lab.nodes[about]["type"] == "decision") != (kind == "decision" or _mission):
         stop(f"no goal, question, experiment, build or reading {about}")
     what, so = R.flat(what), R.flat(so)
     if kind == "doing" and not so:
@@ -193,8 +194,8 @@ def log_line(lab, about, kind, what, so="", _by_command=False):
     return what, so
 
 
-def log(lab, about, kind, what, so="", _by_command=False):
-    what, so = log_line(lab, about, kind, what, so, _by_command)
+def log(lab, about, kind, what, so="", _by_command=False, _mission=False):
+    what, so = log_line(lab, about, kind, what, so, _by_command, _mission)
     path = os.path.join(lab.root, "log.md")
     text = R.read(path) if os.path.exists(path) else ""
     line = f"- {clock()} | {about} | {kind} | {what} | {so}".rstrip(" ")
@@ -359,3 +360,92 @@ def rederive(lab, only=None):
             elif got != str(row["value"]).strip():
                 problems.append(f"results: {row['ref']}: its command prints {got[:40]!r}, the row says {row['value']!r}")
     return problems, n
+
+
+# ---------------------------------------------------------------- missions: carrying out a settled decision
+
+MISSION = "---\ntitle: {title}\ncarries: {carries}\n---\n\n\n\n## Rules\n\n\n## Log\n\n{line}\n"
+
+
+def _mission_line(what):
+    what = R.flat(what)
+    if not what or "|" in what:
+        stop("a mission's log line says what happened, and holds no |")
+    return f"- {today()} {clock()} | {what}"
+
+
+def _mission_append(lab, m, line):
+    """Add a line at the end of a mission's log, which is its last slot."""
+    if m["bad"] or m["last_slot"] != "Log":
+        stop(f"{m['path']}: its last slot is not `## Log`, or it cannot be read: fix the file first (`lab check` says how)")
+    path = os.path.join(lab.root, m["path"])
+    text = R.read(path)
+    with open(path, "a") as f:
+        f.write(("" if text.endswith("\n") else "\n") + line + "\n")
+
+
+def pick_mission(lab, ident, state):
+    """The mission a command acts on: the one named, or, with no name, the only one in that state."""
+    if ident:
+        m = lab.mission(ident)
+        if not m:
+            stop(f"no mission {ident}: `lab mission` lists them")
+        if m["state"] != state:
+            stop(f"{ident} is {m['state']}, not {state}")
+        return m
+    mine = [m for m in lab.missions if m["state"] == state]
+    if not mine:
+        stop(f"there is no {state} mission: `lab mission` lists them")
+    if state == "next":  # "launch the latest mission": the one saved last
+        return mine[-1]
+    if len(mine) > 1:
+        stop(f"{len(mine)} missions are current ({', '.join(m['id'] for m in mine)}): name the one you mean")
+    return mine[0]
+
+
+def mission_new(lab, title, carries):
+    """Save a mission: a title, the settled decision it carries out, and the first line of its log."""
+    title = R.flat(title)
+    if not title or not slug(title):
+        stop("a mission's title is a name, in a few words; its file is named after it")
+    if lab.nodes.get(carries, {}).get("type") != "decision":
+        stop(f"--carries <decision>: a mission carries out a decision, and {carries or 'nothing'} is not one")
+    n = 1 + max(lab.mission_numbers() or [0])
+    line = _mission_line(f"saved, carrying {carries}")
+    path = f"missions/M{n}-{slug(title)}.md"
+    os.makedirs(os.path.join(lab.root, "missions"), exist_ok=True)
+    open(os.path.join(lab.root, path), "w").write(MISSION.format(title=json.dumps(title, ensure_ascii=False), carries=carries, line=line))
+    return f"M{n}", path
+
+
+def mission_launch(lab, ident=None):
+    """Make a mission current: the one named, or the one saved last. Other missions may be current too."""
+    m = pick_mission(lab, ident, "next")
+    if lab.nodes.get(m["carries"], {}).get("type") != "decision":
+        stop(f"{m['path']}: `carries:` names no decision")
+    if lab.nodes[m["carries"]]["state"] != "decided":
+        stop(f"{m['carries']} is still open: a mission carries out a settled decision. Settle it with the operator first")
+    if not m["description"]:
+        stop(f"{m['path']}: say what the mission is for, in the paragraph under the front matter")
+    _mission_append(lab, m, _mission_line("launched"))
+    return m["id"], m["path"]
+
+
+def mission_log(lab, ident, what):
+    m = pick_mission(lab, ident, "current")
+    _mission_append(lab, m, _mission_line(what))
+    return m["path"]
+
+
+def mission_close(lab, ident, what):
+    """End a current mission: one line in the lab's log about the decision it carried, and its file removed."""
+    m = pick_mission(lab, ident, "current")
+    if lab.nodes.get(m["carries"], {}).get("type") != "decision":
+        stop(f"{m['path']}: `carries:` names no decision; fix it before closing, so the lab's log says what was carried out")
+    what = R.flat(what)
+    if not what or "|" in what:
+        stop("say what the mission did, or why it stopped, with no |")
+    title = (m["title"] or "untitled").replace("|", "/")
+    log(lab, m["carries"], "agent", f"Mission closed: {m['id']} {title}", what, _mission=True)
+    os.remove(os.path.join(lab.root, m["path"]))
+    return f"log.md, and removed {m['path']} (git keeps it)"

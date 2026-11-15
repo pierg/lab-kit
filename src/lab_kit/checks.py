@@ -1,7 +1,7 @@
 """`lab check`: what can be held mechanically. Whether the record is honest is the review's job."""
 from __future__ import annotations
 
-import os, re
+import glob, os, re
 
 from . import history, record as R, runs as runs_, write
 
@@ -299,8 +299,46 @@ def run(lab, rederive=True):
         kind = nodes.get(l["about"], {}).get("type")
         if l["kind"] == "doing" and not l["so"]:
             bad("log", where, "a `doing` line says why now, after what the agent is starting on")
-        if kind is None or (kind == "decision") != (l["kind"] == "decision"):
-            bad("log", where, f"is about {l['about']!r}: a decision line is about its decision, any other about a goal, a question, an experiment, a build or a reading")
+        closes = l["kind"] == "agent" and kind == "decision" and l["what"].startswith("Mission closed: ")  # written by `lab mission close`
+        if kind is None or ((kind == "decision") != (l["kind"] == "decision") and not closes):
+            bad("log", where, f"is about {l['about']!r}: a decision line is about its decision, as is the line that closes a mission, any other about a goal, a question, an experiment, a build or a reading")
+
+    # missions: working notes, checked for their form and for the decision each carries; never against history
+    for m in lab.missions:
+        where = m["path"]
+        for b in m["bad"]:
+            bad("missions", where, b)
+        if m["bad"]:
+            continue
+        for key in sorted({str(k) for k in m["fm"]} - {"title", "carries"}):
+            bad("missions", where, f"`{key}:` is not something a mission holds: only `title:` and `carries:`")
+        if not m["title"]:
+            bad("missions", where, "has no title")
+        d = nodes.get(m["carries"])
+        if not d or d["type"] != "decision":
+            bad("missions", where, f"`carries:` names the decision it carries out; {m['carries'] or 'nothing'!r} is not one")
+        elif m["state"] == "current" and d["state"] != "decided":
+            bad("missions", where, f"is current and carries {d['id']}, which is still open: a mission carries out a settled decision")
+        words = len(m["description"].split())
+        if not words:
+            bad("missions", where, "has no description: a sentence or two, under the front matter, on what it is for")
+        elif words > R.MISSION_BUDGET["description"]:
+            bad("missions", where, f"its description is {words} words, budget {R.MISSION_BUDGET['description']}")
+        for slot in ("Rules", "Log"):
+            if slot not in m["slots"]:
+                bad("missions", where, f"missing slot {slot}")
+        if len(m["slots"].get("Rules", "").split()) > R.MISSION_BUDGET["Rules"]:
+            bad("missions", where, f"Rules is {len(m['slots']['Rules'].split())} words, budget {R.MISSION_BUDGET['Rules']}")
+        if set(m["slots"]) - {"Rules", "Log"}:
+            bad("missions", where, f"holds the slot {sorted(set(m['slots']) - {'Rules', 'Log'})[0]!r}; a mission has Rules and Log")
+        if "Log" in m["slots"] and m["last_slot"] != "Log":
+            bad("missions", where, "Log is the last slot: lines are added at the end of the file")
+        for l in m["log"]:
+            if "bad" in l:
+                bad("missions", where, f"the log line {l['bad'][:60]!r} is not `- <date> <time> | <what happened>`")
+    for path in sorted(glob.glob(f"{root}/missions/*")):
+        if not path.endswith(".md"):
+            bad("missions", lab.rel(path), "missions/ holds only the missions, `M<n>-<name>.md`")
 
     # resources
     for name, r in lab.resources.items():

@@ -7,7 +7,7 @@ This file is the only copy of the operating rules for this checkout. `CLAUDE.md`
 - `README.md`: what lab-kit is.
 - `docs/model.md`: the contract. When code, a skill or the method disagrees with it, it wins.
 - `method/METHOD.md`: the rules every lab keeps.
-- `skills/`: lab-set-up, lab-work, lab-review, lab-talk. `agents/`: the reviewer.
+- `skills/`: lab-set-up, lab-work, lab-review, lab-talk, lab-mission. `agents/`: the reviewer.
 - `src/lab_kit/`: the `lab` command. `record.py` reads a lab and works out every state, `views.py` shows it to the agent, `site.py` draws it for the operator inside folio, `write.py` and `runs.py` change it, `checks.py` checks it.
 
 ## The gate

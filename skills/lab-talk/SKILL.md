@@ -23,6 +23,7 @@ from the record, shortest first. A decision is a discussion, not a request for a
 | why are we doing this at all | `lab show <goal>` |
 | what is this (an id or a pasted path) | `lab show <id or path>` |
 | what does a word mean | `lab define <term>` |
+| how is the mission going, what is running for it | `lab mission <id>` (the lab-mission skill) |
 
 - The answer first, in one or two sentences, then what it rests on: the result, by its label and value.
 - Plain words, one idea a sentence. No id without its title. A glossary term is used as the glossary defines it.
