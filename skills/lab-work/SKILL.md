@@ -115,11 +115,14 @@ parked question, and never take it up because it looks open: it is listed under 
    records what was decided.
 
 A goal or a question is made out of a decision: `lab new question <goal> "<short name>" --asks "<the
-question, in full>" --from <decision>`. Its description is the motivation: why we ask, and what
+question, in full>" --from <decision>`. Say its kind in the card's front matter: a **test** asks
+whether something holds and is answered yes, no or mixed (the default, `kind: test`); an **estimate**
+asks how much, which or what and is answered with what was found (`kind: estimate`). Never bend an
+estimate into a yes-or-no question. Its description is the motivation: why we ask, and what
 depends on the answer. **How we would know** is the idea of the test in plain words, before any
 experiment exists. **Example** is one case, step by step, as a numbered list saying who does what:
 a real episode once there is one, and until then the flow, said to be only that. Then **We expect**
-and **Wrong if**. Nothing under it is locked or run
+and **Wrong if** (for an estimate: roughly what size or shape is expected, and what would surprise). Nothing under it is locked or run
 until that decision is settled; after that it needs no further yes.
 
 ## An experiment
@@ -236,9 +239,10 @@ repository, tests first. When it works, put `commits:` and `tests:` on the card 
 
 ## When all experiments of a question are done
 
-Decide whether they answer it. `lab answer <question> yes|no|mixed "<what the answer rests on>"`, and
-bring **So far** up to date. Yes and no say whether what the question expected held; mixed says part
-held and part did not, and the sentence says which. An answer rests on a done experiment that is not
+Decide whether they answer it. For a test, `lab answer <question> yes|no|mixed "<what the answer rests
+on>"`: yes and no say whether what the question expected held; mixed says part held and part did not,
+and the sentence says which. For an estimate, `lab answer <question> found "<the finding, with its range
+or its shape, and what it rests on>"`. Then bring **So far** up to date. An answer rests on a done experiment that is not
 void. If they do not answer it, add the next experiment. An answer usually changes
 what should come next: open a decision.
 

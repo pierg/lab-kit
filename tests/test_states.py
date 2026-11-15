@@ -116,3 +116,21 @@ def test_a_need_is_met_by_what_a_replaced_experiment_made(tmp_path):
     front(reading, needs="[G1.Q1.2]")
     front(never, dropped='"Not needed after all."')  # dropped with no finished run: what needs it waits for ever
     assert "which is dropped: remove the need or replace it" in lab(root, "show", "G1.Q1.3")
+
+
+def test_a_test_is_answered_yes_no_or_mixed_and_an_estimate_with_what_was_found(tmp_path):
+    root = str(tmp_path)
+    qdir = open_question(root)
+    ident, d, command = experiment(root, command=WRITES % "0.5")
+    lab(root, "lock", ident)
+    lab(root, "run", ident, "--wait", "--", *command)
+    done(root, ident, d)
+    assert "is a test: it is answered yes, no or mixed" in lab(root, "answer", "G1.Q1", "found", "The ratio is 0.5.", ok=False)
+    front(f"{qdir}/question.md", kind="estimate")
+    assert "is an estimate: it is answered `found`" in lab(root, "answer", "G1.Q1", "yes", "It halves.", ok=False)
+    lab(root, "answer", "G1.Q1", "found", "The error at 400 flips is 0.5 of the error at 100, on one seed.")
+    assert "G1.Q1 (done, found)" in lab(root, "show", "G1.Q1") and "the record is sound" in lab(root, "check", "--no-rederive")
+    front(f"{qdir}/question.md", kind="test")
+    assert "is a test and is answered found" in lab(root, "check", "--no-rederive", ok=False)
+    front(f"{qdir}/question.md", kind="guess")
+    assert "`kind:` is test or estimate" in lab(root, "check", "--no-rederive", ok=False)

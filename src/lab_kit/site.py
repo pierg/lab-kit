@@ -16,24 +16,24 @@ e = html.escape
 # bad: yes, no and mixed share one neutral tone.
 LOOK = {"open": ("plain", "\u25cb"), "waiting": ("warn", "\u2016"), "parked": ("plain", "\u25c7"), "running": ("info", "\u25cf"),
         "done": ("ok", "\u2713"), "confirmed": ("ok", "\u2713"), "unclear": ("warn", "?"), "refuted": ("bad", "\u2717"), "void": ("bad", "!"),
-        "yes": ("ink", "Y"), "no": ("ink", "N"), "mixed": ("ink", "M"), "replaced": ("gone", "\u2013"), "dropped": ("gone", "\u2013"),
+        "yes": ("ink", "Y"), "no": ("ink", "N"), "mixed": ("ink", "M"), "found": ("ink", "F"), "replaced": ("gone", "\u2013"), "dropped": ("gone", "\u2013"),
         "to discuss": ("warn", "\u25c6"), "decided": ("ok", "\u2713"),
         "finished": ("ok", "\u2713"), "failed": ("bad", "\u2717"), "pass": ("ok", "\u2713"), "fail": ("bad", "\u2717")}
-ORDER = ("running", "waiting", "open", "done", "confirmed", "yes", "no", "mixed", "unclear", "refuted", "void", "parked", "replaced", "dropped")  # how counts are listed
+ORDER = ("running", "waiting", "open", "done", "confirmed", "yes", "no", "mixed", "found", "unclear", "refuted", "void", "parked", "replaced", "dropped")  # how counts are listed
 MARK = {"goal": "G", "question": "Q", "experiment": "E", "build": "B", "reading": "R", "decision": "D"}
 MEANS = {"running": "running", "waiting": "waiting", "open": "open", "done": "done", "confirmed": "confirmed", "yes": "answered yes", "no": "answered no",
-         "mixed": "answered mixed", "unclear": "unclear", "refuted": "refuted", "void": "void", "parked": "parked",
+         "mixed": "answered mixed", "found": "found", "unclear": "unclear", "refuted": "refuted", "void": "void", "parked": "parked",
          "replaced": "replaced", "dropped": "dropped", "to discuss": "to discuss", "decided": "decided",
          "finished": "finished", "failed": "failed", "pass": "passed", "fail": "failed"}
 # The key, on Now and in the rail: one group per kind of card, each word with the mark it has everywhere.
 LEGEND = (("Any card", ("open", "waiting", "running", "parked", "done", "replaced", "dropped")),
-          ("A question, answered", ("yes", "no", "mixed")),
+          ("A question, answered", ("yes", "no", "mixed", "found")),
           ("An experiment, done", ("confirmed", "refuted", "unclear", "void")),
           ("A decision", ("to discuss", "decided")),
           ("A run, a review", ("running", "finished", "pass", "failed")))
 HINT = {"running": "work under way; on a goal or a question, a step under it is running", "waiting": "held by a step it needs, a decision or something outside the lab",
         "parked": "set aside by a decision", "void": "its results review failed: its numbers are never used", "replaced": "redone by a newer experiment",
-        "dropped": "will not be done", "to discuss": "open: waits for you", "failed": "a run that stopped with an error, or a review that did not pass"}
+        "dropped": "will not be done", "to discuss": "open: waits for you", "found": "an estimate, answered with what was found", "failed": "a run that stopped with an error, or a review that did not pass"}
 
 
 def nice(day):
@@ -1103,6 +1103,9 @@ def question_page(lab, T, q):
     body = [f'<h1>{e(q["title"])}</h1>']
     if q.get("asks") and q["asks"] != q["title"]:
         body.append(f'<p class="lead">{T(q["asks"])}</p>')
+    kind = ("An estimate: answered with what was found, a number with its range or a description." if L.question_kind(q) == "estimate"
+            else "A test: answered yes, no or mixed, against what we expect and what would prove us wrong.")
+    body.append(f'<p class="muted" style="font:.84rem var(--sans);margin-top:-.4rem">{kind}</p>')
     if q["state"] == "parked":
         d = lab.parked_by(q["id"])
         body.append(f'<div class="box"><b>Set aside</b> by {named(lab, d["id"])}: nothing under it moves until a decision brings it back. {T(L.flat(d["slots"].get("Decided", "")))}</div>')

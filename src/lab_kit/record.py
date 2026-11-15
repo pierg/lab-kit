@@ -32,10 +32,11 @@ MISSION_BUDGET = {"description": 80, "Rules": 200}
 MISSION_STATES = ("next", "current", "done", "stopped")  # a mission's `status:`; done and stopped are closed, and the file is kept
 STEPS = ("experiment", "build", "reading")
 # One set of states for every goal, question and step (the model, section 1). A type uses only those it can be in. On
-# done, a question carries its answer (yes, no or mixed) and an experiment its outcome (confirmed, refuted, unclear or
+# done, a question carries its answer (yes, no or mixed for a test, found for an estimate) and an experiment its outcome (confirmed, refuted, unclear or
 # void) as its label.
 STATES = ("open", "waiting", "running", "parked", "done", "replaced", "dropped")
-ANSWERS = ("yes", "no", "mixed")
+ANSWERS = ("yes", "no", "mixed", "found")
+KINDS_OF_QUESTION = {"test": ("yes", "no", "mixed"), "estimate": ("found",)}  # what each kind of question may be answered
 CLOSED = ("done", "replaced", "dropped")  # a step in one of these will not move again  # what sits under a question: a locked comparison, something made, a look at what already exists
 READS = ("", "percent", "points")  # how a result's value reads on a page
 BEFORE = ("Compares", "Arms", "Cases", "Confirmed if", "Refuted if", "Outcomes", "Limits")  # what an experiment says before it runs: its plan, which So far, Found and Means are not part of
@@ -194,6 +195,11 @@ def tree_hash(folder, how=HASH, cache=False):
 
 def seal_of(record):
     return hashlib.sha256(json.dumps({k: v for k, v in record.items() if k != "seal"}, sort_keys=True).encode()).hexdigest()
+
+
+def question_kind(q):
+    """A question's kind: a test, answered yes, no or mixed, unless its card says it is an estimate, answered found."""
+    return str(q.get("kind") or "test")
 
 
 def flat(text):

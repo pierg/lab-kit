@@ -7,7 +7,7 @@ from . import history, record as R, runs as runs_, write
 
 KEYS = {  # what a card's front matter may hold; a state is never among them
     "goal": {"title", "from", "reached", "dropped", "see"},
-    "question": {"title", "asks", "from", "needs", "answer", "answered", "dropped", "see"},
+    "question": {"title", "asks", "kind", "from", "needs", "answer", "answered", "dropped", "see"},
     "experiment": {"title", "needs", "uses", "override", "replaces", "because", "cost", "waiting_on", "dropped", "see"},
     "build": {"title", "needs", "commits", "tests", "waiting_on", "dropped", "see"},
     "reading": {"title", "needs", "waiting_on", "dropped", "see"},
@@ -93,8 +93,12 @@ def run(lab, rederive=True):
         for need in q["needs"]:
             if nodes.get(need, {}).get("type") != "question":
                 bad("links", q["path"], f"needs {need}, which is not a question")
+        if q.get("kind") is not None and q.get("kind") not in R.KINDS_OF_QUESTION:
+            bad("cards", q["path"], "`kind:` is test or estimate")
         if q.get("answer") is not None and q.get("answer") not in R.ANSWERS:
-            bad("cards", q["path"], "`answer:` is yes, no or mixed, written by `lab answer`")
+            bad("cards", q["path"], "`answer:` is yes, no or mixed for a test, or found for an estimate, written by `lab answer`")
+        elif q.get("answer") is not None and R.question_kind(q) in R.KINDS_OF_QUESTION and q["answer"] not in R.KINDS_OF_QUESTION[R.question_kind(q)]:
+            bad("questions", q["path"], f"is {'an estimate' if R.question_kind(q) == 'estimate' else 'a test'} and is answered {q['answer']}: a test is answered yes, no or mixed, an estimate found")
         if q.get("answer") in R.ANSWERS:  # what `lab answer` requires holds for an answer however it got on the card
             waiting = [x["id"] for x in q["items"] if x["state"] not in R.CLOSED]
             if waiting:
