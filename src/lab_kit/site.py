@@ -30,7 +30,7 @@ LEGEND = (("Any card", ("open", "waiting", "running", "parked", "done", "replace
           ("A question, answered", ("yes", "no", "mixed")),
           ("An experiment, done", ("confirmed", "refuted", "unclear", "void")),
           ("A decision", ("to discuss", "decided")),
-          ("A run, a review", ("running", "finished", "failed")))
+          ("A run, a review", ("running", "finished", "pass", "failed")))
 HINT = {"running": "work under way; on a goal or a question, a step under it is running", "waiting": "held by a step it needs, a decision or something outside the lab",
         "parked": "set aside by a decision", "void": "its results review failed: its numbers are never used", "replaced": "redone by a newer experiment",
         "dropped": "will not be done", "to discuss": "open: waits for you", "failed": "a run that stopped with an error, or a review that did not pass"}
@@ -141,7 +141,8 @@ def dot(n, title=""):
 
 def status(n):
     """A node's mark and its word, in its tone: how a state is written out wherever a page names it."""
-    return word(key(n), hint(n))
+    h = hint(n)
+    return word(key(n), h if h != label(n) else "")
 
 
 def word(k, title=""):
@@ -166,7 +167,7 @@ def header_css():
         out.append(f'{sel}{{background:var(--{soft.get(t, "sunk")});color:var(--{fg})}}'
                    f'{sel}::before{{content:"{g}";width:auto;height:auto;border-radius:0;background:none;opacity:1;font-weight:700}}')
         if k == "running":
-            out.append(f"{sel}::before{{animation:lv-pulse 1.6s ease-in-out infinite}}")
+            out.append(f"@media (prefers-reduced-motion:no-preference){{{sel}::before{{animation:lv-pulse 1.6s ease-in-out infinite}}}}")
     return "".join(out)
 
 
@@ -1027,7 +1028,7 @@ def set_aside_html(lab, T):
             f'<p>{named(lab, q["id"])}: {T(str(q.get("dropped") or lab.nodes[q["goal"]].get("dropped") or ""))}</p>' for q in aside["dropped"]) + "</details>")
     if aside["goals"]:
         out.append(f'<details class="old"><summary>Closed goals ({len(aside["goals"])})</summary>' + "".join(
-            f'<p>{named(lab, g["id"])}: {e(label(g))}{". " + T(str(g["dropped"])) if g.get("dropped") else ""}</p>' for g in aside["goals"]) + "</details>")
+            f'<p>{named(lab, g["id"])}: {status(g)}{". " + T(str(g["dropped"])) if g.get("dropped") else ""}</p>' for g in aside["goals"]) + "</details>")
     return "".join(out)
 
 
@@ -1107,7 +1108,7 @@ def question_page(lab, T, q):
         body.append(f'<div class="box"><b>Set aside</b> by {named(lab, d["id"])}: nothing under it moves until a decision brings it back. {T(L.flat(d["slots"].get("Decided", "")))}</div>')
     body.append(picture(lab, q))
     before = [lab.nodes[i] for i in q["needs"] if i in lab.nodes]
-    body.append(slots(slot("Where we are coming from", "".join(f'<p>{named(lab, n["id"])} ({e(label(n))}).</p>' for n in before), "full") if before else "",
+    body.append(slots(slot("Where we are coming from", "".join(f'<p>{named(lab, n["id"])} {status(n)}</p>' for n in before), "full") if before else "",
                       so_far(lab, T, q)))
     body.append("<h2>The question, as asked</h2>" + slots(
         boxed(T, "Why we ask", q["description"]),
@@ -1499,7 +1500,7 @@ class Provider:
         legend = [{"mark": MARK[k], "text": k} for k in L.STEPS]
         seen = set()
         for _, keys in LEGEND:
-            legend += [{"sign": LOOK[k][1], "tone": LOOK[k][0], "status": MEANS[k], "text": MEANS[k]} for k in keys if not (k in seen or seen.add(k))]
+            legend += [{"sign": LOOK[k][1], "tone": LOOK[k][0], "status": MEANS[k], "text": MEANS[k] + (f": {HINT[k]}" if k in HINT else "")} for k in keys if not (k in seen or seen.add(k))]
         out.append({"title": "Key", "legend": legend})
         return out
 
