@@ -460,3 +460,29 @@ def test_every_state_has_one_mark_on_every_page_and_an_answer_is_a_boxed_word(tm
     assert S.key(busy) == "running" and "G1.Q1.2 running" in S.dot(busy) and " live" in S.dot(busy)  # a question with a running step pulses
     assert S.key({"type": "goal", "state": "open", "questions": [busy]}) == "running"
     assert S.key({**busy, "state": "parked"}) == "parked"
+
+
+def test_missions_have_a_compact_page_like_decisions_and_a_line_in_the_rail(tmp_path):
+    from test_flow import open_question
+    from test_order import order, three_steps
+    from test_mission import saved
+    root = str(tmp_path)
+    open_question(root)
+    three_steps(root)
+    card, d2 = order(root, ["G1.Q2.2", "G1.Q1", "G1.Q2"])
+    site = Provider(root)
+    assert all(r["title"] != "Missions" for r in site.rail())  # no mission yet: no page in the rail
+    saved(root, "The weight first", d2)
+    lab(root, "decide", d2, "--with", "Ada", "The weight on heads first.")
+    lab(root, "mission", "launch")
+    lab(root, "mission", "log", "started G1.Q2.2 in its own session")
+    site = Provider(root)
+    entry = next(r for r in site.rail() if r["title"] == "Missions")
+    assert entry["url"] == "/lab/missions/" and entry["status"] == "1 current"
+    page = site.get("missions").main
+    assert 'id="M1"' in page and "The weight first" in page and "Current" in page and f'href="/lab/{d2}/"' in page
+    assert re.search(r"\d of \d closed", page) and "in its own session</li>" in page and "<details>" in page
+    assert 'href="/lab/missions/#M1"' in site.get("").main  # Now's mission line links to it
+    lab(root, "mission", "close", "M1", "Done for now.")
+    page = Provider(root).get("missions").main
+    assert "Closed" in page and "Current" not in page and "1 current" not in str(Provider(root).rail())

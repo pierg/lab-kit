@@ -481,7 +481,13 @@ A folder is named after its card's title, so a short title gives a short path.
 ## 7. The site
 
 Now (the dashboard), a page per goal, question, experiment, build, reading and decision, Decisions,
-Log, Resources, Glossary. Every page has the copy-path control.
+Missions (when the lab has any), Log, Resources, Glossary. Every page has the copy-path control.
+
+**Missions** lists every mission compactly, as Decisions lists decisions: the current first, then the next,
+then the closed, the latest first. Each shows its status as a mark, the decision it carries, what it is for,
+the steps its decision orders as one mark each with how many are closed, its last log line, and its rules
+and whole log folded. The rail names the page, with how many missions are current; Now's mission line
+links to it.
 
 **The rail** on the left of every page is the lab as a tree: each goal, its questions under it, and
 each question's steps under that. A row shows a mark for its type (G, Q, E, B, R), its short id, its

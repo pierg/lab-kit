@@ -166,6 +166,54 @@ def header_css():
     return "".join(out)
 
 
+# A mission's status reads as a card's state: next as open, current as running, done as done, stopped as dropped.
+MISSION_KEY = {"next": "open", "current": "running", "done": "done", "stopped": "dropped"}
+
+
+def mission_mark(m):
+    return mark(MISSION_KEY.get(m["state"], "open"), m["state"])
+
+
+def mission_box(lab, T, m):
+    """One mission, compact: what it carries and where it stands, its steps as marks, its last line, and its log folded."""
+    d = lab.nodes.get(m["carries"])
+    carries = named(lab, d["id"]) if d and d["type"] == "decision" else '<span class="muted">no decision: lab check says why</span>'
+    started = next((l for l in m["log"] if l.get("what") == "launched"), None)
+    head = (f'{e(m["id"])} · {mission_mark(m)} {e(m["state"])} · carries {carries}'
+            + (f' · launched {nice(started["day"])}' if started else ""))
+    rows = []
+    if L.flat(m["description"]):
+        rows.append(("For", T(L.flat(m["description"]))))
+    steps = lab.mission_steps(m)
+    if steps:
+        done = sum(x["state"] in L.CLOSED for x in steps)
+        rows.append(("Steps", f'{done} of {len(steps)} closed <span class="marks">' + "".join(dot(x, f'{x["id"]} {x["title"]}: {label(x)}') for x in steps) + "</span>"))
+    lines = [l for l in m["log"] if l.get("what")]
+    if lines:
+        last = lines[-1]
+        rows.append(("Last", f'<span class="muted">{nice(last["day"])} {e(last["time"])}</span> {T(last["what"])}'))
+    if L.flat(m["slots"].get("Rules", "")):
+        rows.append(("Rules", f'<details><summary>the rules of this mission</summary>{block(T, m["slots"]["Rules"])}</details>'))
+    if len(lines) > 1:
+        rows.append(("Log", f'<details><summary>{len(lines)} lines</summary><ul class="mlog">'
+                     + "".join(f'<li><span class="muted">{nice(l["day"])} {e(l["time"])}</span> {T(l["what"])}</li>' for l in lines) + "</ul></details>"))
+    return (f'<div class="box mission m-{e(m["state"])}" id="{e(m["id"])}"><div class="decisionhead">{head}</div>'
+            f'<p class="decisionq">{e(m["title"] or m["path"])}</p>'
+            '<dl class="decisionrows">' + "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in rows) + "</dl></div>")
+
+
+def missions_page(lab, T):
+    """Every mission: the current first, then the next, then the closed, the latest first."""
+    body = ["<h1>Missions</h1>", '<p class="lead">A mission carries out a settled decision across sessions: its rules, and a log a later session resumes from.</p>']
+    closed = sorted([m for m in lab.missions if m["state"] in ("done", "stopped")], key=lambda m: m["n"], reverse=True)
+    for title, group in (("Current", [m for m in lab.missions if m["state"] == "current"]), ("Next", [m for m in lab.missions if m["state"] == "next"]), ("Closed", closed)):
+        if group:
+            body.append(f"<h2>{title}</h2>" + "".join(mission_box(lab, T, m) for m in group))
+    if not lab.missions:
+        body.append('<p class="muted">None yet.</p>')
+    return frame(lab, "Missions", "".join(body))
+
+
 def libraries(lab):
     """The other libraries this lab's charter names, each with where it is on disk and where it is served."""
     if not hasattr(lab, "_libraries"):
@@ -325,6 +373,8 @@ CSS = """
 .lv .slot p+p{margin-top:.5rem}
 .lv .box{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:.9rem 1.1rem;margin:0 0 1rem}
 .lv .box.decision{border-left:3px solid var(--warn);background:var(--warn-soft);margin:0 0 .8rem}
+.lv .box.mission{border-left:3px solid var(--rule-strong);margin:0 0 .8rem}.lv .box.mission.m-current{border-left-color:var(--info);background:var(--info-soft)}
+.lv .box.mission .marks{margin-left:.4rem}.lv .mlog{margin:.3rem 0 0;padding-left:1.1rem;font-size:.86rem}.lv .box.mission summary{cursor:pointer;color:var(--ink-3);font-size:.86rem}
 .lv .box.decision.closed{border-left-color:var(--ok);background:var(--ok-soft)}
 .lv .decisionhead{font:500 .78rem var(--sans);color:var(--muted);margin:0 0 .3rem}
 .lv .decisionq{font-size:1.08rem;line-height:1.45;margin:0 0 .6rem;font-weight:600}
@@ -890,7 +940,7 @@ def live_box(lab, T):
                             + (f' on {e(", ".join(x["uses"]))}' if x["uses"] else "") + ".</p>")
     for m in [m for m in lab.missions if m["state"] == "current"]:
         last = next((l for l in reversed(m["log"]) if l.get("what")), None)
-        rows.append(f'<p><span class="who">mission</span>{mark("running")} {e(m["id"])} {e(m["title"])}'
+        rows.append(f'<p><span class="who">mission</span>{mark("running")} <a href="/missions#{e(m["id"])}">{e(m["id"])} {e(m["title"])}</a>'
                     + (f' <span class="muted">last, {nice(last["day"])} {e(last["time"])}: {T(last["what"])}</span>' if last else "") + "</p>")
     d = lab.doing()
     if d:
@@ -1443,6 +1493,8 @@ class Provider:
             page, path = log_page(lab, T, parts[1] if len(parts) == 2 else ""), "log.md"
         elif inner == "decisions":
             page = decisions_page(lab, T)
+        elif inner == "missions":
+            page = missions_page(lab, T)
         elif inner == "resources":
             page, path = resources_page(lab, T), "resources.toml"
         elif inner == "glossary":
@@ -1479,6 +1531,8 @@ class Provider:
 
         talk = len(lab.open_decisions())
         out = [{"title": "Now", "url": "/lab/"}, {"title": "Decisions", "url": "/lab/decisions/", **({"status": f"{talk} to discuss", "tone": "warn"} if talk else {})}]
+        current = sum(m["state"] == "current" for m in lab.missions)
+        out += [{"title": "Missions", "url": "/lab/missions/", **({"status": f"{current} current", "tone": "info"} if current else {})}] if lab.missions else []
         out += [{"title": t, "url": f"/lab/{p}"} for t, p in (("Log", "log/"), ("Resources", "resources/"), ("Glossary", "glossary/"))]
         for g in lab.live(lab.goals):
             questions, under = [], []
