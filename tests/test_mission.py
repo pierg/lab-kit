@@ -24,7 +24,7 @@ def test_a_mission_is_saved_launched_logged_and_closed(tmp_path):
     open_question(root)
     three_steps(root)
     card, d2 = order(root, ["G1.Q2.2", "G1.Q1", "G1.Q2"])
-    assert "no mission" in lab(root, "mission")
+    assert "no open mission" in lab(root, "mission")
     # a mission carries a decision; it may be saved while the decision is open, and not launched until it is settled
     assert "is not one" in lab(root, "mission", "new", "Nothing", "--carries", "G1.Q1", ok=False)
     m1, path = saved(root, "The weight first", d2)
@@ -47,8 +47,14 @@ def test_a_mission_is_saved_launched_logged_and_closed(tmp_path):
     assert "holds no |" in lab(root, "mission", "log", "a | b", ok=False)
     assert "the record is sound" in lab(root, "check", "--no-rederive")
     out = lab(root, "mission", "close", "M1", "The weight on heads is built; the rest moved to the next mission.")
-    assert "removed missions/M1-the-weight-first.md" in out and not os.path.exists(path)
-    assert f"| {d2} | agent | Mission closed: M1 The weight first | The weight on heads is built" in open(f"{root}/log.md").read()
+    assert "missions/M1-the-weight-first.md (done, kept)" in out and os.path.exists(path)
+    assert f"| {d2} | agent | Mission done: M1 The weight first | The weight on heads is built" in open(f"{root}/log.md").read()
+    kept = open(path).read()
+    assert "status: done" in kept and "| done: The weight on heads is built" in kept and "| launched" in kept
+    assert "M1" not in lab(root, "mission").split("\n")[0] and "1 closed mission: lab mission --all" in lab(root, "mission")
+    assert "M1 (done): The weight first" in lab(root, "mission", "--all") and "mission M1" not in lab(root, "now")
+    assert "Closed (done)" in lab(root, "mission", "M1")
+    assert "M1 is done, not current" in lab(root, "mission", "log", "M1", "more", ok=False)
     assert "the record is sound" in lab(root, "check", "--no-rederive")
     # a number is never given twice, even once its file is gone
     assert saved(root, "The rest", d2)[0] == "M2"
@@ -77,11 +83,11 @@ def test_lab_check_holds_a_missions_form(tmp_path):
     open_question(root)
     _, path = saved(root, "A mission", "D1")
     assert "the record is sound" in lab(root, "check", "--no-rederive")
-    front(path, carries="D9", status="active")
+    front(path, carries="D9", phase="active")
     open(path, "a").write("not a line\n")
     open(f"{root}/missions/notes.txt", "w").write("x")
     out = lab(root, "check", "--no-rederive", ok=False)
-    assert "`status:` is not something a mission holds" in out
+    assert "`phase:` is not something a mission holds" in out
     assert "'D9' is not one" in out
     assert "is not `- <date> <time> | <what happened>`" in out
     assert "missions/notes.txt: missions/ holds only the missions" in out
@@ -90,7 +96,7 @@ def test_lab_check_holds_a_missions_form(tmp_path):
     os.remove(f"{root}/missions/notes.txt")
     lab(root, "new", "decision", "Another", "--about", "G1")
     fill(sorted(glob.glob(f"{root}/decisions/D2-*.md"))[0], Seen="Something to discuss.")
-    text = open(path).read().replace("status: active\n", "").replace("not a line\n", "- 2026-01-02 09:40 | launched\n")
+    text = open(path).read().replace("phase: active\n", "").replace("status: next", "status: current").replace("not a line\n", "- 2026-01-02 09:40 | launched\n")
     open(path, "w").write(text)
     assert "is current and carries D2, which is still open" in lab(root, "check", "--no-rederive", ok=False)
 
@@ -105,7 +111,7 @@ def test_the_site_draws_the_line_that_closes_a_mission(tmp_path):
     lab(root, "mission", "launch")
     lab(root, "mission", "close", "The first question is open and its work has started.")
     site = Provider(root)
-    assert "Mission closed: M1 A mission" in site.get("D1").main + site.get("log").main
+    assert "Mission done: M1 A mission" in site.get("D1").main + site.get("log").main
 
 
 def test_the_refusals_a_mission_command_holds(tmp_path):
@@ -120,7 +126,10 @@ def test_the_refusals_a_mission_command_holds(tmp_path):
     # an id with no message is not taken as the message
     assert 'say what happened after the mission: lab mission close M1 "<what>"' in lab(root, "mission", "close", "M1", ok=False)
     assert "say what happened after the mission" in lab(root, "mission", "log", "M1", ok=False)
-    assert os.path.exists(path) and "Mission closed" not in open(f"{root}/log.md").read()
+    assert os.path.exists(path) and "Mission done" not in open(f"{root}/log.md").read()
+    # a mission ended before its work is stopped, not done
+    lab(root, "mission", "close", "--stopped", "The operator ended it to free the machines.")
+    assert "status: stopped" in open(path).read() and "Mission stopped: M1" in open(f"{root}/log.md").read()
 
 
 def test_lab_check_holds_a_missions_slots(tmp_path):
@@ -140,3 +149,32 @@ def test_lab_check_holds_a_missions_slots(tmp_path):
     assert "cannot be read" in lab(root, "mission")
     open(path, "w").write("---\ntitle: Short\ncarries: D1\n---\n\nFor the first question.\n\n## Log\n\n- 2026-01-02 09:30 | saved, carrying D1\n")
     assert "missing slot Rules" in lab(root, "check", "--no-rederive", ok=False)
+
+
+def test_a_mission_has_a_status_and_one_written_by_the_last_kit_is_still_read(tmp_path):
+    root = str(tmp_path)
+    open_question(root)
+    _, path = saved(root, "A mission", "D1")
+    assert "status: next" in open(path).read()
+    lab(root, "mission", "launch")
+    assert "status: current" in open(path).read()
+    front(path, status="paused")
+    assert "`status:` is one of next, current, done, stopped; it is 'paused'" in lab(root, "check", "--no-rederive", ok=False)
+    # a file 1.4.0 wrote has no status: read as current from its log, and the check asks for the status
+    text = open(path).read().replace("status: paused\n", "")
+    open(path, "w").write(text)
+    assert "M1 (current)" in lab(root, "mission")
+    assert "`status:` is one of" in lab(root, "check", "--no-rederive", ok=False)
+    lab(root, "mission", "close", "Done.")
+    assert "status: done" in open(path).read() and "the record is sound" in lab(root, "check", "--no-rederive")
+    # numbers count the closed missions, kept and removed alike
+    assert saved(root, "Another", "D1")[0] == "M2"
+
+
+def test_the_mission_switches_go_only_where_they_mean_something(tmp_path):
+    root = str(tmp_path)
+    open_question(root)
+    saved(root, "A mission", "D1")
+    for args in (["--stopped"], ["log", "--stopped", "x"], ["new", "B", "--carries", "D1", "--all"], ["--all", "--all"]):
+        assert "To look" in lab(root, "mission", *args, ok=False)  # refused with the usage, nothing written
+    assert len(glob.glob(f"{root}/missions/*.md")) == 1
