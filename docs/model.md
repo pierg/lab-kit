@@ -485,14 +485,16 @@ its end.
 **One mark for each state, everywhere.** Every word a page uses for where something stands has one
 mark, a shape in a colour, and it is the same on Now, in the rail, in the page header, in a list of
 steps and in a list of runs: open ○, waiting ‖, running ● (it pulses), parked ◇, done ✓, replaced and
-dropped –; a question answered yes, no, mixed or found Y, N, M, F, all in the ink's colour, since an answer is a
-finding and never good or bad; an experiment confirmed ✓, refuted ✗, unclear ?, void !; a decision to
+dropped –; a question answered yes, no, mixed or found shows its answer as the word itself in a box (where only a
+sign fits, as in the rail, the word's first letter, Y, N, M or F), in the ink's colour, since an answer is a finding
+and never good or bad; an experiment confirmed ✓, refuted ✗, unclear ?, void !; a decision to
 discuss ◆ or decided ✓; a run running, finished ✓ or failed ✗, and a review passed ✓ or failed ✗. The
 shape carries the meaning, so colour is never the only signal. Where a page writes a state out, it
-writes the mark and the word, in the mark's colour. A goal or a question that is open or waiting with a
+writes the mark and the word, in the mark's colour; an answer is written as its boxed word alone, except in the
+page header, which says "answered no" in a box. A goal or a question that is open or waiting with a
 step running under it shows as running, its mark pulsing, with the running steps named on hover; its
 state in the record does not change. A log line's kind (found, stuck, decided) is a kind of event, not
-a state, and is drawn without colour. Now carries the key, and so does the rail, folded.
+a state, and is drawn without colour. There is no key: every mark names its state on hover.
 
 **How a page of a card reads.** Every page of a goal, a question or a step reads in the same order:
 
@@ -531,8 +533,7 @@ what is live at this moment (each run going, the current mission with the last l
 the agent says it is on), each with a pulsing mark, and when the record last moved; what needs you (the
 open decisions) and what is next for the agent, in the agreed order of the work; the map, one row per
 goal with its mark and how many of its questions are answered, and one tile per live question with its
-mark and its state written out (its answer once answered) and one mark per step in tree order, above
-them the key; what each resource has used of its grant, as a bar; the
+mark and its state written out (its answer once answered) and one mark per step in tree order; what each resource has used of its grant, as a bar; the
 latest events. There is no graph page: the rail is the tree and Now is the map.
 
 **An example on every question.** A question's page carries one case, step by step, as a numbered

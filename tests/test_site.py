@@ -124,7 +124,6 @@ def test_the_rail_the_search_and_the_stamp_follow_the_record(tmp_path):
     goal = next(r for r in rail if r.get("kind") == "goal")
     question = goal["items"][0]
     assert question["kind"] == "question" and question["items"][0]["url"] == "/lab/G1.Q1.1/" and question["items"][0]["status"] == "open" and question["tone"] == "plain"
-    assert rail[-1]["title"] == "Key" and any(k.get("status") == "running" for k in rail[-1]["legend"])
     assert any(s["url"] == "/lab/G1.Q1.1/" and "factor of four" in s["description"] for s in site.search()) and any(s["url"] == "/lab/D1/" for s in site.search())
     before = site.stamp()
     lab(root, "log", "G1.Q1.1", "stuck", "The machine is down.")
@@ -438,7 +437,7 @@ def test_a_table_with_no_rows_and_a_title_that_ends_in_a_mark_are_drawn(tmp_path
     assert '<a class="page" href="/lab/G1.Q1/"' in other and ">Does the error halve when the sample quadruples?</a>" in other
 
 
-def test_every_state_has_one_mark_on_every_page_and_now_carries_the_key(tmp_path):
+def test_every_state_has_one_mark_on_every_page_and_an_answer_is_a_boxed_word(tmp_path):
     from lab_kit import site as S
     root, ident, d, command = locked(tmp_path)
     lab(root, "run", ident, "--wait", "--", *command)
@@ -451,10 +450,10 @@ def test_every_state_has_one_mark_on_every_page_and_now_carries_the_key(tmp_path
     assert (question["status"], question["tone"], question["sign"]) == ("answered no", no[0], no[1])  # the rail
     now = site.get("").main
     tile = now[now.index('class="tile'):]
-    assert f'<span class="stw t-{no[0]}"' in tile and f">{no[1]}</span>answered no" in tile  # the tile on Now: the same mark and word
+    assert '<span class="ans" title="answered no">no</span>' in tile and "answered no</span>" not in tile  # the tile on Now: the answer, boxed
     assert site.get("G1.Q1").status == "answered no" and 'data-s="answered no"' in S.header_css()  # the page header draws the same mark
-    assert '<div class="legend">' in now and now.index('<div class="legend">') < now.index('class="goalrow"')
-    assert all(k in S.LOOK and k in S.MEANS for _, keys in S.LEGEND for k in keys)
+    assert 'class="legend"' not in now and site.rail()[-1]["title"] != "Key"  # no key: every mark names itself on hover
+    assert S.mark("no") == '<span class="sg t-ink" title="answered no">N</span>' and "::before{display:none}" in S.header_css() and '.f-vsign[data-t="ink"]{border' in S.header_css()
     assert len({S.LOOK[k] for k in ("open", "waiting", "running", "parked", "done", "dropped", "to discuss")}) == 7  # no two states share a mark
     busy = {"type": "question", "state": "open", "items": [{"id": "G1.Q1.2", "state": "running"}]}
     assert S.key(busy) == "running" and "G1.Q1.2 running" in S.dot(busy) and " live" in S.dot(busy)  # a question with a running step pulses

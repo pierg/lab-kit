@@ -25,12 +25,6 @@ MEANS = {"running": "running", "waiting": "waiting", "open": "open", "done": "do
          "mixed": "answered mixed", "found": "found", "unclear": "unclear", "refuted": "refuted", "void": "void", "parked": "parked",
          "replaced": "replaced", "dropped": "dropped", "to discuss": "to discuss", "decided": "decided",
          "finished": "finished", "failed": "failed", "pass": "passed", "fail": "failed"}
-# The key, on Now and in the rail: one group per kind of card, each word with the mark it has everywhere.
-LEGEND = (("Any card", ("open", "waiting", "running", "parked", "done", "replaced", "dropped")),
-          ("A question, answered", ("yes", "no", "mixed", "found")),
-          ("An experiment, done", ("confirmed", "refuted", "unclear", "void")),
-          ("A decision", ("to discuss", "decided")),
-          ("A run, a review", ("running", "finished", "pass", "failed")))
 HINT = {"running": "work under way; on a goal or a question, a step under it is running", "waiting": "held by a step it needs, a decision or something outside the lab",
         "parked": "set aside by a decision", "void": "its results review failed: its numbers are never used", "replaced": "redone by a newer experiment",
         "dropped": "will not be done", "to discuss": "open: waits for you", "found": "an estimate, answered with what was found", "failed": "a run that stopped with an error, or a review that did not pass"}
@@ -99,7 +93,7 @@ def key(n):
 
 
 def label(n):
-    """A node's state as the operator reads it, in the words of the key: on done, a question shows its answer and an
+    """A node's state as the operator reads it, in the words every page uses: on done, a question shows its answer and an
     experiment its outcome."""
     return MEANS.get(key(n), key(n))
 
@@ -128,7 +122,7 @@ def pill(text, t="plain"):
 
 
 def mark(k, title=""):
-    """The mark of a word of the key: its sign in its tone, the same shape and colour on every page and in the rail.
+    """The mark of a state or a label: its sign in its tone, the same shape and colour on every page and in the rail.
     Running pulses."""
     t, g = LOOK.get(k, ("plain", "\u25cb"))
     return f'<span class="sg t-{t}{" live" if k == "running" else ""}" title="{e(title or MEANS.get(k, k))}">{g}</span>'
@@ -146,24 +140,25 @@ def status(n):
 
 
 def word(k, title=""):
-    """A word of the key written out: its mark and the word, in its tone."""
+    """A state or a label written out: its mark and the word, in its tone. An answer is written as itself, in a box
+    (yes, no, mixed, found): the box is its mark, and the word is the finding."""
     t = LOOK.get(k, ("plain", ""))[0]
+    if t == "ink":
+        return f'<span class="ans" title="{e(title or HINT.get(k, MEANS.get(k, k)))}">{e(k)}</span>'
     return f'<span class="stw t-{t}" title="{e(title or HINT.get(k, MEANS.get(k, k)))}">{mark(k, title)}{e(MEANS.get(k, k))}</span>'
-
-
-def legend_html():
-    """The key on Now: every mark the site draws, by the kind of card it is on."""
-    rows = "".join(f'<div><b>{e(group)}</b>' + "".join(word(k) for k in keys) + "</div>" for group, keys in LEGEND)
-    return f'<div class="legend">{rows}</div>'
 
 
 def header_css():
     """folio's page header shows the view's status as a pill: draw it with the same mark and tone as everywhere else."""
     soft = {"ok": "ok-soft", "warn": "warn-soft", "bad": "bad-soft", "info": "info-soft"}
-    out = []
+    # The rail's answers: the letter boxed, as in a row of marks on a lab page.
+    out = ['.f-vsign[data-t="ink"]{border:1px solid var(--ink-3);border-radius:3px;padding:0 .2em;min-width:0;font-size:.62rem;line-height:1.2}']
     for k, (t, g) in LOOK.items():
         fg = {"plain": "ink-3", "gone": "ink-3", "ink": "ink"}.get(t, t)
         sel = f'.f-status[data-s="{MEANS.get(k, k)}"]'
+        if t == "ink":  # an answer: the words alone, boxed, as on every lab page
+            out.append(f'{sel}{{background:none;color:var(--ink);border:1px solid var(--ink-3)}}{sel}::before{{display:none}}')
+            continue
         out.append(f'{sel}{{background:var(--{soft.get(t, "sunk")});color:var(--{fg})}}'
                    f'{sel}::before{{content:"{g}";width:auto;height:auto;border-radius:0;background:none;opacity:1;font-weight:700}}')
         if k == "running":
@@ -390,12 +385,11 @@ CSS = """
 .lv .sg.t-ok{color:var(--ok)}.lv .sg.t-warn{color:var(--warn)}.lv .sg.t-bad{color:var(--bad)}.lv .sg.t-info{color:var(--info)}.lv .sg.t-ink{color:var(--ink)}.lv .sg.t-gone{color:var(--ink-3)}
 .lv .t-ink{background:var(--sunk);color:var(--ink)}
 .lv .t-gone{background:none;color:var(--ink-3);text-decoration:line-through}
+.lv .sg.t-ink{min-width:0;padding:.1em .28em;border:1px solid var(--ink-3);border-radius:3px;font-size:.62em;line-height:1.1;vertical-align:.12em}
+.lv .ans{display:inline-block;padding:0 .45rem;border:1px solid var(--ink-3);border-radius:4px;font:650 .74rem/1.45 var(--sans);color:var(--ink);background:var(--surface);white-space:nowrap}
 .lv .live{animation:lv-pulse 1.6s ease-in-out infinite}
 .lv .stw{display:inline-flex;gap:.25rem;align-items:baseline;background:none;font:600 .78rem/1.4 var(--sans);white-space:nowrap}
 .lv .stw.t-plain,.lv .stw.t-gone{color:var(--ink-3);text-decoration:none}.lv .stw.t-ink{color:var(--ink)}
-.lv .legend{display:flex;flex-wrap:wrap;gap:.35rem 1.4rem;margin:.2rem 0 .8rem;padding:.5rem .8rem;border:1px solid var(--rule);border-radius:8px;background:var(--surface);font:400 .78rem var(--sans)}
-.lv .legend>div{display:flex;flex-wrap:wrap;gap:.2rem .7rem;align-items:baseline}
-.lv .legend b{font:650 .66rem var(--sans);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin-right:.1rem}
 @keyframes lv-pulse{0%,100%{opacity:1}50%{opacity:.3}}
 @media (prefers-reduced-motion:reduce){.lv .live{animation:none}}
 .lv .dash-live{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--info);border-radius:8px;padding:.7rem 1rem;margin:.2rem 0 1rem;font:400 .95rem/1.5 var(--sans)}
@@ -1000,7 +994,7 @@ def home(lab, T):
     talk = [decision_box(lab, T, d) for d in lab.open_decisions()]
     if talk:
         out.append("<h2>To discuss with you</h2>" + "".join(talk))
-    out.append("<h2>The lab</h2>" + legend_html() + lab_map(lab, T))
+    out.append("<h2>The lab</h2>" + lab_map(lab, T))
     if lab.resources:
         out.append('<h2>Resources</h2>' + resources_table(lab))
     latest = happened(lab.lines)[-5:]
@@ -1500,11 +1494,6 @@ class Provider:
             if aside:
                 questions.append({"title": f"set aside ({len(aside)})", "key": f"{g['id']}:aside", "fold": True, "items": [row(q, q["id"].split(".")[-1]) for q in aside]})
             out.append({**row(g, g["id"]), "items": questions, "summary": summary(under)})
-        legend = [{"mark": MARK[k], "text": k} for k in L.STEPS]
-        seen = set()
-        for _, keys in LEGEND:
-            legend += [{"sign": LOOK[k][1], "tone": LOOK[k][0], "status": MEANS[k], "text": MEANS[k] + (f": {HINT[k]}" if k in HINT else "")} for k in keys if not (k in seen or seen.add(k))]
-        out.append({"title": "Key", "legend": legend})
         return out
 
     def search(self):
