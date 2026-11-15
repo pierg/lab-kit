@@ -52,7 +52,12 @@ def test_so_far_older_than_a_result_under_it_is_stale(tmp_path):
     out = lab(root, "log", ident, "result", "The error halves.", "It converges as the theory says.")
     assert "So far of G1.Q1" in out  # the command reminds the agent
     commit(root, "the result")
-    assert f"So far was last committed before the result of {ident}" in lab(root, "check", "--no-rederive", ok=False)
+    from lab_kit import history, record
+    L = record.Lab(root)
+    q = [q for q in L.questions if q["id"] == "G1.Q1"][0]
+    diag = (q["state"], q["path"], git_out(root, "status", "--porcelain"), git_out(root, "log", "--format=%cI %s", "--", q["path"]),
+            [(l["kind"], l["about"], l["at"]) for l in L.lines], history.stale_so_far(L))
+    assert f"So far was last committed before the result of {ident}" in lab(root, "check", "--no-rederive", ok=False), diag
     fill(f"{qdir}/question.md", So_far="The error at 400 flips is {G1.Q1.1:ratio} of the error at 100.")
     commit(root, "So far brought up to date")
     assert "the record is sound" in lab(root, "check", "--no-rederive")
