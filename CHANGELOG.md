@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.1
+
+- **An answer is written as itself, in a box:** yes, no, mixed or found, in the ink's colour, on Now, on the page of a
+  question and in its page header. Where only a sign fits, as in the rail and the rows of marks, it is the word's first
+  letter in a small box. It was a bare letter followed by "answered yes".
+- **No key** on Now or in the rail: every mark names its state on hover.
+
 ## 1.7.0
 
 Two kinds of question, and the site draws every state with one mark, the same on every page.
