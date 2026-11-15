@@ -156,8 +156,7 @@ def test_a_question_with_nothing_left_under_it_is_the_agents_next_step(tmp_path)
     done(root, again, d2)
     assert f"{again} finished: answer it (lab answer G1.Q1 ...)" in yours()
     card, dn = park(root, "G1.Q1", "Whether to go on", "", key="holds")
-    assert "G1.Q1" not in yours() and "G1 " not in yours()  # held: not listed, and its goal is not settled either
-    assert "G1.Q1" not in yours()  # what an open decision holds waits on the decision
+    assert "G1.Q1" not in yours() and "G1 " not in yours()  # what an open decision holds waits on it, and its goal is not settled either
     lab(root, "decide", dn, "--with", "Ada", "Go on.")
     lab(root, "answer", "G1.Q1", "yes", "It halves at 400 flips.")
     assert "G1 " in yours() and "bring closing it (reached or dropped) to the operator" in yours()

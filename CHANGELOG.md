@@ -5,7 +5,7 @@
 - **A question with nothing left under it is the agent's next step.** `lab now` ("Yours next") and Now's "Next for
   the agent" list every open question that no open decision holds and that has no step open, waiting or running
   under it: answer it, add the next experiment, or bring parking it to the operator. An open goal whose questions are
-  all answered, parked or dropped is listed too, to be closed in a decision. Before, such a question was listed
+  all answered, parked or dropped is listed too, to be closed in a decision, and so is an open goal with no question yet. Before, such a question was listed
   nowhere, and stayed open in silence once its last experiment finished or a decision dropped its last step. The
   skill `lab-work` changed: run `lab init` in a lab after upgrading.
 - **An answer is written as itself, in a box:** yes, no, mixed or found, in the ink's colour, on Now and in the lists

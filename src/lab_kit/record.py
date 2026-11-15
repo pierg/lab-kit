@@ -1161,7 +1161,7 @@ class Lab:
 
     def to_settle(self):
         """The open questions with no step open, waiting or running under them, and the open goals whose every question
-        is settled, each with what is next on it. Only someone reading the question can tell whether what finished
+        is settled or that have none yet, each with what is next on it. Only someone reading the question can tell whether what finished
         answers it, so nothing here is worked out into an answer: it is listed so that it is never left in silence.
         What an open decision holds waits on the decision and is not listed. The text goes on the node as its `next`,
         as a step's does; a Lab is read afresh for every command."""
