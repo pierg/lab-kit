@@ -136,3 +136,27 @@ def test_a_test_is_answered_yes_no_or_mixed_and_an_estimate_with_what_was_found(
     assert "`kind:` is test or estimate" in lab(root, "check", "--no-rederive", ok=False)
     front(f"{qdir}/question.md", kind="[estimate]")
     assert "`kind:` holds one value, not a list" in lab(root, "check", "--no-rederive", ok=False)  # reported, not a crash
+
+
+def test_a_question_with_nothing_left_under_it_is_the_agents_next_step(tmp_path):
+    root = str(tmp_path)
+    open_question(root)
+    yours = lambda: lab(root, "now").split("Yours next")[1].split("Not yours")[0]
+    assert "G1.Q1" in yours() and "nothing under it yet: plan its first experiment" in yours()
+    ident, d, command = experiment(root, command=WRITES % "0.5")
+    assert "G1.Q1 " not in yours().replace(ident, "")  # a step under it can move: the step is listed, not the question
+    lab(root, "lock", ident)
+    lab(root, "run", ident, "--wait", "--", *command)
+    results(d)
+    lab(root, "review", ident, "results", "fail", "The seed was fixed after a first look.")
+    assert "no experiment finished that is not void" in yours()  # a void experiment answers nothing
+    again, d2, command2 = experiment(root, title="The same, with the seed fixed first", command=WRITES % "0.5")
+    lab(root, "lock", again)
+    lab(root, "run", again, "--wait", "--", *command2)
+    done(root, again, d2)
+    assert f"{again} finished: answer it (lab answer G1.Q1 ...)" in yours()
+    card, dn = park(root, "G1.Q1", "Whether to go on", "", key="holds")
+    assert "G1.Q1" not in yours()  # what an open decision holds waits on the decision
+    lab(root, "decide", dn, "--with", "Ada", "Go on.")
+    lab(root, "answer", "G1.Q1", "yes", "It halves at 400 flips.")
+    assert "G1 " in yours() and "bring closing it (reached or dropped) to the operator" in yours()

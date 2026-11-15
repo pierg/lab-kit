@@ -1,7 +1,13 @@
 # Changelog
 
-## 1.7.1
+## 1.8.0
 
+- **A question with nothing left under it is the agent's next step.** `lab now` ("Yours next") and Now's "Next for
+  the agent" list every open question that no open decision holds and that has no step open, waiting or running
+  under it: answer it, add the next experiment, or bring parking it to the operator. An open goal whose questions are
+  all answered, parked or dropped is listed too, to be closed in a decision. Before, such a question was listed
+  nowhere, and stayed open in silence once its last experiment finished or a decision dropped its last step. The
+  skill `lab-work` changed: run `lab init` in a lab after upgrading.
 - **An answer is written as itself, in a box:** yes, no, mixed or found, in the ink's colour, on Now and in the lists
   of a lab's pages; the page header says "answered no" in the same box. Where only a sign fits, as in the rail and the
   rows of marks, it is the word's first letter in a small box. It was a bare letter followed by "answered yes".
