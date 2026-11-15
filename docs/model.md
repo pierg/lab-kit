@@ -347,7 +347,8 @@ missions before it takes a machine.
 - `lab mission log [<mission>] "<what happened>"` adds a line to a current mission's log. Lines are only added.
 - `lab mission close [<mission>] [--stopped] "<what it did, or why it stopped>"` ends a current mission: its status
   becomes done (stopped, with `--stopped`, when it ended before its work did), its log ends with that line, and one
-  `agent` line about the decision it carried goes into `log.md`, `Mission done: M<n> <title>`. The file is kept.
+  `agent` line about the decision it carried goes into `log.md`, `Mission done: M<n> <title>` (or `Mission stopped:`).
+  The file is kept.
 - `lab mission` lists the open missions, next and current, in a line each, and counts the closed; `--all` lists
   those too. `lab mission <mission>` shows one whole, with the steps its decision orders and where each stands now,
   and the other current missions.

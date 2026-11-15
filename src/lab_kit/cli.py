@@ -103,6 +103,8 @@ def main(argv=None):
         print(f"made {ident}: {path}")
     elif cmd == "mission":
         carries, everything, stopped = flag("--carries"), flag("--all", switch=True), flag("--stopped", switch=True)
+        if not rest and not looks or (stopped and rest[:1] != ["close"]) or (everything and not looks) or "--all" in rest:
+            raise SystemExit(USAGE)
         ident = lambda: rest.pop(1) if len(rest) == 3 or (rest[0] == "launch" and len(rest) == 2) else None
         if looks:
             print(views.mission(lab, rest[0] if rest else None, everything))

@@ -169,3 +169,12 @@ def test_a_mission_has_a_status_and_one_written_by_the_last_kit_is_still_read(tm
     assert "status: done" in open(path).read() and "the record is sound" in lab(root, "check", "--no-rederive")
     # numbers count the closed missions, kept and removed alike
     assert saved(root, "Another", "D1")[0] == "M2"
+
+
+def test_the_mission_switches_go_only_where_they_mean_something(tmp_path):
+    root = str(tmp_path)
+    open_question(root)
+    saved(root, "A mission", "D1")
+    for args in (["--stopped"], ["log", "--stopped", "x"], ["new", "B", "--carries", "D1", "--all"], ["--all", "--all"]):
+        assert "To look" in lab(root, "mission", *args, ok=False)  # refused with the usage, nothing written
+    assert len(glob.glob(f"{root}/missions/*.md")) == 1

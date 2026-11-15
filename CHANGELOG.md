@@ -4,7 +4,8 @@
 
 A closed mission is kept. In 1.4.0 `lab mission close` removed the mission's file, and with it the only account of
 how its decision was carried out: which sessions started, what stalled, what was restarted. The skill `lab-mission`
-changed: run `lab init` in a lab after upgrading.
+changed: run `lab init` in a lab after upgrading, and add `status: next` (or `status: current`, for one already
+launched) under the `title:` of every mission 1.4.0 wrote, or `lab check` reports it.
 
 - **`status:`** on a mission, written by the commands: `next` when saved, `current` when launched, `done` or
   `stopped` when closed. `lab check` asks for it. A file 1.4.0 wrote is still read (current once its log says
