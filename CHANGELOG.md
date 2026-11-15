@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.0
+
+- **A Missions page** on the site, compact like Decisions: the current first, then the next, then the closed.
+  Each mission shows its status mark, the decision it carries, what it is for, its steps as marks with how many
+  are closed, its last log line, and its rules and log folded. The rail lists the page with how many are current,
+  and Now's mission line links to it.
+
 ## 1.8.0
 
 - **A question with nothing left under it is the agent's next step.** `lab now` ("Yours next") and Now's "Next for
