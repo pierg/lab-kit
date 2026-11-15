@@ -134,3 +134,5 @@ def test_a_test_is_answered_yes_no_or_mixed_and_an_estimate_with_what_was_found(
     assert "is a test and is answered found" in lab(root, "check", "--no-rederive", ok=False)
     front(f"{qdir}/question.md", kind="guess")
     assert "`kind:` is test or estimate" in lab(root, "check", "--no-rederive", ok=False)
+    front(f"{qdir}/question.md", kind="[estimate]")
+    assert "`kind:` holds one value, not a list" in lab(root, "check", "--no-rederive", ok=False)  # reported, not a crash

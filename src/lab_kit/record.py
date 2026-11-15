@@ -56,7 +56,7 @@ HASH = 2  # how a folder is hashed in the locks and runs made now; one without t
 NUMBER = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?")
 LISTS = {"goal": ("see",), "question": ("needs", "see"), "experiment": ("needs", "uses", "see"), "build": ("needs", "commits", "tests", "see"),
          "reading": ("needs", "see"), "decision": ("about", "holds", "parks", "unparks", "drops", "order", "see")}  # the front matter keys that hold a list
-TEXTS = ("title", "asks", "from", "replaces", "because", "cost", "waiting_on", "dropped", "answered")  # and those that hold one value
+TEXTS = ("title", "asks", "kind", "from", "replaces", "because", "cost", "waiting_on", "dropped", "answered")  # and those that hold one value
 
 
 def complement(a, b):
@@ -1027,7 +1027,7 @@ class Lab:
         if q["state"] == "parked":
             return f"{q['id']} is parked by {self.parked_by(q['id'])['id']}: a decision that unparks it comes first"
         if q["state"] != "open":
-            return f"{q['id']} is {'answered ' + q['label'] if q['state'] == 'done' else q['state']}"
+            return f"{q['id']} is {('answered ' + q['label']) if q['state'] == 'done' and q['label'] != 'found' else 'answered with what was found' if q['state'] == 'done' else q['state']}"
         for need in x.get("needs") or []:
             n = self.nodes.get(need)
             if n and x["id"] in self.reach.get(need, {need} if need == x["id"] else ()):  # a circle of needs: nothing in it moves
