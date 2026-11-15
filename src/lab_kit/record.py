@@ -30,7 +30,13 @@ DESCRIPTION = {"goal": 70, "question": 150, "experiment": 80, "build": 60, "read
 MISSION_LINE = re.compile(r"^- (\d{4}-\d\d-\d\d) (\d\d:\d\d) \| ([^|]+)$")  # a line of a mission's log
 MISSION_BUDGET = {"description": 80, "Rules": 200}
 MISSION_STATES = ("next", "current", "done", "stopped")  # a mission's `status:`; done and stopped are closed, and the file is kept
-STEPS = ("experiment", "build", "reading")  # what sits under a question: a locked comparison, something made, a look at what already exists
+STEPS = ("experiment", "build", "reading")
+# One set of states for every goal, question and step (the model, section 1). A type uses only those it can be in. On
+# done, a question carries its answer (yes, no or mixed) and an experiment its outcome (confirmed, refuted, unclear or
+# void) as its label.
+STATES = ("open", "waiting", "running", "parked", "done", "replaced", "dropped")
+ANSWERS = ("yes", "no", "mixed")
+CLOSED = ("done", "replaced", "dropped")  # a step in one of these will not move again  # what sits under a question: a locked comparison, something made, a look at what already exists
 READS = ("", "percent", "points")  # how a result's value reads on a page
 BEFORE = ("Compares", "Arms", "Cases", "Confirmed if", "Refuted if", "Outcomes", "Limits")  # what an experiment says before it runs: its plan, which So far, Found and Means are not part of
 ROLES = {"answer": "The answer", "readable": "The answer can be read only if", "counts": "The answer counts only if"}  # what a confirmed-if bar is there for
@@ -48,7 +54,7 @@ COLUMNS = {"results.tsv": ("name", "label", "value", "reads", "versus", "command
 HASH = 2  # how a folder is hashed in the locks and runs made now; one without the marker was made with the first way
 NUMBER = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?")
 LISTS = {"goal": ("see",), "question": ("needs", "see"), "experiment": ("needs", "uses", "see"), "build": ("needs", "commits", "tests", "see"),
-         "reading": ("needs", "see"), "decision": ("about", "holds", "parks", "unparks", "order", "see")}  # the front matter keys that hold a list
+         "reading": ("needs", "see"), "decision": ("about", "holds", "parks", "unparks", "drops", "order", "see")}  # the front matter keys that hold a list
 TEXTS = ("title", "asks", "from", "replaces", "because", "cost", "waiting_on", "dropped", "answered")  # and those that hold one value
 
 
@@ -329,7 +335,13 @@ class Lab:
             n["title"], n["description"] = flat(n.get("title") or n["id"]), flat(n.get("description") or "")
             if n["type"] == "question":  # the question in full; a card without `asks:` has it as its title
                 n["asks"] = flat(n.get("asks") or n["title"])
+            n["label"] = None  # on done: a question's answer, an experiment's outcome
             self.nodes[n["id"]] = n
+        for d in self.decisions:  # a settled decision drops what it lists under `drops:`, whatever the card says
+            for ident in d["drops"] if d["state"] == "done" else []:
+                n = self.nodes.get(ident)
+                if n and (n["type"] in STEPS or n["type"] == "question") and not n.get("dropped"):
+                    n["dropped"], n["dropped_by"] = f"{d['id']} {d['title']}", d["id"]
         self.runs = self._runs()
         for x in self.experiments:
             mine = sorted((r for r in self.runs if r.get("experiment") == x["id"]), key=lambda r: (str(r.get("started")), r["id"]))  # in the order they started
@@ -344,6 +356,8 @@ class Lab:
         self.reach = self._reach()
         for x in self._in_order():  # a step after everything it needs, wherever that sits in the tree
             x["state"], x["next"], x["mine"] = {"build": self._build_state, "reading": self._reading_state, "experiment": self._experiment_state}[x["type"]](x)
+        for x in self.experiments:  # a done experiment's label is its outcome
+            x["label"] = x["outcome"] if x["state"] == "done" else None
         for row in self.results.values():  # a number may be used on a card once its experiment is reviewed, and until it is replaced
             x = self.nodes[row["experiment"]]
             row["usable"] = x["reviewed"] and x["state"] not in ("replaced", "dropped")
@@ -590,7 +604,7 @@ class Lab:
             gdir, gid = os.path.dirname(gp), f"G{gn}"
             fm, gslots = self._card(gp, "goal")
             goal = {"title": gid, "description": "", "see": [], **fm, "id": gid, "type": "goal", "slots": gslots, "path": self.rel(gp), "dir": self.rel(gdir), "questions": []}
-            goal["state"] = "dropped" if fm.get("dropped") else "reached" if fm.get("reached") else "active"
+            goal["state"] = "dropped" if fm.get("dropped") else "done" if fm.get("reached") else "open"
             for qn, qp in self._numbered(f"{gdir}/*/question.md", r"/Q(\d+)-[^/]+/question\.md$", {}, "Q<n>-<name>"):
                 qdir, qid = os.path.dirname(qp), f"{gid}.Q{qn}"
                 qfm, qslots = self._card(qp, "question")
@@ -633,9 +647,9 @@ class Lab:
         out = []
         for n, path in self._numbered(f"{self.root}/decisions/D*.md", r"/D(\d+)-[^/]+\.md$", {}, "D<n>-<name>.md"):
             fm, slots = self._card(path, "decision")
-            d = {"title": f"D{n}", "about": [], "holds": [], "parks": [], "unparks": [], "order": [], "decided": None, "date": "", "see": [], **fm, "id": f"D{n}", "type": "decision", "slots": slots,
+            d = {"title": f"D{n}", "about": [], "holds": [], "parks": [], "unparks": [], "drops": [], "order": [], "decided": None, "date": "", "see": [], **fm, "id": f"D{n}", "type": "decision", "slots": slots,
                  "path": self.rel(path), "dir": self.rel(os.path.dirname(path))}
-            d["state"] = "decided" if d["decided"] else "open"
+            d["state"] = "done" if d["decided"] else "open"
             out.append(d)
         return out
 
@@ -739,13 +753,13 @@ class Lab:
     def pursued(self):
         """The steps still pursued: under a question that is neither parked nor dropped, of a goal still active. What was
         set aside waits on a decision, not on the work, and is listed apart."""
-        keep = {q["id"] for q in self.live(self.questions) if self.nodes[q["goal"]]["state"] == "active"}
+        keep = {q["id"] for q in self.live(self.questions) if self.nodes[q["goal"]]["state"] == "open"}
         return self.in_order([x for x in self.items if x["question"] in keep])
 
     def ordered_by(self):
         """The settled decision that sets the order of the work, or None: the last settled decision, by number, that
         carries an `order:`. The order is agreed with the operator, so it comes only out of a decision."""
-        return next((d for d in reversed(self.decisions) if d["state"] == "decided" and d["order"]), None)
+        return next((d for d in reversed(self.decisions) if d["state"] == "done" and d["order"]), None)
 
     def in_order(self, steps):
         """Steps in the agreed order of the work: each takes the place of its own id in the order, else of its question's,
@@ -765,7 +779,7 @@ class Lab:
         were reached or dropped."""
         return {"parked": [q for q in self.questions if q["state"] == "parked"],
                 "dropped": [q for q in self.questions if q["state"] == "dropped"],
-                "goals": [g for g in self.goals if g["state"] != "active"]}
+                "goals": [g for g in self.goals if g["state"] != "open"]}
 
     def question_of(self, ident):
         m = re.match(r"(G\d+\.Q\d+)", ident)
@@ -780,17 +794,17 @@ class Lab:
 
     def settled(self, node):
         """Whether the decision a goal or a question came from has been settled."""
-        return self.nodes.get(str(node.get("from")), {}).get("state") == "decided"
+        return self.nodes.get(str(node.get("from")), {}).get("state") == "done"
 
     def settled_for(self, ident):
         """A settled decision that is about exactly this node: what a cap above the lab's amounts rests on."""
-        return next((d for d in self.decisions if d["state"] == "decided" and ident in d["about"]), None)
+        return next((d for d in self.decisions if d["state"] == "done" and ident in d["about"]), None)
 
     def held_by(self, decision):
         """The experiments and builds an open decision holds, still to be done."""
         if decision["state"] != "open":
             return []
-        return [x for x in self.items if x["state"] not in ("done", "built", "dropped", "replaced") and any(x["id"] == h or x["id"].startswith(h + ".") for h in decision["holds"])]
+        return [x for x in self.items if x["state"] not in CLOSED and any(x["id"] == h or x["id"].startswith(h + ".") for h in decision["holds"])]
 
     def metered(self, name):
         r = self.resources.get(name) or {}
@@ -799,7 +813,7 @@ class Lab:
     def granted_by(self, name):
         """The settled decision that set a metered resource's amounts, or None."""
         d = self.nodes.get(str((self.resources.get(name) or {}).get("from")))
-        return d if d and d["type"] == "decision" and d["state"] == "decided" and name in d["about"] else None
+        return d if d and d["type"] == "decision" and d["state"] == "done" and name in d["about"] else None
 
     def cap(self, x, name):
         """What one run of this experiment may use of a resource: its override, or the lab's amount for one run."""
@@ -946,18 +960,19 @@ class Lab:
         unparks it has the say: a question is set aside, and brought back, only by a decision."""
         last = None
         for d in self.decisions:
-            if d["state"] == "decided" and (ident in d["parks"] or ident in d["unparks"]):
+            if d["state"] == "done" and (ident in d["parks"] or ident in d["unparks"]):
                 last = d
         return last if last and ident in last["parks"] else None
 
     def _question_state(self, q):
         if q.get("dropped") or self._goal_of(q).get("dropped"):
             return "dropped"
-        if q.get("answer") in ("yes", "no"):
-            return q["answer"]
+        if q.get("answer") in ANSWERS:
+            q["label"] = q["answer"]
+            return "done"
         if self.parked_by(q["id"]):
             return "parked"
-        return "open" if self.settled(q) else "under discussion"
+        return "open" if self.settled(q) else "waiting"
 
     def _reach(self):
         """For each step, every step it needs, directly or through what it needs: {id: {ids}}. A step that is in its
@@ -997,23 +1012,25 @@ class Lab:
     def _blocked(self, x):
         """Why nothing under this item may move yet, or None."""
         q, g = self.nodes[x["question"]], self.nodes[x["goal"]]
-        if g["state"] != "active":
-            return f"{g['id']} is {g['state']}"
-        if q["state"] == "under discussion":
+        if g["state"] != "open":
+            return f"{g['id']} is {'reached' if g['state'] == 'done' else g['state']}"
+        if q["state"] == "waiting":
             return f"the decision {q.get('from') or 'it comes from'} to be settled"
         if q["state"] == "parked":
             return f"{q['id']} is parked by {self.parked_by(q['id'])['id']}: a decision that unparks it comes first"
         if q["state"] != "open":
-            return f"{q['id']} is {'answered ' + q['state'] if q['state'] in ('yes', 'no') else q['state']}"
+            return f"{q['id']} is {'answered ' + q['label'] if q['state'] == 'done' else q['state']}"
         for need in x.get("needs") or []:
             n = self.nodes.get(need)
             if n and x["id"] in self.reach.get(need, {need} if need == x["id"] else ()):  # a circle of needs: nothing in it moves
                 return f"{need} {n['title']}, which needs {x['id']} in turn: no step in a circle of needs can move" if need != x["id"] else f"{need}, which is itself: a step cannot need itself"
             if not n or n["type"] not in STEPS:  # held here as `lab check` reports it: a need names a step
                 return f"{need}, which {'is not an experiment, a build or a reading' if n else 'does not exist'}: correct the need or remove it"
-            if n.get("state") in ("dropped", "replaced"):  # it will never be done: waiting on it is waiting for ever
-                return f"{need} {n['title']}, which is {n['state']}: remove the need or replace it"
-            if n.get("state") not in ("done", "built"):
+            if n.get("state") in ("dropped", "replaced"):
+                if n.get("finished"):  # a run of it finished before it was set aside: what it made is there to use
+                    continue
+                return f"{need} {n['title']}, which is {n['state']}: remove the need or replace it"  # it will never be done
+            if n.get("state") != "done":
                 return f"{need} {n['title']}"
         return None
 
@@ -1024,30 +1041,34 @@ class Lab:
             return "dropped", "", False
         if all(flat(r["slots"].get(k, "")) for k in ("Seen", "Suggests")):
             return "done", "", False
-        held = self.holding(r["id"])
-        if held:
-            return "planned", f"the decision {held[0]['id']} to be settled", False
-        why = self._blocked(r)
+        why = self._held(r)
         if why:
-            return "planned", why, False
+            return "waiting", why, False
         if not flat(r["slots"].get("Looks at", "")):
-            return "planned", "say what it looks at, and where that is", True
+            return "open", "say what it looks at, and where that is", True
         started = any(l["about"] == r["id"] for l in self.lines)
-        return ("in progress" if started else "planned"), "read it; then write what was seen and what it suggests", True
+        return ("running" if started else "open"), "read it; then write what was seen and what it suggests", True
 
     def _build_state(self, b):
         if b.get("dropped"):
             return "dropped", "", False
         if b["commits"]:
-            return "built", "", False
-        held = self.holding(b["id"])
-        if held:
-            return "planned", f"the decision {held[0]['id']} to be settled", False
-        why = self._blocked(b)
+            return "done", "", False
+        why = self._held(b)
         if why:
-            return "planned", why, False
+            return "waiting", why, False
         started = any(l["about"] == b["id"] for l in self.lines)
-        return ("in progress" if started else "planned"), "build it; then put its commits and its tests on the card", True
+        return ("running" if started else "open"), "build it; then put its commits and its tests on the card", True
+
+    def _held(self, x):
+        """What a step that has not run waits on, or None: an open decision that holds it, something outside the lab
+        (`waiting_on:`), or what `_blocked` names."""
+        held = self.holding(x["id"])
+        if held:
+            return f"the decision {held[0]['id']} to be settled"
+        if x.get("waiting_on"):
+            return str(x["waiting_on"])
+        return self._blocked(x)
 
     def _experiment_state(self, x):
         """An experiment's state, what is next for it, and whether that is the agent's to do."""
@@ -1058,45 +1079,41 @@ class Lab:
             return "dropped", "", False
         if self.replaced_by(x["id"]):
             return "replaced", "", False
-        if verdict == "fail":
-            return "review failed", "replace it with a new experiment, or drop it", True
+        if verdict == "fail":  # its run finished and its results may not be named: done, and void
+            x["outcome"] = "void"
+            return "done", "", False
         if x["reviewed"] and x["outcome"] and all(flat(x["slots"].get(k, "")) for k in ("Found", "Means")):
             return "done", "", False
         going = [r for r in x["runs"] + x["trials"] if r["state"] == "running"]
         if any(not r["orphan"] for r in going):
             return "running", "the run to end", False
         if going:
-            return "planned", "close its run, whose process is gone (`lab runs` names it)", True
+            return "open", "close its run, whose process is gone (`lab runs` names it)", True
         if not x["finished"]:  # an open decision or a missing need holds what has not run; what has run is read and reviewed regardless
-            held = self.holding(x["id"])
-            if held:
-                return "waiting", f"the decision {held[0]['id']} to be settled", False
-            if x.get("waiting_on"):
-                return "waiting", str(x["waiting_on"]), False
-            why = self._blocked(x)
+            why = self._held(x)
             if why:
-                return "planned", why, False
+                return "waiting", why, False
         if not x["lock"]:
             lines = x["lines"]["confirmed"] + x["lines"]["refuted"]
             if not flat(x["slots"].get("Compares", "")) or not x["arms"] or not flat(x["slots"].get("Cases", "")) or not x["lines"]["confirmed"] or not x["lines"]["refuted"] or any(not l["test"] for l in lines):
-                return "planned", "write what it compares, each arm, the cases, and its lines, each with the result it tests", True
+                return "open", "write what it compares, each arm, the cases, and its lines, each with the result it tests", True
             if not os.path.isdir(os.path.join(self.root, x["dir"], "plan")) or not os.listdir(os.path.join(self.root, x["dir"], "plan")):
-                return "planned", "put the configuration and the code the run executes in plan/", True
+                return "open", "put the configuration and the code the run executes in plan/", True
             if any(self.metered(r) for r in x["uses"]) and self.reviewed(x, "plan") != ("pass", True):
-                return "planned", "send the plan to a reviewer: its run uses a metered resource", True
-            return "planned", "lock it", True
+                return "open", "send the plan to a reviewer: its run uses a metered resource", True
+            return "open", "lock it", True
         if not x["finished"]:
             if x["runs"]:
-                return "planned", "read why its last run failed; run it again under the same lock, or replace the experiment", True
-            return "planned", "run it", True
+                return "open", "read why its last run failed; run it again under the same lock, or replace the experiment", True
+            return "open", "run it", True
         if not x["results"]:
-            return "planned", "write a result row for each number its lines test", True
+            return "open", "write a result row for each number its lines test", True
         missing = sorted({l["name"] for l in x["lines"]["confirmed"] + x["lines"]["refuted"] if l["test"]} - {r["name"] for r in x["results"]})
         if missing:
-            return "planned", f"add the results its lines test: {', '.join(missing)}", True
+            return "open", f"add the results its lines test: {', '.join(missing)}", True
         if not x["reviewed"]:
-            return "planned", "send the results to a reviewer", True
-        return "planned", "write Found and Means, naming its results", True
+            return "open", "send the results to a reviewer", True
+        return "open", "write Found and Means, naming its results", True
 
     def doing(self):
         """What the record says the agent is on: its last `doing` line, until a later line about the same card ends it."""
@@ -1106,7 +1123,7 @@ class Lab:
                 last = l
             elif last and l["kind"] in CLOSES and l["about"] == last["about"]:
                 last = None
-        if last and self.nodes.get(last["about"], {}).get("state") in ("done", "built", "dropped", "replaced", "yes", "no", "reached"):
+        if last and self.nodes.get(last["about"], {}).get("state") in CLOSED:
             return None
         return last
 

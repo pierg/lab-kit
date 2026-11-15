@@ -79,7 +79,7 @@ def test_the_site_lists_next_in_the_agreed_order(tmp_path):
     lab(root, "decide", d2, "--with", "Ada", "The weight on heads first, then the fair coin, then the rest of the biased coin.")
     site = Provider(root)
     home = site.get("").main
-    nxt = home.split("<h2>Next</h2>", 1)[1].split("</table>", 1)[0]
+    nxt = home.split("<b>Next for the agent</b>", 1)[1].split("</ol>", 1)[0]
     assert "In the order of the work set by" in nxt
     assert nxt.index("A weight on heads") < nxt.index("A fair sampler") < nxt.index("A biased sampler")
     assert "Orders the work" in site.get(d2).main

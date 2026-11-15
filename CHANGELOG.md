@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.6.0
+
+One set of states for every card, and the checks that keep a card from saying what the record does not. The site's
+Now page is a dashboard and its rail is the tree of goals, questions and steps; the Graph page is gone. It needs
+folio 0.7.0, whose rail draws the tree. The skill `lab-work` and the method changed: run `lab init` in a lab after
+upgrading.
+
+- **Seven states, the same for every kind of card:** open, waiting, running, parked, done, replaced, dropped. What
+  was `planned`, `active` or `in progress` is open or running; `built` and `reached` are done; `under discussion`
+  is waiting. A done card may carry a label: a question's answer (yes, no or mixed) and an experiment's outcome
+  (confirmed, refuted, unclear, or void when its results review failed). `lab show` and `lab now` print
+  `done, confirmed`. A decision is open or done.
+- **A failed results review makes an experiment done and void,** not a step to replace. No page uses its numbers,
+  and what it made may still be used.
+- **`lab answer <question> yes|no|mixed`.** An answer rests on a done experiment that is not void.
+- **A need is met by a done step, and by a replaced or dropped experiment whose run finished:** a later step may
+  use what such an experiment made (a frozen program), and says so with `needs:`.
+- **`drops:` on a decision** drops the questions and steps it names once it is settled, like `parks:`. It is frozen
+  with the rest of what a settled decision says.
+- **`waiting_on:` is for what is outside the lab.** `lab check` refuses one that names a goal, question, step or
+  decision: that wait never clears by itself. Builds and readings may carry it too.
+- **So far says what was learned.** `lab check` refuses a question's So far with words that say where a step
+  stands ("is running", "is next", "no result yet"), and reports a So far last committed before a `result` line
+  about a step under the question, or one it names. `lab log <step> result` says so.
+- **The site.** Now shows what is live with a pulsing sign (runs, the current mission, what the agent is on), what
+  needs the operator, what is next for the agent in the agreed order, a tile per question with one sign per step,
+  the resources and the latest events. The rail nests goal, question and step, opens on the current page, marks each
+  with a sign for its state, folds what was replaced, dropped or set aside, and ends with a key.
+
 ## 1.5.0
 
 A closed mission is kept. In 1.4.0 `lab mission close` removed the mission's file, and with it the only account of

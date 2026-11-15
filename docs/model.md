@@ -9,14 +9,36 @@ A lab is a tree, and the decisions that shaped it.
 
 | Thing | What it says | States |
 | --- | --- | --- |
-| **Goal** | A short name, what the lab wants to be able to say, and the claim: what we would report if the questions come out as expected, and against whose work. | active, reached, dropped |
-| **Question** | A short name, and a yes-or-no question under a goal, written in full: why we ask it, how we would know, what we expect, what would prove us wrong, what we know so far. | under discussion, open, parked, yes, no, dropped |
-| **Experiment** | One thing tried to answer a question. What it is for. Before the run: what is compared, each arm by name with what it is, the cases it runs on, what would confirm, what would refute. After: what was found, what it means. | planned, running, waiting, done (confirmed, refuted or unclear), review failed, replaced, dropped |
-| **Build** | One thing an experiment needs that has to be made first: what it is for, how it works in plain words, and how we know it works. | planned, in progress, built, dropped |
-| **Reading** | One look at what already exists: sealed runs, traces, the benchmark's own definitions. What it looks at; then what was seen and what that suggests. It sets no bar in advance, so it can suggest and never confirm. | planned, in progress, done, dropped |
+| **Goal** | A short name, what the lab wants to be able to say, and the claim: what we would report if the questions come out as expected, and against whose work. | open, done, dropped |
+| **Question** | A short name, and a yes-or-no question under a goal, written in full: why we ask it, how we would know, what we expect, what would prove us wrong, what we know so far. | open, waiting, parked, done (yes, no or mixed), dropped |
+| **Experiment** | One thing tried to answer a question. What it is for. Before the run: what is compared, each arm by name with what it is, the cases it runs on, what would confirm, what would refute. After: what was found, what it means. | open, waiting, running, done (confirmed, refuted, unclear or void), replaced, dropped |
+| **Build** | One thing an experiment needs that has to be made first: what it is for, how it works in plain words, and how we know it works. | open, waiting, running, done, dropped |
+| **Reading** | One look at what already exists: sealed runs, traces, the benchmark's own definitions. What it looks at; then what was seen and what that suggests. It sets no bar in advance, so it can suggest and never confirm. | open, waiting, running, done, dropped |
 | **Run** | One try at producing what an experiment demands: when, on which resource, what changed since the run before, how it ended, what it used. An experiment has one or more, until one finishes. | running, finished, failed |
 | **Result** | One number from a finished run: a plain label, how it reads, and the command that prints it again. | |
-| **Decision** | One thing discussed with you and settled: first what there is to discuss, then what was decided and why. | open, decided |
+| **Decision** | One thing discussed with you and settled: first what there is to discuss, then what was decided and why. | open, done |
+
+**One set of states for everything.** A goal, a question, an experiment, a build and a reading use the same
+seven words, and each type uses only those it can be in:
+
+| State | Means | Goal | Question | Experiment | Build | Reading |
+| --- | --- | --- | --- | --- | --- | --- |
+| open | not finished, and free to move | yes | yes | yes | yes | yes |
+| waiting | held by a step it needs, an open decision, or something outside the lab | | yes | yes | yes | yes |
+| running | work under way | | | yes | yes | yes |
+| parked | set aside by a decision; may come back | | yes | | | |
+| done | finished; it carries a label where its type has one | yes | yes | yes | yes | yes |
+| replaced | redone by a newer experiment | | | yes | | |
+| dropped | will not be done | yes | yes | yes | yes | yes |
+
+Two types carry a label on done. A question's is its answer: **yes**, **no** or **mixed**, the answer to
+the question as asked, with one sentence on what it rests on. Mixed says which part held and which did
+not, and usually leads to a narrower question. An answer is a finding, never good or bad: no is not a
+failure. A question has no "unclear": while the evidence cannot answer it, it is open. An experiment's
+label is its outcome: **confirmed**, **refuted** or **unclear**, read against the bars set before the
+run, or **void** when its results review failed, so that its numbers cannot be cited. A decision is open,
+then done; a mission's `status:` (next, current, done, stopped) reads on the pages as open, running,
+done and dropped.
 
 Goal, question, experiment, run, result: each sits inside the one before it. Ids spell the path: `G1`,
 `G1.Q2`, `G1.Q2.3`, and a result is `G1.Q2.3:attack-success`. Decisions are `D1`, `D2`.
@@ -94,7 +116,7 @@ what it means and what was found, then says how many bars were met and names the
 outcome. There are no confidence numbers and no score sheet. A caveat the results raise goes in
 *Means*; what the experiment could never show is its Limits, written before the run.
 
-A build has no lock, no lines and no result. It ends as built, naming its commits and its tests.
+A build has no lock, no lines and no result. It is done once it names its commits and its tests.
 
 A reading has no lock, no lines, no run and no review. It exists because much of what a lab learns
 comes from reading what it already has: why each failure failed, which tasks a defence costs, what
@@ -203,10 +225,11 @@ Each arrow is a command that refuses when the step before it is missing. You see
      or from a trial run that measured it. A trial that only showed the apparatus starts does not count.
   5. a failed run's partial numbers were read before the apparatus was changed for the next run.
 
-  A plan review that fails is fixed before the lock, and read again. A results review that fails does
-  not finish the experiment: its outcome is not shown and no card may name its results. The plan and
-  the rows stay as they are. The remedy is a new experiment that names the one it replaces; the site
-  folds the old one under it, and the old results keep re-deriving.
+  A plan review that fails is fixed before the lock, and read again. A results review that fails ends
+  the experiment as done with the outcome **void**: its run finished, but no card may name its results.
+  The plan and the rows stay as they are. A new experiment may name the one it replaces; the site then
+  folds the old one under it, and the old results keep re-deriving. What the void experiment made (a
+  frozen program, a built file) may still be used by later steps, which name it under `needs:`.
 
 A card never types a result's number. It names the result, and the value is filled in when the card is
 shown, written the way its row says it reads: a share as a percentage, a difference between two shares
@@ -243,11 +266,15 @@ approval: an experiment added later under a settled question is the agent's to p
 
 **Parking a question.** A question can be set aside without being dropped: not now, perhaps later. A settled
 decision parks it by listing it under `parks:`, and lists it under `about:` too. The decision's Decided text says
-why, and what would bring it back. A parked question leaves Now, the rail and the graph, as a dropped one does.
+why, and what would bring it back. A parked question leaves Now's map and the rail's list of live questions, as a dropped one does.
 Nothing under it moves: `lab new` refuses a step under it, and `lab lock` and `lab run` refuse its experiments. It
 comes back only by a later settled decision that lists it under `unparks:`. The last settled decision, by number,
 that parks or brings back a question has the say. An open decision parks nothing yet. Drop a question that will
-never come back, with `dropped: <why>` on its card; park one that may. A goal is closed by `reached: true` or
+never come back, with `dropped: <why>` on its card; park one that may.
+
+**Dropping by a decision.** A settled decision may drop steps and questions by listing them under `drops:`
+(each also under `about:`). A step or a question a settled decision drops is dropped, with that decision as
+its reason, whether or not its card says so: the card needs no edit, and none can be forgotten. A goal is closed by `reached: true` or
 `dropped: <why>`, and a dropped goal drops every question under it.
 
 **The order of the work.** What the agent takes up first is agreed with you, and a settled decision records
@@ -265,12 +292,12 @@ work (a decision with a new `order:`), stop a run. Say it, and the agent records
 you as for the agent: a locked plan is changed by a new experiment that replaces it, and an outcome is
 worked out from the results, not decided.
 
-**A settled decision stays as it was settled.** Its `decided:`, its `about:`, its `parks:`, its `unparks:`, its `order:` and its Decided text never
+**A settled decision stays as it was settled.** Its `decided:`, its `about:`, its `parks:`, its `unparks:`, its `drops:`, its `order:` and its Decided text never
 change once committed; a change of mind is a new decision. `lab check` holds this against the lab's
 history. So a decision cannot be made, afterwards, to be about something it never discussed.
 
 The agent decides everything else and records each choice in the log. It drops an experiment or a
-build that will not be done, saying why. It marks a question yes or no itself, with `lab answer`, and
+build that will not be done, saying why. It answers a question itself, yes, no or mixed, with `lab answer`, and
 the command refuses while an experiment of that question is neither done, replaced nor dropped, and
 when no experiment of it is done: a reading alone answers nothing. `lab check` asks the same of every
 answered question, and that the log holds the line `lab answer` wrote. It never asks you to check
@@ -356,7 +383,7 @@ missions before it takes a machine.
 `log` and `close` may leave out the mission while only one is current, and refuse to guess when several are.
 `lab now` names every open mission under **Right now**. A mission is not part of the record: `lab check` checks its
 form (section 9) and that it carries a decision, and does not hold it against history; the site does not draw
-it; its log is not the lab's log. The lab-mission skill says what to do on each step.
+it, except that Now names the current mission and the last line of its log; its log is not the lab's log. The lab-mission skill says what to do on each step.
 
 The log is one file. Every line carries its time. A line is one of five kinds: a decision was
 recorded, the agent decided, a result, something is stuck, and what the agent is starting on now.
@@ -431,8 +458,17 @@ A folder is named after its card's title, so a short title gives a short path.
 
 ## 7. The site
 
-Now, Graph, a page per goal, question, experiment, build, reading and decision, Decisions, Log,
-Resources, Glossary. Every page has the copy-path control.
+Now (the dashboard), a page per goal, question, experiment, build, reading and decision, Decisions,
+Log, Resources, Glossary. Every page has the copy-path control.
+
+**The rail** on the left of every page is the lab as a tree: each goal, its questions under it, and
+each question's steps under that. A row shows a mark for its type (G, Q, E, B, R), its short id, its
+title and a mark for its state, whose colour and shape follow the state and, on done, the label; the
+word is on hover. A running step's mark pulses. A goal or a question opens and closes, and a closed
+one shows how many of the steps under it are in each state. The page being read is always opened in
+place and marked, with its goal, its question and its siblings in view. A question's replaced and
+dropped steps fold into one line at its end; a goal's parked and dropped questions into one line at
+its end.
 
 **How a page of a card reads.** Every page of a goal, a question or a step reads in the same order:
 
@@ -466,11 +502,13 @@ and where each stands, what it costs, what it cannot show, where to look. Half o
 the same briefing as text, which is what the agent says in chat when asked what is going on: the page
 and the answer in chat cannot differ. An experiment's page is the evidence behind one step.
 
-**Now** is read top to bottom in the order the operator asks: what is happening at this moment and
-how fresh the record is; what there is to discuss with you; what is next and who moves it, in the agreed
-order of the work and naming the decision that set it; where each
-question stands (what is known so far, and nothing else); the latest events; what is left of each
-resource. Nothing on it is static text except one line per goal.
+**Now** is the dashboard, read top to bottom in the order the operator asks, and all of it worked out:
+what is live at this moment (each run going, the current mission with the last line of its log, what
+the agent says it is on), each with a pulsing mark, and when the record last moved; what needs you (the
+open decisions) and what is next for the agent, in the agreed order of the work; the map, one row per
+goal with how many of its questions are answered, and one tile per live question with its state, its
+answer and one mark per step in tree order; what each resource has used of its grant, as a bar; the
+latest events. There is no graph page: the rail is the tree and Now is the map.
 
 **An example on every question.** A question's page carries one case, step by step, as a numbered
 list that says who does what: the user, the agent, the tools, the gate, the scorer. A real episode
@@ -479,7 +517,7 @@ each role, states the design before the approximation, and lists its vocabulary:
 uses the same way, each drawn with the glossary's definition.
 
 **What was set aside** stays in the record: a dropped goal or question, and a parked question, keeps its
-card and its page, and leaves Now, the rail and the graph. Now lists it apart, under Set aside: each parked
+card and its page, and leaves Now's map and the rail's live lists. Now lists it apart, under Set aside: each parked
 question with the decision that parked it and the first sentence of what was decided, then the dropped
 questions and the closed goals, folded. A goal's page folds its parked and its dropped questions; a parked
 question's page says, at the top, which decision parked it and why. `lab now` lists the parked questions in
@@ -537,17 +575,17 @@ and its sealed runs across as what they were.
 **A card** is front matter, then its description as a paragraph, then `## Slot` sections. It never
 holds an id, a state or an outcome. Every file of a lab is UTF-8 text; line ends of either kind
 read the same, and so hash the same where a review is bound to a file. The front matter sits between
-the first two lines that are exactly `---`. A key that holds a list (`needs`, `uses`, `see`, `about`, `holds`, `parks`, `unparks`, `order`, `commits`,
+the first two lines that are exactly `---`. A key that holds a list (`needs`, `uses`, `see`, `about`, `holds`, `parks`, `unparks`, `drops`, `order`, `commits`,
 `tests`) is written as one, `[a, b]`; every other key holds one value.
 
 | Card | Front matter | Slots (word budget) |
 | --- | --- | --- |
 | `goal.md` | `title:`, `from:` (its decision); `reached: true`; `dropped: <why>` | description (70), Claim (90), Example: the idea in one case, from the reader's own domain (260), Approach: the design, how this lab approximates it, and where it knowingly differs (340), Roles: a list, `- <role>: <who plays it and what it does>` (170), Vocabulary: a list of names only, `- <term>`, the few words every card uses the same way; each is a term of `GLOSSARY.md`, which defines it (260) |
-| `question.md` | `title:` (a short name), `asks:` (the question in full), `from:`, `needs:`; `dropped: <why>`; `answer:` and `answered:` are written by `lab answer` | description: why we ask (150), How we would know (180), Example: one case step by step, a numbered list (380), We expect (70), Wrong if (70), So far (220) |
-| `experiment.md` | `title:`, `needs:`, `uses:` (resources), `override: {resource: cap}`, `cost:`, `replaces:` with `because:` (one sentence), `waiting_on:`, `dropped: <why>` | description (80), So far: optional, everything observed since the plan was written (300), Compares: the comparison, in a sentence or a numbered list of the whole work (300), Arms (260), Cases (120), Confirmed if (150), Refuted if (110), Outcomes (260), Limits (160), Found (180), Means (150) |
-| `reading.md` | `title:`, `needs:`, `dropped: <why>` | description (70), Looks at: what, and where it is (120), Seen (360), Suggests (150) |
-| `build.md` | `title:`, `needs:`, `commits:`, `tests:`, `dropped: <why>` | description (60), How it works (200), Works when (80) |
-| `D<n>-<slug>.md` | `title:`, `about:` (the goals, questions, experiments or resources it concerns), `date:`, `holds:`; `parks:` and `unparks:` (questions, each also under `about:`); `order:` (goals, questions and steps, first to last); `decided: {date, with}` is written by `lab decide` | Seen (150), Options: a list, one option an item (200), Recommendation (80), Decided (150), Note: optional, what a reader of the pages it is about must know from it (60) |
+| `question.md` | `title:` (a short name), `asks:` (the question in full), `from:`, `needs:`; `dropped: <why>`; `answer:` (yes, no or mixed) and `answered:` are written by `lab answer` | description: why we ask (150), How we would know (180), Example: one case step by step, a numbered list (380), We expect (70), Wrong if (70), So far (220) |
+| `experiment.md` | `title:`, `needs:`, `uses:` (resources), `override: {resource: cap}`, `cost:`, `replaces:` with `because:` (one sentence), `waiting_on:` (something outside the lab; never a step or a decision of the lab, which go under `needs:` and are waited on by themselves), `dropped: <why>` | description (80), So far: optional, everything observed since the plan was written (300), Compares: the comparison, in a sentence or a numbered list of the whole work (300), Arms (260), Cases (120), Confirmed if (150), Refuted if (110), Outcomes (260), Limits (160), Found (180), Means (150) |
+| `reading.md` | `title:`, `needs:`, `waiting_on:`, `dropped: <why>` | description (70), Looks at: what, and where it is (120), Seen (360), Suggests (150) |
+| `build.md` | `title:`, `needs:`, `waiting_on:`, `commits:`, `tests:`, `dropped: <why>` | description (60), How it works (200), Works when (80) |
+| `D<n>-<slug>.md` | `title:`, `about:` (the goals, questions, experiments or resources it concerns), `date:`, `holds:`; `parks:` and `unparks:` (questions, each also under `about:`); `drops:` (steps and questions, each also under `about:`); `order:` (goals, questions and steps, first to last); `decided: {date, with}` is written by `lab decide` | Seen (150), Options: a list, one option an item (200), Recommendation (80), Decided (150), Note: optional, what a reader of the pages it is about must know from it (60) |
 
 **Why these budgets.** A budget is a ceiling. In 1.3.0 the budgets of the slots that hold a table or a
 numbered list (an experiment's Compares, Cases, Outcomes and So far, a question's So far and How we
@@ -562,6 +600,14 @@ the reading, reference runs. The plan holds nothing observed. An experiment's So
 plan, so it may change after the lock; a card written before 1.3.0 may leave it out. A decision may
 carry a Note: one or two sentences a reader of the pages it is about must know. While a card's So far
 says nothing, its page shows there the Notes of the settled decisions about it.
+
+**So far says what was learned, never where a step stands.** The pages draw each step's state from the
+record, so a So far that says a step "is running", "is next" or has "no result yet" can only go stale,
+and `lab check` reports those words in a question's So far. It also reports a question whose card was
+last committed before the newest `result` line about a step under it, or about a step its So far names:
+the result came in and the question was not brought up to date. `lab log <step> result` says which
+question to bring up to date. Where git cannot tell (no history, the card changed and not committed),
+nothing is reported.
 
 **A picture.** Any goal, question, experiment, build or reading may have a `picture.svg` beside its
 card. It is drawn inline at the top of its page, after the title and the lead. It shows the whole
@@ -660,7 +706,7 @@ A test is a result's name, one of `<`, `<=`, `>`, `>=`, and a number. At most si
 **A named result** on a card is `{name}` inside its own experiment and `{G1.Q1.2:name}` elsewhere.
 
 **`results.tsv`** is tab-separated: `name`, `label` (what the number is, as a phrase that stands on its
-own: what is counted, out of what, under which arm, with no "that" or "the same" pointing at another row), `value` (a
+own: what is counted, out of how many and of which set of cases, named the same way on every row that uses it, under which arm, with no "that" or "the same" pointing at another row), `value` (a
 plain number), `reads` (`percent` for a share, `points` for a difference between two shares, or empty),
 `versus` (what it is compared with), `command` (run from the lab's root with `RUN` set to the finished
 run's folder; prints `value` exactly, and reads `$RUN`, or it would not be printing from the sealed
@@ -771,20 +817,26 @@ holds the line `launched`, else next, and `lab check` asks for the status to be 
 reports a mission that breaks any of this, one whose `carries:` is not a decision, and a current mission whose
 decision is still open.
 
-**Worked-out states.** A question is under discussion while the decision it came from is open, then
-open, then yes or no; it is parked while the last settled decision that parks or brings it back parks it; a page calls an open question with nothing under it "not started". A build is in
-progress once the log has a line about it, and built once it names its commits. An experiment whose
-results review failed shows as review failed until it is replaced or dropped.
+**Worked-out states.** A goal is open until `reached: true` makes it done or `dropped:` drops it. A
+question is waiting while the decision it came from is open, then open, then done with its answer; it
+is parked while the last settled decision that parks or brings it back parks it. A step is waiting while
+something holds it: a step it needs, an open decision, its question or goal not being open, or its
+`waiting_on:`. A build or a reading is running once the log has a line about it; a build is done once
+it names its commits, a reading once it says what was seen and what it suggests. An experiment is running
+while a run of it is going, and done once its results are reviewed (its label is the outcome) or its
+results review failed (its label is void).
 
 **What a step needs.** `needs:` on an experiment, a build or a reading names other steps, anywhere in
 the tree: under its own question or another, before it or after it. A step is not the agent's to move
-while one it needs is neither done nor built, and `lab lock` and `lab run` refuse it until then. Each
+while one it needs is not done, and `lab lock` and `lab run` refuse it until then. An experiment that
+was replaced or dropped after a run of it finished made what it made: a need on it is met, and its page
+lists the steps that use it. Each
 step's state is worked out after the state of everything it needs, wherever that sits, so the order
 of the cards changes nothing: a build under the second question that needs a reading under the third
 moves as soon as that reading is done. Every view says the same: `lab now`, `lab show`, `lab brief`,
 and the site's pages and rail. Steps that need each other in a circle are a problem `lab check`
 reports. Until the circle is broken none of them moves, whatever the others' states, and each says
-which of its needs leads back to it. A step that needs one that is dropped or replaced would wait
+which of its needs leads back to it. A step that needs one that was dropped or replaced before any run of it finished would wait
 for ever, so what it waits on says so, and says what to do: remove the need or replace it. A need
 that names nothing in the lab, or something that is not a step, holds the step in `lab lock` and
 `lab run` as `lab check` reports it. A question's `needs:` names the questions it builds on, for its

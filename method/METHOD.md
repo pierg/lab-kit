@@ -13,8 +13,9 @@ judgement. The lab's own `AGENTS.md` adds only what is local.
    `lab check`; the review itself is judged.*
 3. **A miss is recorded like a hit, and nothing recorded is edited. What a locked plan demands is never
    changed; its words may be made clearer.** A failed run is kept. A refuted line is an outcome like
-   any other. A changed plan, a failed review or a partial score is a new experiment that replaces the
-   old one and says why in a sentence. What an experiment demands (each bar's role, result, comparison and
+   any other. A changed plan or a partial score is a new experiment that replaces the old one and
+   says why in a sentence. An experiment whose results review failed is done and void: no page uses its
+   numbers, and what it made may still be used through `needs:`. What an experiment demands (each bar's role, result, comparison and
    number, each arm's name, the resources it uses) is locked once; a clearer word keeps its meaning,
    and a reviewer who did not write it reads it. It is run until one run finishes, and a run after a fix says what changed. Once a
    run has finished, nothing more runs under it. Every run is listed in the experiment's `runs.tsv`,
@@ -24,7 +25,10 @@ judgement. The lab's own `AGENTS.md` adds only what is local.
 4. **Write for a reader who was not there.** Every page stands on its own: it says what each thing it
    mentions is, names each arm of an experiment and what it is, names another page by its exact
    title, and uses a term only as the glossary defines it, the one place a word is defined. A number is said once: it lives in its result row, and a card names it. A state is
-   worked out, never written. *The numbers and the budgets are held by `lab check`; whether a page
+   worked out, never written, and So far says what was learned, never where a step stands. Every
+   card has one of the same states: open, waiting, running, parked, done, replaced or dropped. A
+   number's label says what it counts and of how many, in one set of cases named once: "of the 20
+   checks the solver leaves open", not "of 20". *The numbers and the budgets are held by `lab check`; whether a page
    can be read cold is judged, and the reviewer reads for it.*
 5. **Decide everything that is not direction or resources, and never wait idle.** Direction is the
    goals and the questions. Resources are what `resources.toml` lists and how much. For those two,

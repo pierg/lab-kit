@@ -116,7 +116,7 @@ def resources(lab):
                 continue
             if any(k in a for k in ("granted", "per_run")) and tuple(a.get(k) for k in ("granted", "per_run", "unit")) != tuple(b.get(k) for k in ("granted", "per_run", "unit")):
                 d = lab.nodes.get(str(b.get("from")))
-                if b.get("from") == a.get("from") or not d or d["type"] != "decision" or d["state"] != "decided" or name not in d["about"]:
+                if b.get("from") == a.get("from") or not d or d["type"] != "decision" or d["state"] != "done" or name not in d["about"]:
                     bad(f"{name}: `granted`, `per_run` or `unit` changed {when}, and `from` does not name another settled decision: an amount changes out of a decision")
             lost = subsequence(rows(a), rows(b))
             if lost is not None:
@@ -143,7 +143,7 @@ def decisions(lab, versions=None, now=None):
             return None
         ids = lambda v: sorted(str(i) for i in (v if isinstance(v, list) else [v] if v is not None else []))
         order = [str(i) for i in (fm.get("order") if isinstance(fm.get("order"), list) else [fm.get("order")] if fm.get("order") is not None else [])]  # its order is kept as written: first to last
-        return str(fm.get("decided")), ids(fm.get("about")), ids(fm.get("parks")), ids(fm.get("unparks")), order, R.flat(slots.get("Decided", ""))
+        return str(fm.get("decided")), ids(fm.get("about")), ids(fm.get("parks")), ids(fm.get("unparks")), ids(fm.get("drops")), order, R.flat(slots.get("Decided", ""))
 
     for where, commits in sorted(versions.items()):
         if not DECISION.fullmatch(commits[-1][1]):
@@ -156,7 +156,7 @@ def decisions(lab, versions=None, now=None):
             if was:
                 mine = path if path in now[where] else now[where][0]
                 if settled(R.read(os.path.join(root, mine))) != was:
-                    bad(mine, f"was settled in {c[:8]}" + ("" if mine == path else f", as {path}") + ", and what it parks or brings back, the order it sets, its `decided:`, its `about:` or its Decided text has changed since; a change of mind is a new decision")
+                    bad(mine, f"was settled in {c[:8]}" + ("" if mine == path else f", as {path}") + ", and what it parks, drops or brings back, the order it sets, its `decided:`, its `about:` or its Decided text has changed since; a change of mind is a new decision")
                 break
     return problems
 
@@ -176,6 +176,29 @@ def uncommitted(lab):
             if os.path.join(x["dir"], name) in paths:
                 found.append(f"{x['id']}: {what} is not committed ({os.path.join(x['dir'], name)}): until it is, git does not hold it")
     return found
+
+
+def stale_so_far(lab):
+    """The questions whose So far was last committed before the newest `result` line about a step under them, or about
+    a step their So far names: [(question, step, when)]. Where git cannot tell (no history, or the card changed and not
+    yet committed), nothing is reported."""
+    root, out = lab.root, []
+    if not committed(root):
+        return out
+    for q in lab.questions:
+        if q["state"] in ("parked", "dropped"):
+            continue
+        if (git(root, "status", "--porcelain", "--", q["path"]) or "").strip():
+            continue  # being brought up to date now
+        last = R.moment((git(root, "log", "-1", "--format=%cI", "--", q["path"]) or "").strip())
+        if not last:
+            continue
+        named = set(re.findall(r"\bG\d+\.Q\d+\.\d+\b", R.flat(q["slots"].get("So far", ""))))
+        mine = {x["id"] for x in q["items"]} | {i for i in named if lab.nodes.get(i, {}).get("type") in R.STEPS}
+        newer = [l for l in lab.lines if l["kind"] == "result" and l["about"] in mine and l["time"] and (R.moment(l["at"]) or last) > last]
+        if newer:
+            out.append((q, newer[-1]["about"], f"{newer[-1]['day']} {newer[-1]['time']}"))
+    return out
 
 
 def check(lab):

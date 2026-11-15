@@ -20,6 +20,22 @@ from test_integrity import mutated  # noqa: E402
 from test_needs import across  # noqa: E402
 
 
+def shown(items):
+    """Every row the rail shows unfolded, at any depth: what was replaced, dropped or set aside sits in a fold."""
+    return [i for i in items if not i.get("fold")] + [j for i in items if not i.get("fold") for j in shown(i.get("items", []))]
+
+
+def steps(rail):
+    """The steps the rail shows unfolded, in tree order."""
+    return [i for i in shown(rail) if i.get("kind") in ("experiment", "build", "reading")]
+
+
+def agents_next(front_page):
+    """How many steps Now lists as next for the agent."""
+    part = front_page.split("<b>Next for the agent</b>", 1)[1].split("</div>", 1)[0]
+    return part.count("<li>")
+
+
 def a_lab(tmp_path):
     """One done experiment, a build, a second experiment held by an open decision, and a settled decision."""
     root, ident, d, command = locked(tmp_path)
@@ -44,7 +60,7 @@ def test_every_page_draws_and_every_link_lands(tmp_path):
     root = a_lab(tmp_path)
     site = Provider(root)
     paths = site.paths()
-    assert {"", "graph", "decisions", "log", "resources", "glossary", "G1", "G1.Q1", "G1.Q1.1", "G1.Q1.2", "G1.Q1.3", "D1", "D2"} <= set(paths)
+    assert {"", "decisions", "log", "resources", "glossary", "G1", "G1.Q1", "G1.Q1.1", "G1.Q1.2", "G1.Q1.3", "D1", "D2"} <= set(paths)
     seen = set()
     for path in paths:
         view = site.get(path)
@@ -61,8 +77,9 @@ def test_every_page_draws_and_every_link_lands(tmp_path):
     assert 'class="box decision"' in front_page and 'class="decisionq">A third size, on the GPU' in front_page
     assert 'class="decisionq">The lab' not in front_page  # a settled decision is no longer something to discuss
     assert "A coin estimate converges" in front_page and "The simplest check of the square-root law" not in front_page  # a goal in a line; a question that has a So far shows only that
-    assert front_page.index("nobody is on it") < front_page.index("To discuss with you") < front_page.index("Where each question stands")  # the present first
-    assert "The error at 400 flips is" in front_page and ">50%</a>" in front_page  # a named result reads the way its row says
+    assert front_page.index("nobody is on anything") < front_page.index("To discuss with you") < front_page.index("<h2>The lab</h2>")  # the present first
+    question_page = site.get("G1.Q1").main
+    assert "The error at 400 flips is" in question_page and ">50%</a>" in question_page  # a named result reads the way its row says
     decided = site.get("decisions").main
     assert "One goal, convergence" in decided and "What came out of it" in site.get("D1").main and "Decided:" in site.get("log").main
 
@@ -87,7 +104,7 @@ def test_a_failed_review_shows_no_outcome_and_what_is_replaced_or_dropped_is_fol
     lab(root, "review", ident, "results", "fail", "The seed was fixed after a first look.")
     site = Provider(root)
     page = site.get(ident)
-    assert page.status == "review failed" and "failed their review" in page.main and "not known yet" in page.main and 'id="r-ratio"' not in page.main
+    assert page.status == "void" and "failed their review" in page.main and "not known yet" in page.main and 'id="r-ratio"' not in page.main
     lab(root, "new", "experiment", "G1.Q1", "The same, with the seed fixed first", "--replaces", ident, "--because", "The seed was fixed after a first look at the numbers.")
     third, d3, _ = experiment(root, title="A size nobody needs")
     front(f"{d3}/experiment.md", dropped="The two sizes already answer it.")
@@ -96,16 +113,18 @@ def test_a_failed_review_shows_no_outcome_and_what_is_replaced_or_dropped_is_fol
     assert "The same, with the seed fixed first" in question and "second plan" in question and "Earlier plans, replaced" in question and "after a first look at the numbers" in question and question.count('<details class="row"') == 1
     assert "Dropped (1)" in question and "A size nobody needs" in question
     assert "Replaced by" in site.get(ident).main and site.get(ident).status == "replaced"
-    assert [i["url"] for r in site.rail() if "items" in r for i in r["items"]] == ["/lab/G1.Q1.2/"]
+    assert [i["url"] for i in steps(site.rail())] == ["/lab/G1.Q1.2/"]  # what was replaced or dropped is folded
 
 
 def test_the_rail_the_search_and_the_stamp_follow_the_record(tmp_path):
     root, ident, d, command = locked(tmp_path)
     site = Provider(root)
     rail = site.rail()
-    assert [r["title"] for r in rail[:6]] == ["Now", "Graph", "Decisions", "Log", "Resources", "Glossary"]
-    question = next(r for r in rail if "items" in r)
-    assert question["items"][0]["url"] == "/lab/G1.Q1.1/" and question["items"][0]["status"] == "planned" and question["tone"] == "info"
+    assert [r["title"] for r in rail[:5]] == ["Now", "Decisions", "Log", "Resources", "Glossary"]
+    goal = next(r for r in rail if r.get("kind") == "goal")
+    question = goal["items"][0]
+    assert question["kind"] == "question" and question["items"][0]["url"] == "/lab/G1.Q1.1/" and question["items"][0]["status"] == "open" and question["tone"] == "plain"
+    assert rail[-1]["title"] == "Key" and any(k.get("status") == "running" for k in rail[-1]["legend"])
     assert any(s["url"] == "/lab/G1.Q1.1/" and "factor of four" in s["description"] for s in site.search()) and any(s["url"] == "/lab/D1/" for s in site.search())
     before = site.stamp()
     lab(root, "log", "G1.Q1.1", "stuck", "The machine is down.")
@@ -118,8 +137,8 @@ def test_the_front_page_says_what_the_agent_is_on_and_a_goal_tells_its_story(tmp
     lab(root, "log", "G1.Q1.2", "doing", "Porting the sampler to the GPU.", "The third size needs it.")
     site = Provider(root)
     front_page = site.get("").main
-    assert "the agent is on" in front_page and "Porting the sampler to the GPU." in front_page and "Why now:" in front_page and "Last recorded activity:" in front_page
-    assert front_page.index("the agent is on") < front_page.index("To discuss with you") and "nobody is on it" not in front_page
+    assert '<span class="who">the agent</span>' in front_page and "Porting the sampler to the GPU." in front_page and "Why now:" in front_page and "Last recorded activity:" in front_page
+    assert front_page.index('<span class="who">the agent</span>') < front_page.index("To discuss with you") and "nobody is on anything" not in front_page
     assert "Porting the sampler" not in site.get("G1.Q1").main and "Porting the sampler" in site.get("log/doing").main  # a doing line is the present, not history
 
     goal = site.get("G1").main
@@ -168,7 +187,7 @@ def test_a_questions_page_is_its_briefing_and_a_bar_says_what_it_is_for(tmp_path
     describe(third, "Follows [the square-root law](https://example.org/law), as the textbook states it.")
     site = Provider(root)
     assert '<a href="https://example.org/law">the square-root law</a>' in site.get("G1.Q1.3").main and "](https" not in site.get("G1.Q1.3").main
-    assert "](https" not in site.get("graph").main and not any("](https" in s["description"] + s["text"] for s in site.search())
+    assert "](https" not in site.get("").main and not any("](https" in s["description"] + s["text"] for s in site.search())
     assert "Follows the square-root law, as the textbook states it." in lab(root, "show", "G1.Q1.3")
 
 
@@ -193,7 +212,7 @@ def test_a_readings_page_says_it_is_exploratory_and_what_was_dropped_leaves_the_
     assert "The words this lab uses" in site.get("G1").main and "One share of heads, from one sample." in site.get("G1").main and "never shown" not in site.get("G1").main and "<b>The design.</b> Flip, count, compare." in site.get("G1").main
     assert "Who plays what" in site.get("G1").main and "It draws every estimate." in site.get("G1").main and "Dropped questions (1)" in site.get("G1").main
     home = site.get("").main  # off the working part of the front page; listed, folded, among what was set aside
-    assert "A side question" not in home.split("<h2>Set aside</h2>")[0] and "Dropped questions (1)" in home.split("<h2>Set aside</h2>")[1] and not any("A side question" in str(r) for r in site.rail()) and site.get("G1.Q2") is not None
+    assert "A side question" not in home.split("<h2>Set aside</h2>")[0] and "Dropped questions (1)" in home.split("<h2>Set aside</h2>")[1] and not any("A side question" in i["title"] for i in shown(site.rail())) and site.get("G1.Q2") is not None
 
 
 def test_an_experiments_page_lists_its_runs_in_order_with_what_changed(tmp_path):
@@ -318,16 +337,16 @@ def test_a_step_that_needs_a_later_one_reads_on_every_page_as_it_does_in_the_com
     ident, d, later_card = across(root)  # a reading, a build and an experiment under Q1, each needing a done reading under Q2
     site = Provider(root)
     front_page = site.get("").main
-    assert front_page.count("<td>the agent</td>") == 3 and "<td>waits</td>" not in front_page
+    assert agents_next(front_page) == 3 and "wait:" not in front_page
     for step in ("G1.Q1.1", "G1.Q1.2", ident):
         assert "Next, for the agent:" in site.get(step).main and "Waiting on" not in site.get(step).main, step
     assert "Waiting on" not in site.get("G1.Q1").main and site.get("G1.Q1").main.count("Next: ") == 3
-    assert [i["status"] for r in site.rail() if "items" in r for i in r["items"]] == ["planned", "planned", "planned", "done"]
+    assert [i["status"] for i in steps(site.rail())] == ["open", "open", "open", "done"]
 
     fill(later_card, Suggests="")  # the reading they need is not done: all three wait on it, on every page
     site = Provider(root)
     front_page = site.get("").main
-    assert front_page.count("<td>waits</td>") == 3 and front_page.count("<td>the agent</td>") == 1
+    assert "3 steps wait:" in front_page and agents_next(front_page) == 1
     for step in ("G1.Q1.1", "G1.Q1.2", ident):
         assert "Waiting on" in site.get(step).main and "Every estimate that missed, by cause" in site.get(step).main, step
     assert site.get("G1.Q1").main.count("Waiting on ") == 3

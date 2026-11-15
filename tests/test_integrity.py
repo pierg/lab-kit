@@ -430,7 +430,7 @@ def test_what_points_at_itself_is_reported_and_stops_nothing(tmp_path):
     front(f"{da}/experiment.md", needs=f"[{b}]")
     front(f"{db}/experiment.md", needs=f"[{a}]")
     assert "needs itself, directly or through what it needs" in lab(root, "check", "--no-rederive", ok=False)
-    assert "Not yours to move yet" in lab(root, "now") and "planned)" in lab(root, "brief", "G1.Q1")
+    assert "Not yours to move yet" in lab(root, "now") and "open)" in lab(root, "brief", "G1.Q1")
     front(f"{da}/experiment.md", needs="[]")
     front(f"{db}/experiment.md", needs="[]")
     lab(root, "new", "question", "G1", "A second question", "--from", "D1")

@@ -21,8 +21,8 @@ def test_what_the_writing_commands_refuse(tmp_path):
     assert "holds no |" in lab(root, "log", "G1.Q1", "agent", "Chose a | b.", ok=False)
     assert open(f"{root}/log.md").read().count("\n- ") == 1  # only the decision's line
 
-    # an answer is yes or no
-    assert "an answer is yes or no" in lab(root, "answer", "G1.Q1", "maybe", "It depends.", ok=False)
+    # an answer is yes, no or mixed
+    assert "an answer is yes, no or mixed" in lab(root, "answer", "G1.Q1", "maybe", "It depends.", ok=False)
 
     # a plan is reviewed before its lock, never after
     ident, d, command = experiment(root)

@@ -71,7 +71,7 @@ def test_a_step_waits_while_what_it_needs_is_not_done_wherever_that_sits(tmp_pat
     fill(later_card, Suggests="")  # the reading under the second question is not done yet
     assert mine(root) == (["G1.Q2.1"], ["G1.Q1.1", "G1.Q1.2", "G1.Q1.3"])
     assert "G1.Q1.1 Which sizes to compare: on G1.Q2.1 Every estimate that missed, by cause" in lab(root, "now")
-    assert "Waiting on: G1.Q2.1 Every estimate that missed, by cause" in lab(root, "show", "G1.Q1.1") and "Needs: G1.Q2.1 (planned)" in lab(root, "show", ident)
+    assert "Waiting on: G1.Q2.1 Every estimate that missed, by cause" in lab(root, "show", "G1.Q1.1") and "Needs: G1.Q2.1 (open)" in lab(root, "show", ident)
     assert lab(root, "brief", "G1.Q1").count("Waiting on G1.Q2.1") == 3
     assert f"{ident} waits on G1.Q2.1" in lab(root, "lock", ident, ok=False)
     assert f"{ident} waits on G1.Q2.1" in lab(root, "run", ident, "--trial", "--wait", "--", "true", ok=False)

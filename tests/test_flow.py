@@ -117,7 +117,7 @@ def test_from_a_decision_to_a_reviewed_result(tmp_path):
     ident, d, command = experiment(root)
     assert ident == "G1.Q1.2"
     front(f"{d}/experiment.md", needs="[G1.Q1.1]")
-    assert "the decision D1 to be settled" in lab(root, "lock", ident, ok=False) and "(under discussion)" in lab(root, "show", "G1.Q1")
+    assert "the decision D1 to be settled" in lab(root, "lock", ident, ok=False) and "G1.Q1 (waiting)" in lab(root, "show", "G1.Q1")
     assert "does not say what was seen" in lab(root, "decide", "D1", "--with", "Ada", "One goal.", ok=False)
     fill(card, Seen="The repository holds a coin sampler and no measurement of how its estimate converges.",
          Options="(a) Start with the square-root law. (b) Start with the bias of the sampler.", Recommendation="(a): it is the cheapest check that can fail.")
@@ -141,7 +141,7 @@ def test_from_a_decision_to_a_reviewed_result(tmp_path):
     assert "G1.Q1.1 The sampler" in lab(root, "lock", ident, ok=False)
     assert "G1.Q1.1 The sampler (build): build it" in lab(root, "now")
     front(f"{folder(root, 'G1.Q1.1')}/build.md", commits="[abc1234]", tests="[tests/test_sampler.py]")
-    assert "(built)" in lab(root, "show", "G1.Q1.1")
+    assert "(done)" in lab(root, "show", "G1.Q1.1")
 
     # every line carries the result it tests, or the lock refuses
     fill(f"{d}/experiment.md", Refuted_if="- the error barely falls (`ratio > 0.9`)\n- the curve looks wrong")
@@ -196,7 +196,7 @@ def test_from_a_decision_to_a_reviewed_result(tmp_path):
     describe(f"{folder(root, 'G1.Q1.3')}/experiment.md", "A third sample size.")
     front(f"{folder(root, 'G1.Q1.3')}/experiment.md", dropped="The two sizes already answer it.")
     lab(root, "answer", "G1.Q1", "yes", "The ratio is one half, as the theory gives.")
-    assert "G1.Q1 (yes)" in lab(root, "now") and "the record is sound" in lab(root, "check")
+    assert "G1.Q1 (done, yes)" in lab(root, "now") and "the record is sound" in lab(root, "check")
     assert "Answered G1.Q1 yes" in lab(root, "since", "2026-01-01")
 
     # what was recorded stays: git is the witness
@@ -238,10 +238,10 @@ def test_resources_a_failed_review_and_a_replacement(tmp_path):
     assert "finished" in lab(root, "run", ident, "--wait", "--", *command)
     assert "gpu: 1.5 of 10 hours used; one run may use 2" in lab(root, "now") and "rule for gpu: Shut down" in lab(root, "show", ident)
 
-    # a results review that fails is final: the experiment is replaced, and the old one stays
+    # a results review that fails is final: the experiment is done and void, and what it found may not be named
     results(d)
     lab(root, "review", ident, "results", "fail", "The command reads the right file, but the seed was fixed after a first look.")
-    assert "(review failed)" in lab(root, "show", ident) and "replace it with a new experiment" in lab(root, "now")
+    assert "(done, void)" in lab(root, "show", ident) and "1 void" in lab(root, "now")
     assert "that is final" in lab(root, "review", ident, "results", "pass", "on second thoughts", ok=False)
     out = lab(root, "new", "experiment", "G1.Q1", "Error at 100 and at 400 flips, seed fixed first", "--replaces", ident, "--because", "The seed was fixed after a first look at the numbers.")
     assert "made G1.Q1.2" in out
@@ -321,7 +321,7 @@ def test_a_card_stands_on_its_own_a_replacement_says_why_and_the_agent_says_what
     # a question's briefing joins what is under it, as text for the chat: the same thing its page shows
     front(f"{d}/experiment.md", cost='"Two hundred estimates per arm, a minute on the laptop."')
     brief = lab(root, "brief", ident)
-    assert all(x in brief for x in ("**Why we ask.** The simplest check of the square-root law", "**The steps.**", "1. **Error at 100 and at 400 flips** (experiment, planned)", "**Where to look.**"))
+    assert all(x in brief for x in ("**Why we ask.** The simplest check of the square-root law", "**The steps.**", "1. **Error at 100 and at 400 flips** (experiment, open)", "**Where to look.**"))
 
     # a question has a short name and the question in full
     lab(root, "new", "question", "G1", "Larger samples", "--asks", "Does the law still hold at ten thousand flips?", "--from", "D1")
@@ -358,7 +358,7 @@ def test_a_reading_looks_at_what_exists_and_is_done_when_it_says_what_it_suggest
     fill(card, Looks_at="The 12 estimates of 200 outside the band, in the sampler's own log.")
     assert "read it; then write what was seen and what it suggests" in lab(root, "now")
     shown = lab(root, "show", "G1.Q1.1")
-    assert "reading (planned)" in shown and "it can suggest, never confirm" in shown
+    assert "reading (open)" in shown and "it can suggest, never confirm" in shown
     fill(card, Seen="- Nine used the short sample.\n- Three had the seed reset.", Suggests="Fix the seed, then measure again.")
     assert "reading (done)" in lab(root, "show", "G1.Q1.1") and "(reading)" not in lab(root, "now").split("Yours next")[1].split("Questions")[0]
     assert "has no finished experiment to rest an answer on" in lab(root, "answer", "G1.Q1", "yes", "The reading says so.", ok=False)  # a reading answers nothing

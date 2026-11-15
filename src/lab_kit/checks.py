@@ -9,10 +9,14 @@ KEYS = {  # what a card's front matter may hold; a state is never among them
     "goal": {"title", "from", "reached", "dropped", "see"},
     "question": {"title", "asks", "from", "needs", "answer", "answered", "dropped", "see"},
     "experiment": {"title", "needs", "uses", "override", "replaces", "because", "cost", "waiting_on", "dropped", "see"},
-    "build": {"title", "needs", "commits", "tests", "dropped", "see"},
-    "reading": {"title", "needs", "dropped", "see"},
-    "decision": {"title", "about", "date", "holds", "parks", "unparks", "order", "decided", "see"},
+    "build": {"title", "needs", "commits", "tests", "waiting_on", "dropped", "see"},
+    "reading": {"title", "needs", "waiting_on", "dropped", "see"},
+    "decision": {"title", "about", "date", "holds", "parks", "unparks", "drops", "order", "decided", "see"},
 }
+
+
+LAB_ID = re.compile(r"\b(G\d+(?:\.Q\d+(?:\.\d+)?)?|D\d+)\b")  # a goal, a question, a step or a decision of the lab
+STATE_WORDS = ("is running", "are running", "currently running", "no result yet", "is next", "are next", "is waiting", "is planned")  # where a step stands, which the pages draw
 
 
 def run(lab, rederive=True):
@@ -89,13 +93,13 @@ def run(lab, rederive=True):
         for need in q["needs"]:
             if nodes.get(need, {}).get("type") != "question":
                 bad("links", q["path"], f"needs {need}, which is not a question")
-        if q.get("answer") is not None and q.get("answer") not in ("yes", "no"):
-            bad("cards", q["path"], "`answer:` is yes or no, written by `lab answer`")
-        if q.get("answer") in ("yes", "no"):  # what `lab answer` requires holds for an answer however it got on the card
-            waiting = [x["id"] for x in q["items"] if x["state"] not in ("done", "built", "replaced", "dropped")]
+        if q.get("answer") is not None and q.get("answer") not in R.ANSWERS:
+            bad("cards", q["path"], "`answer:` is yes, no or mixed, written by `lab answer`")
+        if q.get("answer") in R.ANSWERS:  # what `lab answer` requires holds for an answer however it got on the card
+            waiting = [x["id"] for x in q["items"] if x["state"] not in R.CLOSED]
             if waiting:
                 bad("questions", q["path"], f"is answered while {', '.join(waiting)} is not done")
-            if not any(x["state"] == "done" and x["type"] == "experiment" for x in q["items"]):
+            if not any(x["state"] == "done" and x["type"] == "experiment" and x["label"] != "void" for x in q["items"]):
                 bad("questions", q["path"], "is answered with no finished experiment to rest the answer on; a reading suggests and answers nothing")
             if not R.day(q.get("answered")) or not any(l["about"] == q["id"] and l["kind"] == "agent" and l["what"].startswith(f"Answered {q['id']} {q['answer']}.") for l in lab.lines):
                 bad("questions", q["path"], "its answer was not recorded by `lab answer`: the log holds no line for it, or the card no `answered:` day")
@@ -105,6 +109,17 @@ def run(lab, rederive=True):
         for need in x["needs"]:
             if nodes.get(need, {}).get("type") not in R.STEPS:
                 bad("links", x["path"], f"needs {need}, which is not an experiment, a build or a reading")
+        named = sorted(set(LAB_ID.findall(str(x.get("waiting_on") or ""))) & set(nodes))
+        if named:  # a wait on the lab's own work clears by itself only through `needs:` or a decision's `holds:`
+            bad("cards", x["path"], f"`waiting_on:` names {', '.join(named)}, which is part of the lab: put a step under `needs:`, and let a decision hold it with `holds:`; `waiting_on:` is for something outside the lab")
+    for q in lab.questions:  # So far says what was learned; the pages say where each step stands
+        so_far = R.flat(q["slots"].get("So far", ""))
+        for words in STATE_WORDS:
+            if re.search(rf"\b{words}\b", so_far, flags=re.I):
+                bad("questions", q["path"], f"So far says {words!r}: the pages show where each step stands, so So far says only what was learned")
+                break
+    for q, step, at in history.stale_so_far(lab):
+        bad("questions", q["path"], f"So far was last committed before the result of {step} ({at}): bring it up to date with what that result taught")
     for n in lab.questions + lab.items:  # nothing needs itself, directly or through what it needs
         seen, todo = set(), list(n["needs"])
         while todo:
@@ -131,6 +146,11 @@ def run(lab, rederive=True):
                     bad("links", d["path"], f"{key} names {i}, which is not under `about:`: a decision that parks a question or brings it back is about it")
         for i in sorted(set(d["parks"]) & set(d["unparks"])):
             bad("links", d["path"], f"both parks and unparks {i}")
+        for i in d["drops"]:  # a decision drops steps and questions, and is about what it drops
+            if nodes.get(i, {}).get("type") not in ("question",) + R.STEPS:
+                bad("links", d["path"], f"drops names {i!r}, which is not a question or a step of the lab")
+            elif i not in d["about"]:
+                bad("links", d["path"], f"drops names {i}, which is not under `about:`: a decision that drops something is about it")
         for i in d["order"]:  # the order of the work names what it orders: goals, questions and steps, each once
             if nodes.get(i, {}).get("type") not in ("goal", "question") + R.STEPS:
                 bad("links", d["path"], f"order names {i!r}, which is not a goal, a question or a step of the lab")
@@ -181,7 +201,7 @@ def run(lab, rederive=True):
         if stray:
             bad("locks", p, f"plan/ holds a compiled file outside __pycache__, {stray[0]}: Python would import it, and a `.pyc` is not pinned")
         if x["lock"]:
-            if lab.nodes[x["question"]]["state"] == "under discussion":
+            if lab.nodes[x["question"]]["state"] == "waiting":
                 bad("locks", p, f"is locked under {x['question']}, whose decision is not settled")
             if not x["lock"].get("unreadable") and not lab.lock_holds(x):
                 bad("locks", p, "what it demands (a bar's role, result, comparison or number, an arm's name) or the resources it uses changed after the lock; that is a new experiment")
@@ -267,7 +287,7 @@ def run(lab, rederive=True):
                 bad("results", p, "its results or its run changed after the review that passed them")
         elif any(R.flat(x["slots"].get(k, "")) for k in ("Found", "Means")):
             bad("cards", p, "says what was found with no result behind it")
-        if x["state"] == "review failed" and (R.flat(x["slots"].get("Found", "")) or R.flat(x["slots"].get("Means", ""))):
+        if x["label"] == "void" and (R.flat(x["slots"].get("Found", "")) or R.flat(x["slots"].get("Means", ""))):
             bad("cards", p, "its results failed their review, so the card says nothing was found: replace the experiment")
     for r in lab.runs:
         if r.get("experiment") not in nodes:
@@ -283,8 +303,9 @@ def run(lab, rederive=True):
                 if not row:
                     bad("names", n["path"], f"{slot} names {written}, which is not a result" + ("" if home or ":" in written else " (a question names it in full: {G1.Q1.2:name})"))
                 elif not row["usable"]:
-                    state = nodes[row["experiment"]]["state"]
-                    bad("names", n["path"], f"{slot} names {written}, whose experiment is {state}" + ("" if state in ("replaced", "dropped", "review failed") else " and not yet reviewed"))
+                    owner = nodes[row["experiment"]]
+                    state = "void: its results review failed" if owner["label"] == "void" else owner["state"]
+                    bad("names", n["path"], f"{slot} names {written}, whose experiment is {state}" + ("" if owner["state"] in ("replaced", "dropped") or owner["label"] == "void" else " and not yet reviewed"))
             typed = set(re.findall(r"(?<![\w.{:])\d+\.\d+%?", R.NAMED.sub("", text)))
             for row in every:
                 forms = {row["value"], R.shown(row).split(" ")[0].lstrip("+\u2212")}
@@ -319,7 +340,7 @@ def run(lab, rederive=True):
         d = nodes.get(m["carries"])
         if not d or d["type"] != "decision":
             bad("missions", where, f"`carries:` names the decision it carries out; {m['carries'] or 'nothing'!r} is not one")
-        elif m["state"] == "current" and d["state"] != "decided":
+        elif m["state"] == "current" and d["state"] != "done":
             bad("missions", where, f"is current and carries {d['id']}, which is still open: a mission carries out a settled decision")
         words = len(m["description"].split())
         if not words:

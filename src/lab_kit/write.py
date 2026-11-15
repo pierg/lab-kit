@@ -233,19 +233,19 @@ def decide(lab, ident, text, with_):
 def answer(lab, target, verdict, text):
     """The agent's answer to a question, once its experiments are done."""
     n = lab.nodes.get(target)
-    if verdict not in ("yes", "no"):
-        stop("an answer is yes or no")
+    if verdict not in R.ANSWERS:
+        stop("an answer is yes, no or mixed: mixed when part of what was expected held and part did not, saying which")
     if not n or n["type"] != "question":
         stop(f"no question {target}")
     if not R.flat(text):
         stop("an answer says what it rests on")
     if n["state"] != "open":
-        stop(f"{target} is {n['state']}, not open")
-    waiting = [x["id"] for x in n["items"] if x["state"] not in ("done", "built", "replaced", "dropped")]
+        stop(f"{target} is {n.get('label') or n['state']}, not open")
+    waiting = [x["id"] for x in n["items"] if x["state"] not in R.CLOSED]
     if waiting:
         stop(f"{target} cannot be answered while {', '.join(waiting)} {'is' if len(waiting) == 1 else 'are'} not done: finish, replace or drop {'it' if len(waiting) == 1 else 'them'}")
-    if not any(x["state"] == "done" and x["type"] == "experiment" for x in n["items"]):  # a reading suggests; it answers nothing
-        stop(f"{target} has no finished experiment to rest an answer on")
+    if not any(x["state"] == "done" and x["type"] == "experiment" and x["label"] != "void" for x in n["items"]):  # a reading suggests; it answers nothing
+        stop(f"{target} has no finished experiment to rest an answer on (one whose results review failed is void, and rests nothing)")
     if n.get("answer") is not None or n.get("answered") is not None:
         stop(f"{target} already holds an `answer:` or an `answered:` that this command did not write: remove it from the card first")
     line = log_line(lab, target, "agent", f"Answered {target} {verdict}.", text)  # everything is validated before the first write
@@ -433,7 +433,7 @@ def mission_launch(lab, ident=None):
         stop(f"{m['path']}: {m['bad'][0]}")
     if lab.nodes.get(m["carries"], {}).get("type") != "decision":
         stop(f"{m['path']}: `carries:` names no decision")
-    if lab.nodes[m["carries"]]["state"] != "decided":
+    if lab.nodes[m["carries"]]["state"] != "done":
         stop(f"{m['carries']} is still open: a mission carries out a settled decision. Settle it with the operator first")
     if not m["description"]:
         stop(f"{m['path']}: say what the mission is for, in the paragraph under the front matter")
