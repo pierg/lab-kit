@@ -4,7 +4,7 @@
 
 Missions: a working note for carrying out a settled decision across many sessions. Before, starting or restarting
 the work on a decision meant pasting a long prompt that copied the decision's steps and the state of the machines,
-and went stale within hours. The skills `lab-work` and `lab-talk` changed and `lab-mission` is new: run `lab init`
+and went stale within hours. The method (rule 5), the skills `lab-work` and `lab-talk` changed and `lab-mission` is new: run `lab init`
 in a lab after upgrading, or `lab check` reports that they differ from the installed kit.
 
 - **A mission** is `missions/M<n>-<name>.md`: a title, the decision it carries (`carries:`), what it is for, its
