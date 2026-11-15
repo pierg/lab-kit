@@ -296,7 +296,8 @@ agent can move, every open question that no open decision holds and that has no 
 under it, with what is next on it: to answer it, add the next experiment or bring parking it to you when an
 experiment under it finished and is not void; to add an experiment, or bring parking or dropping it to you,
 when none did; to plan its first experiment when nothing is under it yet. An open goal whose every question is
-answered, parked or dropped is listed too: closing it is brought to you in a decision.
+answered, parked or dropped is listed too: closing it is brought to you in a decision; and so is an open goal
+with no question yet, whose first question is brought to you in a decision.
 
 **The order of the work.** What the agent takes up first is agreed with you, and a settled decision records
 it: `order:` lists goals, questions and steps, first to last. `lab now` ("Yours next", "Not yours to move yet")
