@@ -44,8 +44,11 @@ Every change goes through a pull request; `main` accepts nothing else.
 
 Run the gate before every push; CI also runs it on every pull request.
 
-**Authorship.** Every commit is authored with the repository owner's git identity. No co-author
-line, tool or agent name, "generated with" footer or session link appears in a commit message, a
-branch name or a pull request. The pre-push hook enforces it on every push, and a required `policy`
-check on every pull request.
+**Authorship.** This repository is public. Every commit is authored with the repository owner's
+git identity. No co-author line, tool or agent name, "generated with" footer or session link
+appears in a commit message, a branch name or a pull request: name a branch after the task, never
+`claude/…` or another tool's prefix. The pre-push hook (on every machine, and in cloud sessions
+from their environment's setup script) enforces it on every push, ops' land-job `pr-check.sh`
+checks a pull request's text before it is opened, and a required `policy` check runs on every ready
+pull request.
 <!-- ops:lanes:end -->

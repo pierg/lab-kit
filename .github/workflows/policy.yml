@@ -1,10 +1,11 @@
 name: policy
 
-# Runs on pull requests only: a push straight to main is checked by the pre-push hook on the
-# machine that pushes (setup-machine), so GitHub spends no minutes on it (decision 0033).
+# Runs on ready pull requests only: a push straight to main is checked by the pre-push hook on the
+# machine that pushes (setup-machine), so GitHub spends no minutes on it (decision 0033). A draft
+# cannot merge, so it is skipped, and marking it ready runs the check.
 on:
   pull_request:
-    types: [opened, edited, synchronize, reopened]
+    types: [opened, edited, synchronize, reopened, ready_for_review]
 
 concurrency:
   group: policy-${{ github.event.pull_request.number }}
@@ -15,6 +16,7 @@ permissions:
 
 jobs:
   policy:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
