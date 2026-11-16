@@ -26,6 +26,11 @@ def decision_text(lab, d):
     for key, verb in (("parks", "Parks"), ("unparks", "Brings back"), ("drops", "Drops")):
         if d[key]:
             out += [f"{verb}: " + ", ".join(f"{i} {lab.nodes[i]['title']}" if i in lab.nodes else i for i in d[key])]
+    if d["folds"]:
+        out += ["Folds in the drafts: " + ", ".join(map(str, d["folds"]))]
+    if d["state"] == "done":
+        out += [f"Locked: acted on at {d['acted'][:16].replace('T', ' ')}; a change of mind is a new decision" if d["locked"]
+                else "A draft: nothing has acted on it yet, so revise it here rather than opening a new decision"]
     if d["order"]:
         out += [("Orders the work" if d["decided"] else "Would order the work") + ", first to last: " + ", ".join(d["order"])]
     out += [f"{slot}. {R.flat(d['slots'][slot])}" for slot in ("Seen", "Options", "Recommendation", "Decided") if R.flat(d["slots"].get(slot, ""))]

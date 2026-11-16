@@ -39,7 +39,10 @@ judgement. The lab's own `AGENTS.md` adds only what is local.
    `lab new`, `lab lock` and `lab run`; otherwise judged.*
 6. **Record what was decided and why, in the lab's words.** A decision is written out of a conversation
    with the operator, and you show them the text as recorded. Their messages are not copied into the
-   lab. Never record a decision that was not discussed with them. *Held by `lab decide`; that the
+   lab. Never record a decision that was not discussed with them. A settled decision that nothing has acted on yet (no
+   mission launched on it, no run of a step it orders) is a draft: when the talk refines it, revise it rather than
+   stacking a new decision on top. Once acted on, it is locked, and a change of mind is a new decision. *Held by
+   `lab decide` and `lab check`; that the
    record is faithful is judged.*
 7. **Say what you are on.** The operator reads the site to know whether anything is happening, and
    should never have to ask you. When you start on a card or move to another, log it:

@@ -11,7 +11,7 @@ KEYS = {  # what a card's front matter may hold; a state is never among them
     "experiment": {"title", "needs", "uses", "override", "replaces", "because", "cost", "waiting_on", "dropped", "see"},
     "build": {"title", "needs", "commits", "tests", "waiting_on", "dropped", "see"},
     "reading": {"title", "needs", "waiting_on", "dropped", "see"},
-    "decision": {"title", "about", "date", "holds", "parks", "unparks", "drops", "order", "decided", "see"},
+    "decision": {"title", "about", "date", "holds", "parks", "unparks", "drops", "order", "folds", "decided", "see"},
 }
 
 
@@ -160,6 +160,14 @@ def run(lab, rederive=True):
                 bad("links", d["path"], f"order names {i!r}, which is not a goal, a question or a step of the lab")
         for i in sorted({i for i in d["order"] if d["order"].count(i) > 1}):
             bad("links", d["path"], f"order names {i} more than once: each has one place")
+        for i in d["folds"]:  # the drafts it took in: decisions of the lab once, folded into this one only
+            i = str(i)
+            if not re.fullmatch(r"D[1-9]\d*", i):
+                bad("links", d["path"], f"folds names {i!r}, which is not a decision's id")
+            elif i in nodes:
+                bad("links", d["path"], f"folds {i}, which is still here: a decision folded into another has its file removed")
+            elif sum(str(f) == i for e in lab.decisions for f in e["folds"]) > 1:
+                bad("links", d["path"], f"folds {i}, which another decision, or this one twice, also folds")
         done = d["decided"]
         if done and not ({"date", "with"} <= set(done) and R.flat(d["slots"].get("Decided", ""))):
             bad("cards", d["path"], "a settled decision holds when, with whom, and what was decided and why under Decided")
@@ -321,7 +329,7 @@ def run(lab, rederive=True):
         where = f"log.md line {l['line']}"
         if l["kind"] not in R.KINDS:
             bad("log", where, f"kind {l['kind']!r}; one of {', '.join(R.KINDS)}")
-        kind = nodes.get(l["about"], {}).get("type")
+        kind = nodes.get(lab.folded.get(l["about"], l["about"]), {}).get("type")  # a line about a folded decision is about the one that took it in
         if l["kind"] == "doing" and not l["so"]:
             bad("log", where, "a `doing` line says why now, after what the agent is starting on")
         closes = l["kind"] == "agent" and kind == "decision" and l["what"].startswith(("Mission closed: ", "Mission done: ", "Mission stopped: "))  # written by `lab mission close`

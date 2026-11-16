@@ -64,7 +64,15 @@ def test_the_order_names_what_it_orders_once_and_stays_as_settled(tmp_path):
     git(root, "init", "-q")
     git(root, "add", ".")
     git(root, "commit", "-qm", "settled")
-    front(card, order="[G1.Q1, G1.Q2]")  # a settled order is changed by a new decision, not by editing this one
+    front(card, order="[G1.Q1, G1.Q2]")  # while nothing has acted on it, a settled order is a draft and may be revised
+    assert "the record is sound" in lab(root, "check", "--no-rederive")
+    front(card, order="[G1.Q2, G1.Q1]")
+    from test_mission import saved
+    saved(root, "The biased coin first", d2)
+    lab(root, "mission", "launch")
+    git(root, "add", ".")
+    git(root, "commit", "-qm", "launched")
+    front(card, order="[G1.Q1, G1.Q2]")  # once a mission is launched on it, the order is changed by a new decision, not by editing this one
     assert "the order it sets" in lab(root, "check", "--no-rederive", ok=False)
 
 

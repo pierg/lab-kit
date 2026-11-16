@@ -122,7 +122,8 @@ def new(lab, kind, parent, title, replaces=None, origin=None, about=(), because=
         for a in about:
             if lab.nodes.get(a, {}).get("type") not in ("goal", "question") + R.STEPS and a not in lab.resources:
                 stop(f"--about {a}: no goal, question, experiment, build or reading has that id, and resources.toml lists no such resource")
-        n = 1 + max([int(d["id"][1:]) for d in lab.decisions] or [0])
+        used = [d["id"] for d in lab.decisions] + list(lab.folded) + [l["about"] for l in lab.lines]  # a folded decision's number is never used again
+        n = 1 + max([int(i[1:]) for i in used if re.fullmatch(r"D[1-9]\d*", str(i))] or [0])
         ident, path = f"D{n}", f"decisions/D{n}-{slug(title)}.md"
         text = CARDS["decision"].format(title=quoted, about=", ".join(about), today=today())
     elif kind == "goal":

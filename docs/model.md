@@ -16,7 +16,7 @@ A lab is a tree, and the decisions that shaped it.
 | **Reading** | One look at what already exists: sealed runs, traces, the benchmark's own definitions. What it looks at; then what was seen and what that suggests. It sets no bar in advance, so it can suggest and never confirm. | open, waiting, running, done, dropped |
 | **Run** | One try at producing what an experiment demands: when, on which resource, what changed since the run before, how it ended, what it used. An experiment has one or more, until one finishes. | running, finished, failed |
 | **Result** | One number from a finished run: a plain label, how it reads, and the command that prints it again. | |
-| **Decision** | One thing discussed with you and settled: first what there is to discuss, then what was decided and why. | open, done |
+| **Decision** | One thing discussed with you and settled: first what there is to discuss, then what was decided and why. A settled one is a draft until something acts on it, then locked. | open, done |
 
 **One set of states for everything.** A goal, a question, an experiment, a build and a reading use the same
 seven words, and each type uses only those it can be in:
@@ -314,9 +314,25 @@ work (a decision with a new `order:`), stop a run. Say it, and the agent records
 you as for the agent: a locked plan is changed by a new experiment that replaces it, and an outcome is
 worked out from the results, not decided.
 
-**A settled decision stays as it was settled.** Its `decided:`, its `about:`, its `parks:`, its `unparks:`, its `drops:`, its `order:` and its Decided text never
-change once committed; a change of mind is a new decision. `lab check` holds this against the lab's
-history. So a decision cannot be made, afterwards, to be about something it never discussed.
+**A settled decision is a draft until something acts on it.** A decision is acted on when a mission that
+carries it is launched, or when a run or a trial starts, after it was settled, of an experiment that its `order:`
+names (by its own id, its question's or its goal's), that sits under a goal or a question that came out of it, or
+that uses a resource whose amounts it set. Until then it may be revised, though never reopened: a talk that refines
+yesterday's plan changes yesterday's decision, and does not stack a new one on top of it.
+
+Drafts that say one thing between them may also be folded into one of them: it lists the others under `folds:`
+(`folds: [D13, D14]`), takes in what they said, and their files are removed. What a folded draft had taken in moves
+with it, so the decision that takes it in lists those too. A folded number is never used again, its log lines stay
+and are read as lines about the decision that took it in, and an old link to it opens that decision. Whatever named
+it (a mission's `carries:`, a resource's `from`, a goal's or a question's `from:`) is pointed at the decision that
+took it in, in the same change.
+
+Once something has acted on it, the decision is **locked**: its `decided:`, its `about:`, its `parks:`, its
+`unparks:`, its `drops:`, its `order:`, its `folds:` and its Decided text stay as they were committed when it was
+acted on, and a change of mind is a new decision. `lab check` holds this against the lab's history, and refuses a
+locked decision folded into another. So a decision cannot be made, afterwards, to be about something it never
+discussed once anything was done on its word. `lab show` and the decision's page say whether it is a draft or locked,
+and since when.
 
 The agent decides everything else and records each choice in the log. It drops an experiment or a
 build that will not be done, saying why. It answers a question itself with `lab answer`: a test yes, no or mixed, an estimate found. The command refuses the other kind's answers, and
@@ -335,7 +351,7 @@ repository and place the lab publishes to has:
 - for a metered resource, the decision that set those amounts (`from`). It is a settled decision
   that lists the resource under `about:`, so a resource that appears later needs a decision of its
   own. An amount, or its unit, changes only together with `from`, which then names the later
-  decision that changed it. A resource is never removed: one that is no longer used says so
+  decision that changed it; a `from` that named a draft later folded into another is read as that one. A resource is never removed: one that is no longer used says so
   (`retired = "<why>"`) and takes no run. Use outside a run is a row added under `other_use`, and
   rows are only added. `lab check` holds all of this against the lab's history, and `lab run`
   refuses a metered resource whose amounts, or the decisions behind them, are not as git holds

@@ -55,7 +55,7 @@ COLUMNS = {"results.tsv": ("name", "label", "value", "reads", "versus", "command
 HASH = 2  # how a folder is hashed in the locks and runs made now; one without the marker was made with the first way
 NUMBER = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?")
 LISTS = {"goal": ("see",), "question": ("needs", "see"), "experiment": ("needs", "uses", "see"), "build": ("needs", "commits", "tests", "see"),
-         "reading": ("needs", "see"), "decision": ("about", "holds", "parks", "unparks", "drops", "order", "see")}  # the front matter keys that hold a list
+         "reading": ("needs", "see"), "decision": ("about", "holds", "parks", "unparks", "drops", "order", "folds", "see")}  # the front matter keys that hold a list
 TEXTS = ("title", "asks", "kind", "from", "replaces", "because", "cost", "waiting_on", "dropped", "answered")  # and those that hold one value
 
 
@@ -355,6 +355,11 @@ class Lab:
             mine = sorted((r for r in self.runs if r.get("experiment") == x["id"]), key=lambda r: (str(r.get("started")), r["id"]))  # in the order they started
             x["trials"], x["runs"] = [r for r in mine if r["kind"] == "trial"], [r for r in mine if r["kind"] != "trial"]
             x["finished"] = next((r for r in x["runs"] if r["state"] == "finished"), None)  # the only source of its results
+        self.folded = {str(f): d["id"] for d in self.decisions for f in d["folds"]}  # a draft folded into another decision, by its old id
+        for d in self.decisions:  # a settled decision is a draft until something acts on it; from then on it is locked
+            d["settled_at"] = self.settled_at(d["id"], d["decided"]) if d["state"] == "done" else None
+            d["acted"] = self.acted_on(d["id"], d["order"], d["settled_at"]) if d["settled_at"] else None
+            d["locked"] = bool(d["acted"])
         self.results = {}
         for x in self.experiments:
             for row in x["results"]:
@@ -655,7 +660,7 @@ class Lab:
         out = []
         for n, path in self._numbered(f"{self.root}/decisions/D*.md", r"/D(\d+)-[^/]+\.md$", {}, "D<n>-<name>.md"):
             fm, slots = self._card(path, "decision")
-            d = {"title": f"D{n}", "about": [], "holds": [], "parks": [], "unparks": [], "drops": [], "order": [], "decided": None, "date": "", "see": [], **fm, "id": f"D{n}", "type": "decision", "slots": slots,
+            d = {"title": f"D{n}", "about": [], "holds": [], "parks": [], "unparks": [], "drops": [], "order": [], "folds": [], "decided": None, "date": "", "see": [], **fm, "id": f"D{n}", "type": "decision", "slots": slots,
                  "path": self.rel(path), "dir": self.rel(os.path.dirname(path))}
             d["state"] = "done" if d["decided"] else "open"
             out.append(d)
@@ -688,6 +693,36 @@ class Lab:
             m["state"] = status if status in MISSION_STATES else ("current" if any(l.get("what") == "launched" for l in m["log"]) else "next")
             out.append(m)
         return out
+
+    def settled_at(self, ident, decided):
+        """When a decision was settled: the moment of the log line `lab decide` wrote, else the start of its day."""
+        line = next((l for l in self.lines if l["about"] == ident and l["kind"] == "decision" and l["what"].startswith("Decided:")), None)
+        if line:
+            return line["at"]
+        when = decided.get("date") if isinstance(decided, dict) else None
+        return day(when) or None
+
+    def acted_on(self, ident, order, since):
+        """The first moment anything acted on a settled decision, or None while nothing has: a mission that carries it
+        was launched, or a run or a trial started, after it was settled, of an experiment that its `order:` names (by
+        its own id, its question's or its goal's), that sits under a goal or a question that came out of it, or that
+        uses a resource whose amounts it set. Until then the decision is a draft, and may still be revised."""
+        moments = []
+        for m in self.missions:
+            if m["carries"] != ident:
+                continue
+            launched = [f"{l['day']}T{l['time']}:59+00:00" for l in m["log"] if l.get("what") == "launched"]  # a log line has the minute: the launch is within it
+            if not launched and m["state"] != "next":  # current, done or stopped with no launch written: from its first line
+                launched = [f"{l['day']}T{l['time']}:00+00:00" for l in m["log"] if l.get("day")][:1] or [since]
+            moments += launched
+        scope = set(order) | {n["id"] for n in self.goals + self.questions if str(n.get("from")) == ident}  # what it orders, and what came out of it
+        granted = {name for name, r in self.resources.items() if isinstance(r, dict) and str(r.get("from")) == ident}  # what it set the amounts of
+        start = moment(since)
+        for x in self.experiments:
+            if scope & {x["id"], x["question"], x["goal"]} or granted & set(map(str, x.get("uses") or [])):
+                moments += [r["started"] for r in x["runs"] + x["trials"] if r.get("started") and moment(r["started"]) and (start is None or moment(r["started"]) >= start)]
+        moments = [t for t in moments if moment(t)]
+        return min(moments, key=moment) if moments else None
 
     def mission(self, ident):
         return next((m for m in self.missions if m["id"] == ident), None)

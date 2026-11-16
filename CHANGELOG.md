@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.10.0
+
+- **A settled decision is a draft until something acts on it.** A mission that carries it is launched, or a run or a
+  trial starts of a step its `order:` names, of a step under a goal or a question that came out of it, or of a step
+  that uses a resource whose amounts it set: from then it is locked, and a change of mind is a new decision. Until
+  then it may be revised, so a talk that refines yesterday's plan changes yesterday's decision instead of stacking a
+  new one on it. `lab check` holds a locked decision as it was committed when it was acted on, and lets a draft change, though a settled decision is never reopened.
+  `lab show` and the decision's page say which it is.
+- **A draft decision may be folded into another draft** with `folds: [D<n>, ...]`: its file is removed, its number is
+  never used again, its log lines are read as about the decision that took it in, and an old link to it opens that
+  decision. A locked decision cannot be folded. A resource whose `from` named the draft names the decision that
+  took it in.
+- The skills `lab-talk` and the method changed: run `lab init` in a lab after upgrading.
+
 ## 1.9.0
 
 - **A Missions page** on the site, compact like Decisions: the current first, then the next, then the closed.
