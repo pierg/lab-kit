@@ -333,9 +333,10 @@ question came from is held too: its `from:` never changes once committed, save t
 it named; and a resource's `from` changes only with its amounts, or to the decision that folded it.
 
 Once something has acted on it, the decision is **locked**: its `decided:`, its `about:`, its `parks:`, its
-`unparks:`, its `drops:`, its `order:`, its `folds:` and its Decided text stay as they are in the first commit
-that records what acted on it (the mission's launch, the run's line in `runs.tsv`), or, while none does, in the last
-commit. Edits committed together with the act are part of it, and a change of mind is a new decision. `lab check` holds this against the lab's history, and refuses a
+`unparks:`, its `drops:`, its `order:`, its `folds:` and its Decided text stay as they were committed before the
+first commit that records what acted on it (the mission's launch in the log, the run's line in `runs.tsv`), or, while
+none does, as in the last commit. An edit committed together with the act is already too late: commit the decision
+first. A change of mind is a new decision. `lab check` holds this against the lab's history, and refuses a
 locked decision folded into another. So a decision cannot be made, afterwards, to be about something it never
 discussed once anything was done on its word. `lab show` and the decision's page say whether it is a draft or locked,
 and since when.

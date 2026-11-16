@@ -356,6 +356,12 @@ class Lab:
             x["trials"], x["runs"] = [r for r in mine if r["kind"] == "trial"], [r for r in mine if r["kind"] != "trial"]
             x["finished"] = next((r for r in x["runs"] if r["state"] == "finished"), None)  # the only source of its results
         self.folded = {str(f): d["id"] for d in self.decisions for f in d["folds"]}  # a draft folded into another decision, by its old id
+        self.held = {"from": {}, "granted": {}, "orders": {}}  # what git holds about where things came from: see history.held_scope
+        try:
+            from . import history
+            self.held = history.held_scope(self)
+        except Exception as err:  # a lab outside git, or a git that cannot be read: today's files say it all
+            self.held["error"] = str(err)
         for d in self.decisions:  # a settled decision is a draft until something acts on it; from then on it is locked
             d["settled_at"] = self.settled_at(d["id"], d["decided"]) if d["state"] == "done" else None
             d["acts"] = self.acts(d["id"], d["order"], d["settled_at"]) if d["settled_at"] else []
@@ -713,19 +719,23 @@ class Lab:
         is none, the decision is a draft, and may be revised."""
         start, out = moment(since), []
         after = lambda t: moment(t) and (start is None or moment(t) >= start)
-        logged = [l for l in self.lines if l["about"] == ident and l["kind"] == "agent" and l["what"].startswith("Mission launched: ")]
-        out += [(l["at"], "log.md", f"| {ident} | agent | {l['what']}") for l in logged if after(l["at"])]
-        said = {l["what"].split()[2] for l in logged if len(l["what"].split()) > 2}
+        launches = [l for l in self.lines if l["kind"] == "agent" and l["what"].startswith("Mission launched: ")]
+        out += [(l["at"], "log.md", f"| {ident} | agent | {l['what']}") for l in launches if l["about"] == ident and after(l["at"])]
+        said = {l["what"].split()[2] for l in launches if len(l["what"].split()) > 2}  # missions whose launch the lab's log holds, whatever they carry now
         for m in self.missions:  # a mission launched by a kit before 1.10.0 wrote no line in the lab's log: its own log says it
             if m["carries"] != ident or m["id"] in said:
                 continue
             line = next((l for l in m["log"] if l.get("what") == "launched"), None)
-            if line:
+            if line and after(f"{line['day']}T{line['time']}:00+00:00"):
                 out += [(f"{line['day']}T{line['time']}:00+00:00", m["path"], f"- {line['day']} {line['time']} | launched")]
-            elif m["state"] != "next":
-                out += [(since, m["path"], m["path"])]
-        scope = set(order) | set(came) | {n["id"] for n in self.goals + self.questions if str(n.get("from")) == ident}  # what it orders, and what came out of it
-        granted = set(granted) | {name for name, r in self.resources.items() if isinstance(r, dict) and str(r.get("from")) == ident}  # what it set the amounts of
+            elif not line and m["state"] != "next" and since:
+                out += [(since, m["path"], f"carries: {ident}")]
+        held = self.held
+        scope = (set(order) | set(came) | set(held["orders"].get(ident, ()))  # what it orders, or ever ordered as committed
+                 | {n["id"] for n in self.goals + self.questions if str(n.get("from")) == ident}  # and what came out of it, as now
+                 | {i for i, f in held["from"].items() if f == ident})  # or as first committed
+        granted = (set(granted) | {name for name, froms in held["granted"].items() if ident in froms}  # what it ever set the amounts of
+                   | {name for name, r in self.resources.items() if isinstance(r, dict) and str(r.get("from")) == ident})
         for x in self.experiments:
             if scope & {x["id"], x["question"], x["goal"]} or granted & set(map(str, x.get("uses") or [])):
                 out += [(r["started"], os.path.join(x["dir"], "runs.tsv"), r["id"]) for r in x["runs"] + x["trials"] if r.get("started") and after(r["started"])]

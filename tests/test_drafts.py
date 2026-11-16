@@ -171,3 +171,55 @@ def test_what_acted_on_a_decision_cannot_be_taken_back_to_unlock_it(tmp_path):
     os.remove(card)
     front(card3, folds=f"[{d2}]")
     assert f"is folded into {d3}, and something acted on it" in lab(root, "check", "--no-rederive", ok=False)
+
+
+def test_a_lock_is_read_from_history_by_lab_show_and_lab_check_alike(tmp_path):
+    from test_mission import saved
+    root = str(tmp_path)
+    open_question(root)
+    ident, d, command = experiment(root)
+    card, d2 = settled_order(root, [ident], "The first experiment first", "The error experiment first: it is the cheapest check of the law.")
+    commit(root)
+    lab(root, "lock", ident)
+    lab(root, "run", ident, "--wait", "--", *command)
+    text = open(card).read()
+    open(card, "w").write(text.replace("the cheapest check", "the quickest check"))
+    commit(root, "the run, and the decision reworded with it")  # an edit committed with the act is already a change of mind
+    assert "was locked when" in lab(root, "check", "--no-rederive", ok=False)
+    git(root, "revert", "--no-edit", "HEAD")
+
+    # its order emptied: lab show still says locked, as lab check holds it
+    root = str(tmp_path / "order")
+    os.makedirs(root)
+    open_question(root)
+    ident, d, command = experiment(root)
+    card, d2 = settled_order(root, [ident], "The first experiment first", "The error experiment first: it is the cheapest check of the law.")
+    commit(root)
+    lab(root, "lock", ident)
+    lab(root, "run", ident, "--wait", "--", *command)
+    commit(root, "the run")
+    front(card, order="[]")
+    assert "Locked: acted on at" in lab(root, "show", d2)
+
+    # D1 folded away in two commits: first pointed elsewhere and named under `folds:`, then removed
+    d1 = glob.glob(f"{root}/decisions/D1-*.md")[0]
+    front(card, order=f"[{ident}]", folds="[D1]")
+    for path in glob.glob(f"{root}/goals/G1-*/goal.md") + glob.glob(f"{root}/goals/G1-*/Q1-*/question.md"):
+        front(path, **{"from": d2})
+    commit(root, "D1 folded into D2")
+    os.remove(d1)
+    commit(root, "D1 removed")
+    assert "is folded into D2, and something acted on it" in lab(root, "check", "--no-rederive", ok=False)
+
+    # a mission launched for one decision and pointed at another later does not lock the other
+    root = str(tmp_path / "mission")
+    os.makedirs(root)
+    open_question(root)
+    card2, d2 = settled_order(root, ["G1"], "The goal first", "The goal first, with its first question at the top.")
+    _, mission = saved(root, "The goal", d2)
+    lab(root, "mission", "launch")
+    card3, d3 = settled_order(root, ["G1.Q1"], "The question first", "The first question first: it is the only one.")
+    text = open(mission).read()
+    open(mission, "w").write(text.replace(f"carries: {d2}", f"carries: {d3}"))
+    assert "A draft: nothing has acted on it yet" in lab(root, "show", d3)
+    assert "Locked: acted on at" in lab(root, "show", d2)
