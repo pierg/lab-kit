@@ -358,8 +358,9 @@ class Lab:
         self.folded = {str(f): d["id"] for d in self.decisions for f in d["folds"]}  # a draft folded into another decision, by its old id
         for d in self.decisions:  # a settled decision is a draft until something acts on it; from then on it is locked
             d["settled_at"] = self.settled_at(d["id"], d["decided"]) if d["state"] == "done" else None
-            d["acted"] = self.acted_on(d["id"], d["order"], d["settled_at"]) if d["settled_at"] else None
-            d["locked"] = bool(d["acted"])
+            d["acts"] = self.acts(d["id"], d["order"], d["settled_at"]) if d["settled_at"] else []
+            d["acted"] = d["acts"][0][0] if d["acts"] else None
+            d["locked"] = bool(d["acts"])
         self.results = {}
         for x in self.experiments:
             for row in x["results"]:
@@ -702,27 +703,34 @@ class Lab:
         when = decided.get("date") if isinstance(decided, dict) else None
         return day(when) or None
 
-    def acted_on(self, ident, order, since):
-        """The first moment anything acted on a settled decision, or None while nothing has: a mission that carries it
-        was launched, or a run or a trial started, after it was settled, of an experiment that its `order:` names (by
-        its own id, its question's or its goal's), that sits under a goal or a question that came out of it, or that
-        uses a resource whose amounts it set. Until then the decision is a draft, and may still be revised."""
-        moments = []
+    def acts(self, ident, order, since):
+        """What acted on a settled decision, earliest first: [(moment, file, text)], where `file` is the record's file
+        that says so and `text` what it says there, so git can tell from which commit on it was so. A mission that
+        carries it was launched, or a run or a trial started, after it was settled, of an experiment that its `order:`
+        names (by its own id, its question's or its goal's), that sits under a goal or a question that came out of it,
+        or that uses a resource whose amounts it set. While there is none, the decision is a draft, and may be revised."""
+        out = []
         for m in self.missions:
             if m["carries"] != ident:
                 continue
-            launched = [f"{l['day']}T{l['time']}:59+00:00" for l in m["log"] if l.get("what") == "launched"]  # a log line has the minute: the launch is within it
+            launched = [f"{l['day']}T{l['time']}:00+00:00" for l in m["log"] if l.get("what") == "launched"]
             if not launched and m["state"] != "next":  # current, done or stopped with no launch written: from its first line
                 launched = [f"{l['day']}T{l['time']}:00+00:00" for l in m["log"] if l.get("day")][:1] or [since]
-            moments += launched
+            line = next((l for l in m["log"] if l.get("what") == "launched"), None)
+            out += [(t, m["path"], f"- {line['day']} {line['time']} | launched" if line else m["path"]) for t in launched[:1]]
         scope = set(order) | {n["id"] for n in self.goals + self.questions if str(n.get("from")) == ident}  # what it orders, and what came out of it
         granted = {name for name, r in self.resources.items() if isinstance(r, dict) and str(r.get("from")) == ident}  # what it set the amounts of
         start = moment(since)
         for x in self.experiments:
             if scope & {x["id"], x["question"], x["goal"]} or granted & set(map(str, x.get("uses") or [])):
-                moments += [r["started"] for r in x["runs"] + x["trials"] if r.get("started") and moment(r["started"]) and (start is None or moment(r["started"]) >= start)]
-        moments = [t for t in moments if moment(t)]
-        return min(moments, key=moment) if moments else None
+                out += [(r["started"], os.path.join(x["dir"], "runs.tsv"), r["id"]) for r in x["runs"] + x["trials"]
+                        if r.get("started") and moment(r["started"]) and (start is None or moment(r["started"]) >= start)]
+        return sorted((a for a in out if moment(a[0])), key=lambda a: moment(a[0]))
+
+    def acted_on(self, ident, order, since):
+        """The first moment anything acted on a settled decision, or None while nothing has (see `acts`)."""
+        found = self.acts(ident, order, since)
+        return found[0][0] if found else None
 
     def mission(self, ident):
         return next((m for m in self.missions if m["id"] == ident), None)

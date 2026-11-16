@@ -18,7 +18,7 @@ same place: what was committed under the old name is held under the new one.
 - A settled decision is a draft until something acts on it: a mission that carries it is launched, or a run starts of a
   step its `order:` names, of a step under what came out of it, or of a step on a resource whose amounts it set. From
   then it is locked, and keeps its `decided:`, `about:`, `parks:`, `unparks:`, `drops:`,
-  `order:`, `folds:` and Decided text as committed when it was acted on. A draft may be revised, never
+  `order:`, `folds:` and Decided text as in the first commit that records the act (the last commit, while none does). A draft may be revised, never
   reopened, or folded into another decision with `folds:`; then its file goes, and its number is never used again.
 - A resource, once committed, is never removed. A metered resource's `granted`, `per_run` and `unit` change only together
   with `from`, which then names another settled decision that lists the resource. Its `other_use` rows only grow.
@@ -178,7 +178,6 @@ def decisions(lab, versions=None, now=None):
                     return "its mission's launch"
         return None
 
-    when = lambda c: R.moment((git(root, "show", "-s", "--format=%cI", c) or "").strip())
     for where, commits in sorted(versions.items()):
         if not DECISION.fullmatch(commits[-1][1]):
             continue
@@ -204,9 +203,16 @@ def decisions(lab, versions=None, now=None):
         d = lab.nodes.get(ident)
         if not d or d.get("type") != "decision" or not d.get("locked"):
             continue  # settled and still a draft: it may be revised until something acts on it
-        acted = R.moment(d["acted"])
-        before = [h for h in held_as if (when(h[0]) or acted) <= acted]
-        c, path, was = (before or held_as[:1])[-1]
+        # Held as the decision was in the first commit that records what acted on it; while no commit records it yet,
+        # as the last commit has it. Edits committed with the act are part of it; anything after is a change of mind.
+        firsts = []
+        for _, path, text in d["acts"]:
+            area = path.split("/")[0]  # `missions` or `goals`: searched as a whole, so a renamed folder is the same place
+            c = (git(root, "log", "--reverse", "--find-renames", "--format=%H %ct", "-S", text, "--", area) or "").split("\n")[0].split()
+            if c:
+                firsts.append((int(c[1]), c[0]))
+        at = min(firsts)[1] if firsts else "HEAD"
+        c, path, was = next(((c, p, w) for c, p, w in reversed(held_as) if git(root, "merge-base", "--is-ancestor", c, at) is not None), held_as[0])
         if settled(R.read(os.path.join(root, mine(path)))) != was:
             bad(mine(path), f"was locked when {d['acted'][:16].replace('T', ' ')} acted on it, as committed in {c[:8]}" + ("" if mine(path) == path else f" as {path}")
                 + ", and what it parks, drops, folds or brings back, the order it sets, its `decided:`, its `about:` or its Decided text has changed since; a change of mind is a new decision")

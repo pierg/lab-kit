@@ -34,6 +34,9 @@ def test_a_draft_is_revised_until_a_run_of_a_step_it_orders_starts(tmp_path):
     open(card, "w").write(revised.replace("the quickest check", "the fastest check"))
     out = lab(root, "check", "--no-rederive", ok=False)
     assert f"{os.path.relpath(card, root)}: was locked when" in out and "a change of mind is a new decision" in out
+    commit(root, "reworded after the run")  # committed in the same second as the run's, it is still after it
+    assert "was locked when" in lab(root, "check", "--no-rederive", ok=False)
+    git(root, "revert", "--no-edit", "HEAD")
     open(card, "w").write(revised)
     assert "the record is sound" in lab(root, "check", "--no-rederive")
 

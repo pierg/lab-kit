@@ -328,8 +328,9 @@ it (a mission's `carries:`, a resource's `from`, a goal's or a question's `from:
 took it in, in the same change.
 
 Once something has acted on it, the decision is **locked**: its `decided:`, its `about:`, its `parks:`, its
-`unparks:`, its `drops:`, its `order:`, its `folds:` and its Decided text stay as they were committed when it was
-acted on, and a change of mind is a new decision. `lab check` holds this against the lab's history, and refuses a
+`unparks:`, its `drops:`, its `order:`, its `folds:` and its Decided text stay as they are in the first commit
+that records what acted on it (the mission's launch, the run's line in `runs.tsv`), or, while none does, in the last
+commit. Edits committed together with the act are part of it, and a change of mind is a new decision. `lab check` holds this against the lab's history, and refuses a
 locked decision folded into another. So a decision cannot be made, afterwards, to be about something it never
 discussed once anything was done on its word. `lab show` and the decision's page say whether it is a draft or locked,
 and since when.
