@@ -337,7 +337,8 @@ Once something has acted on it, the decision is **locked**: its `decided:`, its 
 first commit that records what acted on it (the mission's launch in the log, the run's line in `runs.tsv`), or, while
 none does, as in the last commit. An edit committed together with the act is already too late: commit the decision
 first. A change of mind is a new decision. `lab check` holds this against the lab's history, and refuses a
-locked decision folded into another. So a decision cannot be made, afterwards, to be about something it never
+locked decision folded into another: one that something acted on before the commit that removed its file. What
+acts after that commit acts on the decision that took it in. So a decision cannot be made, afterwards, to be about something it never
 discussed once anything was done on its word. `lab show` and the decision's page say whether it is a draft or locked,
 and since when.
 

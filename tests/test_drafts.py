@@ -223,3 +223,39 @@ def test_a_lock_is_read_from_history_by_lab_show_and_lab_check_alike(tmp_path):
     open(mission, "w").write(text.replace(f"carries: {d2}", f"carries: {d3}"))
     assert "A draft: nothing has acted on it yet" in lab(root, "show", d3)
     assert "Locked: acted on at" in lab(root, "show", d2)
+
+
+def test_what_acts_after_a_fold_is_committed_acts_on_the_decision_that_took_it_in(tmp_path):
+    import time
+    root = str(tmp_path)
+    open_question(root)
+    ident, d, command = experiment(root)
+    card2, d2 = settled_order(root, [ident], "The first experiment first", "The error experiment first: it is the cheapest check of the law.")
+    card3, d3 = settled_order(root, [ident], "The first experiment, again", "The error experiment first, and nothing else before it.")
+    commit(root)
+    # D2 is folded into D3 while both are drafts, and the fold is committed
+    os.remove(card2)
+    front(card3, folds=f"[{d2}]")
+    commit(root, "D2 folded into D3")
+    time.sleep(1.1)  # a run's start is kept to the second
+    # a run of the step D2 once ordered starts afterwards: it acts on D3, and D2 was folded while it was a draft
+    lab(root, "lock", ident)
+    lab(root, "run", ident, "--wait", "--", *command)
+    commit(root, "the run")
+    assert "the record is sound" in lab(root, "check", "--no-rederive")
+    assert "Locked: acted on at" in lab(root, "show", d3)
+
+    # a run that started before the fold was committed still locks the folded decision, though its line is committed with the fold
+    root = str(tmp_path / "before")
+    os.makedirs(root)
+    open_question(root)
+    ident, d, command = experiment(root)
+    card2, d2 = settled_order(root, [ident], "The first experiment first", "The error experiment first: it is the cheapest check of the law.")
+    card3, d3 = settled_order(root, [ident], "The first experiment, again", "The error experiment first, and nothing else before it.")
+    commit(root)
+    lab(root, "lock", ident)
+    lab(root, "run", ident, "--wait", "--", *command)
+    os.remove(card2)
+    front(card3, folds=f"[{d2}]")
+    commit(root, "the run, and D2 folded into D3")
+    assert f"is folded into {d3}, and something acted on it" in lab(root, "check", "--no-rederive", ok=False)
