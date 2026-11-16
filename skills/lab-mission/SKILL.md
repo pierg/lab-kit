@@ -58,6 +58,8 @@ operator wants its parts run separately, such as one wave each.
 
 1. `lab mission launch` launches the mission saved last; `lab mission launch <id>` a given one.
    The command refuses while the decision is open or the mission does not say what it is for.
+   Launching acts on the decision: from then it is locked, and the lab's log says so. Revise the
+   decision before you launch, and commit it before the launch is committed.
 2. `lab mission <id>`. Read its rules, then the rules of every other current mission it lists:
    they share the lab's resources, so never take a machine or a slot another current mission
    holds. When two missions' rules would collide, bring that to the operator before you start.

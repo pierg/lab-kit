@@ -157,7 +157,8 @@ def test_a_rename_is_the_same_record_under_another_name(tmp_path):
 
     def redecide(root, d, was):
         card = f"{root}/decisions/D1-where-the-lab-starts.md"
-        open(card, "w").write(open(card).read().replace("It runs on the laptop.", "It runs on the GPU."))
+        text = open(card).read()
+        open(card, "w").write(text.replace("It runs on the laptop.", "It runs on the GPU."))
         return "decisions/D1-where-the-lab-starts.md"
 
     under_cover("relocked", relock, "differs from the lock first committed in")

@@ -253,6 +253,9 @@ def page_title(lab, target):
 
 def ref(lab, ident, text=None):
     n = lab.nodes.get(ident)
+    if not n and ident in lab.folded:  # a draft decision folded into a later one is read there
+        into = lab.folded[ident]
+        return f'<a class="ref" href="/{into}" data-tip="folded into {e(into)}">{e(text or ident)}</a>'
     if not n:
         return e(ident)
     return f'<a class="ref" href="/{ident}" data-tip="{e(n["title"])} ({e(label(n))})">{e(text or ident)}</a>'
@@ -780,6 +783,11 @@ def decision_box(lab, T, d, link=True, title=True):
     if done:
         rows.append((f'Decided {nice(d["decided"].get("date"))}', block(T, d["slots"].get("Decided", ""))))
     rows += [(verb if done else f"Would {verb.lower()}", "<br>".join(named(lab, i) if i in lab.nodes else e(i) for i in d[key])) for key, verb in (("parks", "Parks"), ("unparks", "Brings back")) if d[key]]
+    if d["folds"]:
+        rows.append(("Folds in", ", ".join(e(str(i)) for i in d["folds"]) + ": earlier drafts, revised into this one before anything acted on them"))
+    if done:
+        rows.append(("Locked", f'since {clock(d["acted"])}: something acted on it, so a change of mind is a new decision') if d["locked"]
+                    else ("Draft", "Nothing has acted on it yet: it is revised here, not replaced by a new decision"))
     if d["order"]:
         rows.append(("Orders the work" if done else "Would order the work", "<ol>" + "".join(f"<li>{named(lab, i) if i in lab.nodes else e(i)}</li>" for i in d["order"]) + "</ol>"))
     if done and L.flat(d["slots"].get("Note", "")):
@@ -1485,6 +1493,7 @@ class Provider:
         from folio.views import View
         lab = self.lab()
         T = Text(lab, inner)
+        inner = lab.folded.get(inner, inner)  # an old link to a folded draft opens the decision that took it in
         parts = inner.split("/")
         genre, status, description, page, path = "", "", "", None, ""
         if inner == "":

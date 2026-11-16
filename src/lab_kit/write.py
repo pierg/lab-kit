@@ -122,7 +122,8 @@ def new(lab, kind, parent, title, replaces=None, origin=None, about=(), because=
         for a in about:
             if lab.nodes.get(a, {}).get("type") not in ("goal", "question") + R.STEPS and a not in lab.resources:
                 stop(f"--about {a}: no goal, question, experiment, build or reading has that id, and resources.toml lists no such resource")
-        n = 1 + max([int(d["id"][1:]) for d in lab.decisions] or [0])
+        used = [d["id"] for d in lab.decisions] + list(lab.folded) + [l["about"] for l in lab.lines]  # a folded decision's number is never used again
+        n = 1 + max([int(i[1:]) for i in used if re.fullmatch(r"D[1-9]\d*", str(i))] or [0])
         ident, path = f"D{n}", f"decisions/D{n}-{slug(title)}.md"
         text = CARDS["decision"].format(title=quoted, about=", ".join(about), today=today())
     elif kind == "goal":
@@ -443,8 +444,11 @@ def mission_launch(lab, ident=None):
         stop(f"{m['carries']} is still open: a mission carries out a settled decision. Settle it with the operator first")
     if not m["description"]:
         stop(f"{m['path']}: say what the mission is for, in the paragraph under the front matter")
+    title = (m["title"] or "untitled").replace("|", "/")
+    line = log_line(lab, m["carries"], "agent", f"Mission launched: {m['id']} {title}", f"It carries {m['carries']}, which is locked from now on", _mission=True)
     _mission_append(lab, m, _mission_line("launched"))
     _mission_status(lab, m, "current")
+    log(lab, m["carries"], "agent", *line, _mission=True)  # the lab's log only grows: it holds that the decision was acted on
     return m["id"], m["path"]
 
 

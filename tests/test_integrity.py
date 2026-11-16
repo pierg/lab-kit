@@ -210,9 +210,21 @@ def test_amounts_and_settled_decisions_change_only_out_of_a_decision(tmp_path):
     commit(root, "a larger grant, out of D2")
     assert "the record is sound" in lab(root, "check", "--no-rederive")
 
-    # a settled decision is not reworded, reopened or removed
+    # a settled decision that nothing has acted on is a draft: it may be revised
     text = open(card).read()
+    assert "A draft: nothing has acted on it yet" in lab(root, "show", "D2")
     open(card, "w").write(text.replace("A thousand hours", "Ten thousand hours"))
+    assert "the record is sound" in lab(root, "check", "--no-rederive")
+    open(card, "w").write(text)
+
+    # once a mission that carries it is launched, it is locked: it is not reworded, reopened or removed
+    from test_mission import saved
+    saved(root, "The full comparison", "D2")
+    lab(root, "mission", "launch")
+    commit(root, "the mission")
+    assert "Locked: acted on at" in lab(root, "show", "D2")
+    open(card, "w").write(text.replace("A thousand hours", "Ten thousand hours"))
+    assert "was locked when" in lab(root, "check", "--no-rederive", ok=False)
     assert "its Decided text has changed since; a change of mind is a new decision" in lab(root, "check", "--no-rederive", ok=False)
     open(card, "w").write(text.replace('with: "Ada"', 'with: "Grace"'))
     assert "has changed since" in lab(root, "check", "--no-rederive", ok=False)
@@ -514,6 +526,10 @@ def test_there_is_no_way_around_a_decision_to_a_larger_amount(tmp_path):
     two, d2, command2 = experiment(root, title="The same on the other name", uses="[gpu-b]", command=open(f"{d}/plan/sample.py").read())
     assert "whose amounts name no settled decision that lists it" in lab(root, "lock", two, ok=False)  # D1 is settled, and is not about gpu-b
     card = glob.glob(f"{root}/decisions/D1-*.md")[0]
+    from test_mission import saved
+    saved(root, "The first question", "D1")
+    lab(root, "mission", "launch")  # D1 is acted on, so it is locked
+    commit(root, "launched")
     front(card, about="[gpu, gpu-b]")  # so the settled decision is made to be about it
     assert "its `about:` or its Decided text has changed since" in lab(root, "check", "--no-rederive", ok=False)
     lab(root, "review", two, "plan", "pass", "As the first.")
@@ -562,6 +578,9 @@ def test_there_is_no_way_around_a_decision_to_a_larger_amount(tmp_path):
     root = under(tmp_path, "override")
     open_question(root)
     ident, d, command = experiment(root, uses="[gpu]", command=WRITES % "0.5" + USES % 5)
+    from test_mission import saved
+    saved(root, "The first question", "D1")
+    lab(root, "mission", "launch")  # acted on, so D1 is locked
     commit(root)
     front(f"{d}/experiment.md", override="{gpu: 6}")
     lab(root, "review", ident, "plan", "pass", "One thing varies; the refuting line can hold.")

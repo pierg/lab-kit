@@ -80,5 +80,10 @@ def test_parking_names_a_question_the_decision_is_about_and_stays_as_settled(tmp
     git(root, "init", "-q")
     git(root, "add", ".")
     git(root, "commit", "-qm", "settled")
-    front(card, parks="[]")  # what a settled decision parked cannot be taken back by editing it
-    assert "and what it parks, drops or brings back, the order it sets, its `decided:`" in lab(root, "check", "--no-rederive", ok=False)
+    from test_mission import saved
+    saved(root, "The fair coin", d2)
+    lab(root, "mission", "launch")
+    git(root, "add", ".")
+    git(root, "commit", "-qm", "launched")
+    front(card, parks="[]")  # what a locked decision parked cannot be taken back by editing it
+    assert "and what it parks, drops, folds or brings back, the order it sets, its `decided:`" in lab(root, "check", "--no-rederive", ok=False)

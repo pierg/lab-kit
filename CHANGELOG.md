@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.10.0
+
+- **A settled decision is a draft until something acts on it.** A mission that carries it is launched, or a run or a
+  trial starts of a step its `order:` names, of a step under a goal or a question that came out of it, or of a step
+  that uses a resource whose amounts it set: from then it is locked, and a change of mind is a new decision. Until
+  then it may be revised, so a talk that refines yesterday's plan changes yesterday's decision instead of stacking a
+  new one on it. `lab check` holds a locked decision as it was committed when it was acted on, and lets a draft change, though a settled decision is never reopened.
+  `lab show` and the decision's page say which it is.
+- **A draft decision may be folded into another draft** with `folds: [D<n>, ...]`: its file is removed, its number is
+  never used again, its log lines are read as about the decision that took it in, and an old link to it opens that
+  decision. A locked decision cannot be folded. A resource whose `from` named the draft names the decision that
+  took it in.
+- `lab mission launch` writes a line in the lab's log about the decision it carries (`Mission launched:`), which
+  locks it. What locks a decision is read from what the record holds: the log, the lists of runs, and every `order:`
+  it was committed with. A goal's or a question's `from:` no longer changes once committed, and a resource's `from`
+  changes only with its amounts, save in both cases to the decision that folded the one it named.
+- What git holds about a lab's decisions is read once per commit and kept in `~/.cache/lab-kit/held/`, outside the
+  lab. If it cannot be read, `lab check` fails and says why. A mission launched before 1.10.0 wrote no line in the
+  log: its own file is read instead, so pointing it at another decision moves its lock with it.
+- The skills `lab-talk` and `lab-mission` and the method changed: run `lab init` in a lab after upgrading.
+
 ## 1.9.0
 
 - **A Missions page** on the site, compact like Decisions: the current first, then the next, then the closed.

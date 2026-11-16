@@ -50,13 +50,18 @@ from the record, shortest first. A decision is a discussion, not a request for a
    is an option. If the discussion changes the options, rewrite the card's Options before deciding.
 4. When it is settled, write what was decided and why, in the lab's words, in two to four sentences:
    `lab decide <decision> --with <their name> "<what was decided and why>"`.
-5. Show them the sentence you recorded. If they correct it, the correction is a new decision.
+5. Show them the sentence you recorded. If they correct it, and `lab show <decision>` says it is still a draft
+   (no mission launched on it, no run of a step it orders, of a step under what came out of it, or on a resource
+   whose amounts it set), revise that decision: its card, its Decided text, its
+   lists. Only a locked decision needs a new one. When drafts in a row say one thing between them, fold them into
+   one: it lists the others under `folds:` and takes in what they said; remove their files, and point whatever named
+   them (a mission's `carries:`, a resource's `from`, a card's `from:`) at it.
 6. Make what follows: `lab new goal|question ... --from <decision>`, a change to `resources.toml`,
    an override on an experiment. Then go on with the lab-work skill.
 
 A decision that will change an amount, add a resource or allow one experiment a higher cap lists
 that resource or that experiment under `about:` before it is decided: `lab new decision "<title>"
---about <resource or id>`. What a settled decision is about cannot be changed afterwards, and a
+--about <resource or id>`. What a locked decision is about cannot be changed afterwards, and a
 resource's new amount names the decision in `from`.
 
 ## When they decide something nobody raised
@@ -72,7 +77,7 @@ the Decided text why and what would bring it back. To bring one back, a new deci
 When they agree an order of work ("this first, then these side by side"), record it on the decision as
 `order: [<ids>]`, first to last: goals, questions or steps, each once. A question or a goal stands for every
 step under it; a step named on its own takes its own place. Steps not named follow, in the tree's order. Say
-the order in the Decided text too. To change it, a new decision with a new `order:`; never edit a settled one,
+the order in the Decided text too. To change it, revise the decision while it is a draft, else a new decision with a new `order:`; never edit a locked one,
 and never write the order anywhere else (not in `AGENTS.md`, not on a step).
 
 ## Rules
