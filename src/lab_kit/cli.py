@@ -113,7 +113,7 @@ def main(argv=None):
             print(f"saved {made}: {path}. Say what it is for under the front matter, and its rules")
         elif rest[0] == "launch" and len(rest) <= 2:
             made, path = write.mission_launch(lab, ident())
-            print(f"launched {made}: {path}")
+            print(f"launched {made}: {path}, and log.md")
         elif rest[0] in ("log", "close") and len(rest) == 2 and re.fullmatch(r"M\d+", rest[1]):
             raise SystemExit(f'say what happened after the mission: lab mission {rest[0]} {rest[1]} "<what>"')
         elif rest[0] == "log" and len(rest) in (2, 3):

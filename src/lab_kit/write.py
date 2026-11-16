@@ -444,8 +444,11 @@ def mission_launch(lab, ident=None):
         stop(f"{m['carries']} is still open: a mission carries out a settled decision. Settle it with the operator first")
     if not m["description"]:
         stop(f"{m['path']}: say what the mission is for, in the paragraph under the front matter")
+    title = (m["title"] or "untitled").replace("|", "/")
+    line = log_line(lab, m["carries"], "agent", f"Mission launched: {m['id']} {title}", f"It carries {m['carries']}, which is locked from now on", _mission=True)
     _mission_append(lab, m, _mission_line("launched"))
     _mission_status(lab, m, "current")
+    log(lab, m["carries"], "agent", *line, _mission=True)  # the lab's log only grows: it holds that the decision was acted on
     return m["id"], m["path"]
 
 

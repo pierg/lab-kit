@@ -12,7 +12,11 @@
   never used again, its log lines are read as about the decision that took it in, and an old link to it opens that
   decision. A locked decision cannot be folded. A resource whose `from` named the draft names the decision that
   took it in.
-- The skills `lab-talk` and the method changed: run `lab init` in a lab after upgrading.
+- `lab mission launch` writes a line in the lab's log about the decision it carries (`Mission launched:`), which
+  locks it. What locks a decision is read from what the record holds: the log, the lists of runs, and every `order:`
+  it was committed with. A goal's or a question's `from:` no longer changes once committed, and a resource's `from`
+  changes only with its amounts, save in both cases to the decision that folded the one it named.
+- The skills `lab-talk` and `lab-mission` and the method changed: run `lab init` in a lab after upgrading.
 
 ## 1.9.0
 

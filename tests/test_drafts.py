@@ -106,3 +106,68 @@ def test_the_site_opens_a_folded_decision_where_it_went(tmp_path):
     assert 'href="/D3"' in site.ref(lab_, "D2")
     box = site.decision_box(lab_, site.Text(lab_, "D3"), lab_.nodes["D3"])
     assert "Folds in" in box and "Draft" in box
+
+
+def test_a_settled_decision_is_never_reopened_even_as_a_draft(tmp_path):
+    root = str(tmp_path)
+    open_question(root)
+    card, d2 = settled_order(root, ["G1.Q1"], "The first question first", "The first question first: it is the only one.")
+    commit(root)
+    text = open(card).read()
+    open(card, "w").write(re.sub(r"decided: .*\n", "", text).split("## Decided")[0])
+    assert "no longer says what was decided: a settled decision is never reopened" in lab(root, "check", "--no-rederive", ok=False)
+    open(card, "w").write(text)
+    front(card, folds="[D99]")
+    assert "folds D99, which the log never says was decided" in lab(root, "check", "--no-rederive", ok=False)
+
+
+def test_what_acted_on_a_decision_cannot_be_taken_back_to_unlock_it(tmp_path):
+    from test_mission import saved
+    root = str(tmp_path)
+    open_question(root)
+    ident, d, command = experiment(root)
+    card, d2 = settled_order(root, [ident], "The first experiment first", "The error experiment first: it is the cheapest check of the law.")
+    lab(root, "lock", ident)
+    lab(root, "run", ident, "--wait", "--", *command)  # under G1.Q1, which came out of D1, and named by D2's order
+    commit(root)
+    d1 = glob.glob(f"{root}/decisions/D1-*.md")[0]
+    question = glob.glob(f"{root}/goals/G1-*/Q1-*/question.md")[0]
+    texts = {p: open(p).read() for p in (card, d1, question, f"{root}/resources.toml")}
+
+    # D2 is locked by the run of the step it orders: emptying its order does not unlock it
+    open(card, "w").write(texts[card].replace(f"order: [{ident}]", "order: []").replace("the cheapest check", "the quickest check"))
+    assert "was locked when" in lab(root, "check", "--no-rederive", ok=False)
+    open(card, "w").write(texts[card])
+
+    # D1 is locked by a run under the question that came out of it: pointing the question elsewhere is refused
+    front(question, **{"from": d2})
+    open(d1, "w").write(texts[d1].replace("It runs on the laptop.", "It runs on the GPU."))
+    out = lab(root, "check", "--no-rederive", ok=False)
+    assert "`from:` was D1 when first committed" in out and "D1-" in out and "was locked when" in out
+    open(question, "w").write(texts[question])
+    open(d1, "w").write(texts[d1])
+
+    # a resource's `from` does not move without its amounts
+    open(f"{root}/resources.toml", "w").write(texts[f"{root}/resources.toml"].replace('from = "D1"', f'from = "{d2}"'))
+    commit(root, "the gpu's from moved")
+    assert "`from` changed in " in lab(root, "check", "--no-rederive", ok=False)
+    git(root, "revert", "--no-edit", "HEAD")
+
+    # a mission's launch is in the lab's log: pointing the mission elsewhere afterwards does not unlock its decision
+    card3, d3 = settled_order(root, ["G1"], "The goal first", "The goal first, with its first question at the top.")
+    _, mission = saved(root, "The goal", d3)
+    lab(root, "mission", "launch")
+    assert f"| {d3} | agent | Mission launched: M1 The goal |" in open(f"{root}/log.md").read()
+    commit(root, "launched")
+    text = open(mission).read()
+    open(mission, "w").write(text.replace(f"carries: {d3}", f"carries: {d2}"))
+    text3 = open(card3).read()
+    open(card3, "w").write(text3.replace("at the top", "first of all"))
+    assert f"{os.path.relpath(card3, root)}: was locked when" in lab(root, "check", "--no-rederive", ok=False)
+    open(mission, "w").write(text)
+    open(card3, "w").write(text3)
+
+    # a decision locked by a run is not folded away
+    os.remove(card)
+    front(card3, folds=f"[{d2}]")
+    assert f"is folded into {d3}, and something acted on it" in lab(root, "check", "--no-rederive", ok=False)

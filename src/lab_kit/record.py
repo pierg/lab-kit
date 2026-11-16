@@ -703,28 +703,32 @@ class Lab:
         when = decided.get("date") if isinstance(decided, dict) else None
         return day(when) or None
 
-    def acts(self, ident, order, since):
+    def acts(self, ident, order, since, came=(), granted=()):
         """What acted on a settled decision, earliest first: [(moment, file, text)], where `file` is the record's file
         that says so and `text` what it says there, so git can tell from which commit on it was so. A mission that
-        carries it was launched, or a run or a trial started, after it was settled, of an experiment that its `order:`
-        names (by its own id, its question's or its goal's), that sits under a goal or a question that came out of it,
-        or that uses a resource whose amounts it set. While there is none, the decision is a draft, and may be revised."""
-        out = []
-        for m in self.missions:
-            if m["carries"] != ident:
+        carries it was launched (the line `lab mission launch` writes in the lab's log, which only grows), or a run or
+        a trial started, after it was settled, of an experiment that its `order:` names (by its own id, its question's
+        or its goal's), that sits under a goal or a question that came out of it, or that uses a resource whose amounts
+        it set. `came` and `granted` add goals, questions and resources that history says came out of it. While there
+        is none, the decision is a draft, and may be revised."""
+        start, out = moment(since), []
+        after = lambda t: moment(t) and (start is None or moment(t) >= start)
+        logged = [l for l in self.lines if l["about"] == ident and l["kind"] == "agent" and l["what"].startswith("Mission launched: ")]
+        out += [(l["at"], "log.md", f"| {ident} | agent | {l['what']}") for l in logged if after(l["at"])]
+        said = {l["what"].split()[2] for l in logged if len(l["what"].split()) > 2}
+        for m in self.missions:  # a mission launched by a kit before 1.10.0 wrote no line in the lab's log: its own log says it
+            if m["carries"] != ident or m["id"] in said:
                 continue
-            launched = [f"{l['day']}T{l['time']}:00+00:00" for l in m["log"] if l.get("what") == "launched"]
-            if not launched and m["state"] != "next":  # current, done or stopped with no launch written: from its first line
-                launched = [f"{l['day']}T{l['time']}:00+00:00" for l in m["log"] if l.get("day")][:1] or [since]
             line = next((l for l in m["log"] if l.get("what") == "launched"), None)
-            out += [(t, m["path"], f"- {line['day']} {line['time']} | launched" if line else m["path"]) for t in launched[:1]]
-        scope = set(order) | {n["id"] for n in self.goals + self.questions if str(n.get("from")) == ident}  # what it orders, and what came out of it
-        granted = {name for name, r in self.resources.items() if isinstance(r, dict) and str(r.get("from")) == ident}  # what it set the amounts of
-        start = moment(since)
+            if line:
+                out += [(f"{line['day']}T{line['time']}:00+00:00", m["path"], f"- {line['day']} {line['time']} | launched")]
+            elif m["state"] != "next":
+                out += [(since, m["path"], m["path"])]
+        scope = set(order) | set(came) | {n["id"] for n in self.goals + self.questions if str(n.get("from")) == ident}  # what it orders, and what came out of it
+        granted = set(granted) | {name for name, r in self.resources.items() if isinstance(r, dict) and str(r.get("from")) == ident}  # what it set the amounts of
         for x in self.experiments:
             if scope & {x["id"], x["question"], x["goal"]} or granted & set(map(str, x.get("uses") or [])):
-                out += [(r["started"], os.path.join(x["dir"], "runs.tsv"), r["id"]) for r in x["runs"] + x["trials"]
-                        if r.get("started") and moment(r["started"]) and (start is None or moment(r["started"]) >= start)]
+                out += [(r["started"], os.path.join(x["dir"], "runs.tsv"), r["id"]) for r in x["runs"] + x["trials"] if r.get("started") and after(r["started"])]
         return sorted((a for a in out if moment(a[0])), key=lambda a: moment(a[0]))
 
     def acted_on(self, ident, order, since):

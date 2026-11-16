@@ -325,7 +325,12 @@ Drafts that say one thing between them may also be folded into one of them: it l
 with it, so the decision that takes it in lists those too. A folded number is never used again, its log lines stay
 and are read as lines about the decision that took it in, and an old link to it opens that decision. Whatever named
 it (a mission's `carries:`, a resource's `from`, a goal's or a question's `from:`) is pointed at the decision that
-took it in, in the same change.
+took it in, in the same change. Only a decision the log says was settled is folded.
+
+What locks a decision is read from what the record holds and does not take back: the lab's log, the lists of runs,
+and every `order:` the decision was ever committed with, so emptying its order unlocks nothing. Where a goal or a
+question came from is held too: its `from:` never changes once committed, save to the decision that folded the one
+it named; and a resource's `from` changes only with its amounts, or to the decision that folded it.
 
 Once something has acted on it, the decision is **locked**: its `decided:`, its `about:`, its `parks:`, its
 `unparks:`, its `drops:`, its `order:`, its `folds:` and its Decided text stay as they are in the first commit
@@ -409,7 +414,8 @@ missions before it takes a machine.
 
 - `lab mission new "<title>" --carries <decision>` saves a mission, as next.
 - `lab mission launch [<mission>]` makes one current: the one named, or with no id the one saved last. It refuses
-  while the decision it carries is open, and while the mission does not say what it is for.
+  while the decision it carries is open, and while the mission does not say what it is for. It writes one line in the
+  lab's log about that decision (`Mission launched:`), which locks it.
 - `lab mission log [<mission>] "<what happened>"` adds a line to a current mission's log. Lines are only added.
 - `lab mission close [<mission>] [--stopped] "<what it did, or why it stopped>"` ends a current mission: its status
   becomes done (stopped, with `--stopped`, when it ended before its work did), its log ends with that line, and one
@@ -841,8 +847,9 @@ in UTC. The file holds no other heading, and a line no other `|`. The kinds are 
 `decision` lines, each with the opening of what was decided. A `doing` line holds what the agent is
 starting on and why now. A line written before the kit kept the time has none.
 A line is about a goal, a question or a step, and a `decision` line about its decision. The one other line
-about a decision is the `agent` line `lab mission close` writes when a mission that carried it ends (`Mission done:`
-or `Mission stopped:`, and `Mission closed:` as 1.4.0 wrote it).
+about a decision is an `agent` line about a mission that carried it: `lab mission launch` writes `Mission launched:`
+when it starts, and `lab mission close` writes `Mission done:` or `Mission stopped:` when it ends (`Mission closed:`
+as 1.4.0 wrote it). A line about a decision folded into another is read as about that one.
 `lab log` ends a line with no space, even when the so what is empty. Spaces at the end of a log line
 are not part of it: `lab check` compares the committed lines of `log.md` with those spaces left out,
 so removing or adding them changes no committed line.

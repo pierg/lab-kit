@@ -51,7 +51,8 @@ from the record, shortest first. A decision is a discussion, not a request for a
 4. When it is settled, write what was decided and why, in the lab's words, in two to four sentences:
    `lab decide <decision> --with <their name> "<what was decided and why>"`.
 5. Show them the sentence you recorded. If they correct it, and `lab show <decision>` says it is still a draft
-   (no mission launched on it, no run of a step it orders), revise that decision: its card, its Decided text, its
+   (no mission launched on it, no run of a step it orders, of a step under what came out of it, or on a resource
+   whose amounts it set), revise that decision: its card, its Decided text, its
    lists. Only a locked decision needs a new one. When drafts in a row say one thing between them, fold them into
    one: it lists the others under `folds:` and takes in what they said; remove their files, and point whatever named
    them (a mission's `carries:`, a resource's `from`, a card's `from:`) at it.

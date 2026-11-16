@@ -122,6 +122,8 @@ def resources(lab):
                 d = lab.nodes.get(lab.folded.get(str(b.get("from")), str(b.get("from"))))  # a draft folded into another is read as that one
                 if b.get("from") == a.get("from") or not d or d["type"] != "decision" or d["state"] != "done" or name not in d["about"]:
                     bad(f"{name}: `granted`, `per_run` or `unit` changed {when}, and `from` does not name another settled decision: an amount changes out of a decision")
+            elif "from" in a and str(a.get("from")) != str(b.get("from")) and lab.folded.get(str(a.get("from"))) != str(b.get("from")):
+                bad(f"{name}: `from` changed {when} from {a.get('from')} to {b.get('from')} with its amounts unchanged: it names the decision that set them, and changes only with them, or to the decision that folded it")
             lost = subsequence(rows(a), rows(b))
             if lost is not None:
                 bad(f"{name}: an `other_use` row was removed or changed {when}: {lost[0]}, {lost[1]}, {lost[2][:40]!r}. Rows are only added")
@@ -178,44 +180,82 @@ def decisions(lab, versions=None, now=None):
                     return "its mission's launch"
         return None
 
+    def came(c, ident):
+        """The goals and questions, and the resources, that came out of a decision as a commit has them."""
+        ids_, names = set(), set()
+        for path in (git(root, "ls-tree", "-r", "--name-only", c, "--", "goals") or "").split():
+            m = re.fullmatch(r"goals/G(\d+)-[^/]+/(?:Q(\d+)-[^/]+/question|goal)\.md", path)
+            fm, _ = card(git(root, "show", f"{c}:./{path}") or "") if m else (None, {})
+            if fm and str(fm.get("from")) == ident:
+                ids_.add(f"G{int(m.group(1))}" + (f".Q{int(m.group(2))}" if m.group(2) else ""))
+        for name, r in (tables(git(root, "show", f"{c}:./resources.toml")) or {}).items():
+            if isinstance(r, dict) and str(r.get("from")) == ident:
+                names.add(name)
+        return ids_, names
+
+    def first(acts):
+        """The first commit that records any of what acted, or None while none does yet."""
+        found = []
+        for _, path, text in acts:
+            area = path.split("/")[0]  # `log.md`, `missions` or `goals`: searched as a whole, so a renamed folder is the same place
+            c = (git(root, "log", "--reverse", "--find-renames", "--format=%H %ct", "-S", text, "--", area) or "").split("\n")[0].split()
+            if c:
+                found.append((int(c[1]), c[0]))
+        return min(found)[1] if found else None
+
     for where, commits in sorted(versions.items()):
         if not DECISION.fullmatch(commits[-1][1]):
             continue
         ident = f"D{int(DECISION.fullmatch(commits[-1][1]).group(1))}"
+        held_as = [(c, path, settled(git(root, "show", f"{c}:./{path}") or "")) for c, path in commits]  # oldest first
+        held_as = [h for h in held_as if h[2]]
+        orders = {i for _, _, h in held_as for i in h[5]}  # every order it was ever committed with: emptying it unlocks nothing
         if where not in now:
             into = lab.nodes.get(lab.folded.get(ident, ""))
-            fm, _ = card(git(root, "show", f"{commits[-1][0]}:./{commits[-1][1]}") or "")
-            acted = fm and fm.get("decided") is not None and (lab.acted_on(ident, ids(fm.get("order")), lab.settled_at(ident, fm.get("decided")))
-                                                              or launched(last(commits[-1][1]), ident))
+            c = last(commits[-1][1])
+            fm, _ = card(git(root, "show", f"{c}:./{commits[-1][1]}") or "")
+            acted = None
+            if fm and fm.get("decided") is not None:
+                ids_, names = came(c, ident)
+                acts = lab.acts(ident, orders | set(ids(fm.get("order"))), lab.settled_at(ident, fm.get("decided")), ids_, names)
+                acted = acts[0][0] if acts else launched(c, ident)
             if not into:
                 bad(commits[-1][1], "was committed and is gone; nothing recorded is removed. A draft decision is folded into another with `folds:`")
             elif acted:
                 bad(commits[-1][1], f"is folded into {into['id']}, and something acted on it at {acted}: a locked decision stays")
             continue
         mine = lambda path: path if path in now[where] else now[where][0]
-        held_as = [(c, path, settled(git(root, "show", f"{c}:./{path}") or "")) for c, path in commits]  # oldest first
-        held_as = [h for h in held_as if h[2]]
         if not held_as:
             continue  # never committed settled: what is committed now is held from then
         if settled(R.read(os.path.join(root, mine(held_as[0][1])))) is None:
             bad(mine(held_as[0][1]), f"was settled in {held_as[0][0][:8]} and no longer says what was decided: a settled decision is never reopened, even while it is a draft")
             continue
         d = lab.nodes.get(ident)
-        if not d or d.get("type") != "decision" or not d.get("locked"):
+        if not d or d.get("type") != "decision":
+            continue
+        acts = lab.acts(ident, orders | set(d["order"]), d["settled_at"])
+        if not acts:
             continue  # settled and still a draft: it may be revised until something acts on it
         # Held as the decision was in the first commit that records what acted on it; while no commit records it yet,
         # as the last commit has it. Edits committed with the act are part of it; anything after is a change of mind.
-        firsts = []
-        for _, path, text in d["acts"]:
-            area = path.split("/")[0]  # `missions` or `goals`: searched as a whole, so a renamed folder is the same place
-            c = (git(root, "log", "--reverse", "--find-renames", "--format=%H %ct", "-S", text, "--", area) or "").split("\n")[0].split()
-            if c:
-                firsts.append((int(c[1]), c[0]))
-        at = min(firsts)[1] if firsts else "HEAD"
+        at = first(acts) or "HEAD"
         c, path, was = next(((c, p, w) for c, p, w in reversed(held_as) if git(root, "merge-base", "--is-ancestor", c, at) is not None), held_as[0])
         if settled(R.read(os.path.join(root, mine(path)))) != was:
-            bad(mine(path), f"was locked when {d['acted'][:16].replace('T', ' ')} acted on it, as committed in {c[:8]}" + ("" if mine(path) == path else f" as {path}")
+            bad(mine(path), f"was locked when {acts[0][0][:16].replace('T', ' ')} acted on it, as committed in {c[:8]}" + ("" if mine(path) == path else f" as {path}")
                 + ", and what it parks, drops, folds or brings back, the order it sets, its `decided:`, its `about:` or its Decided text has changed since; a change of mind is a new decision")
+
+    # Where a goal or a question came from is held: once committed, its `from:` changes only to the decision that
+    # folded the one it named. Else a decision could be unlocked by pointing what came out of it elsewhere.
+    for n in lab.goals + lab.questions:
+        firsts = (git(root, "log", "--reverse", "--follow", "--name-only", "--format=%H", "--", n["path"]) or "").split()  # each commit, then the name it had there
+        if len(firsts) < 2:
+            continue
+        fm, _ = card(git(root, "show", f"{firsts[0]}:{firsts[1]}") or "")  # a name git prints is from the repository's top
+        if not fm:
+            continue
+        was_, is_ = str(fm.get("from")), str(n.get("from"))
+        if was_ != is_ and lab.folded.get(was_) != is_:
+            bad(n["path"], f"`from:` was {was_} when first committed in {firsts[0][:8]} and is {is_} now: where a {n['type']} came from does not change, save to the decision that folded the one it named")
     return problems
 
 
