@@ -2,6 +2,7 @@ name: gate
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
@@ -21,7 +22,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev,site]"
       - name: Tests
-        run: python -m pytest -q -rs
+        run: python -m pytest -q -rs -n auto  # the runner has four cores; the tests take half the time
         env:
           LAB_SITE_TESTS: required  # the site's tests run and fail like any other; they never skip here
       # What a lab gets is the wheel: build it, install it alone, and set up a lab with it.
