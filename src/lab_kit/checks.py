@@ -29,6 +29,8 @@ def run(lab, rederive=True):
     if not here:
         notes.append("the store is not here: runs and re-derivation were not checked")
         unchecked = True
+    if lab.held.get("error"):  # what locks a decision is read from git; without it a lock could be edited away unseen
+        bad("history", "git", f"what locks a decision could not be read from the lab's history: {lab.held['error']}")
 
     absent = {}  # the libraries the charter names whose folder is not on this machine
 

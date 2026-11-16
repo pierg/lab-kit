@@ -16,6 +16,9 @@
   locks it. What locks a decision is read from what the record holds: the log, the lists of runs, and every `order:`
   it was committed with. A goal's or a question's `from:` no longer changes once committed, and a resource's `from`
   changes only with its amounts, save in both cases to the decision that folded the one it named.
+- What git holds about a lab's decisions is read once per commit and kept in `~/.cache/lab-kit/held/`, outside the
+  lab. If it cannot be read, `lab check` fails and says why. A mission launched before 1.10.0 wrote no line in the
+  log: its own file is read instead, so pointing it at another decision moves its lock with it.
 - The skills `lab-talk` and `lab-mission` and the method changed: run `lab init` in a lab after upgrading.
 
 ## 1.9.0

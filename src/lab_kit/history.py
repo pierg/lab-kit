@@ -27,7 +27,7 @@ same place: what was committed under the old name is held under the new one.
 """
 from __future__ import annotations
 
-import glob, os, re, subprocess
+import glob, json, os, re, subprocess
 
 from . import record as R
 
@@ -151,6 +151,16 @@ def held_scope(lab):
     root, out = lab.root, {"from": {}, "granted": {}, "orders": {}}
     if not committed(root):
         return out
+    # It depends only on the commits, so it is kept per commit, outside the lab: reading it costs a git call per card.
+    head = (git(root, "rev-parse", "HEAD") or "").strip()
+    top = (git(root, "rev-parse", "--show-prefix") or "").strip()
+    cache = os.path.join(os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache"), "lab-kit", "held",
+                         R.text_hash(os.path.realpath(root) + "|" + top + "|" + head + "|" + str(sorted(n["path"] for n in lab.goals + lab.questions)))[:32] + ".json")
+    try:
+        kept = json.load(open(cache))
+        return {"from": kept["from"], "granted": {k: set(v) for k, v in kept["granted"].items()}, "orders": {k: set(v) for k, v in kept["orders"].items()}}
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        pass
     for n in lab.goals + lab.questions:
         names = (git(root, "log", "--reverse", "--follow", "--name-only", "--format=%H", "--", n["path"]) or "").split()  # each commit, then the name it had there
         if len(names) >= 2:
@@ -168,6 +178,13 @@ def held_scope(lab):
                 fm, _ = card(git(root, "show", f"{c}:./{path}") or "")
                 if fm and fm.get("decided") is not None:
                     out["orders"].setdefault(f"D{int(m.group(1))}", set()).update(ids(fm.get("order")))
+    try:
+        os.makedirs(os.path.dirname(cache), exist_ok=True)
+        with open(cache + ".tmp", "w") as f:
+            json.dump({"from": out["from"], "granted": {k: sorted(v) for k, v in out["granted"].items()}, "orders": {k: sorted(v) for k, v in out["orders"].items()}}, f)
+        os.replace(cache + ".tmp", cache)
+    except OSError:
+        pass  # no place to keep it: it is read again next time
     return out
 
 
