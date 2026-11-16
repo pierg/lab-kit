@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.10.1
+
+- **A fold, once committed, ends what can lock the folded decision.** `lab check` refused a draft folded into another
+  as soon as a run started under an order the draft once held, even when the run started after the fold was
+  committed. Only what acted before the commit that removed the folded decision's file now locks it; what acts later
+  acts on the decision that took it in. A run that started before that commit still locks it, even when its line in
+  `runs.tsv` is committed with the fold.
+
 ## 1.10.0
 
 - **A settled decision is a draft until something acts on it.** A mission that carries it is launched, or a run or a

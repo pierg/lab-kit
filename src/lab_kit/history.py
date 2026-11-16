@@ -207,11 +207,15 @@ def decisions(lab, versions=None, now=None):
         return (str(fm.get("decided")), s("about"), s("parks"), s("unparks"), s("drops"), ids(fm.get("order")), s("folds"),  # its order is kept as written
                 R.flat(slots.get("Decided", "")))
 
+    def removed(path):
+        """The commit that removed a file, or None while HEAD still has it and only the work tree lacks it."""
+        if git(root, "cat-file", "-e", f"HEAD:./{path}") is not None:
+            return None
+        return (git(root, "log", "-1", "--diff-filter=D", "--format=%H", "--", path) or "").strip() or None
+
     def last(path):
         """The last commit that still had a file: HEAD while only the work tree lacks it, else the one before its removal."""
-        if git(root, "cat-file", "-e", f"HEAD:./{path}") is not None:
-            return "HEAD"
-        gone = (git(root, "log", "-1", "--diff-filter=D", "--format=%H", "--", path) or "").strip()
+        gone = removed(path)
         return f"{gone}^" if gone else "HEAD"
 
     def launched(c, ident):
@@ -252,7 +256,12 @@ def decisions(lab, versions=None, now=None):
             fm, _ = card(git(root, "show", f"{c}:./{commits[-1][1]}") or "")
             acted = None
             if fm and fm.get("decided") is not None:
-                acts = lab.acts(ident, orders | set(ids(fm.get("order"))), lab.settled_at(ident, fm.get("decided")))
+                # Only what acted while it was still here locks it: an act after the commit that removed it acts on
+                # the decision that took it in. While the removal is not committed yet, everything so far counts.
+                gone = removed(commits[-1][1])
+                until = R.moment((git(root, "log", "-1", "--format=%cI", gone) or "").strip()) if gone else None
+                acts = [a for a in lab.acts(ident, orders | set(ids(fm.get("order"))), lab.settled_at(ident, fm.get("decided")))
+                        if until is None or R.moment(a[0]) <= until]
                 acted = acts[0][0] if acts else launched(c, ident)
             if not into:
                 bad(commits[-1][1], "was committed and is gone; nothing recorded is removed. A draft decision is folded into another with `folds:`")
