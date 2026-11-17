@@ -594,11 +594,22 @@ class Lab:
         for r in rows[1:]:
             row = dict(zip(LEDGER, r + [""] * (len(LEDGER) - len(r))))
             run, what = row["run"], row["what"]
-            if len(r) < 6 or len(r) > len(LEDGER) or not RUN_ID.match(run) or row["kind"] not in ("run", "trial") or what not in ("started", "ended", "lost") or not moment(row["at"]):
-                self.problems.append(f"runs: {where}: the row for {run[:40]!r} is not `run, kind, started|ended|lost, time, exit, seal, used, note`")
+            if len(r) < 6 or len(r) > len(LEDGER) or not RUN_ID.match(run) or row["kind"] not in ("run", "trial") or what not in ("started", "ended", "lost", "amended") or not moment(row["at"]):
+                self.problems.append(f"runs: {where}: the row for {run[:40]!r} is not `run, kind, started|ended|lost|amended, time, exit, seal, used, note`")
                 continue
-            e = out.setdefault(run, {"id": run, "kind": row["kind"], "started": None, "ended": None, "exit": None, "seal": None, "lost": "", "used": None})
-            if (what == "started" and e["started"]) or (what != "started" and e["ended"]) or e["kind"] != row["kind"]:
+            e = out.setdefault(run, {"id": run, "kind": row["kind"], "started": None, "ended": None, "exit": None, "seal": None, "lost": "", "used": None, "amended": None})
+            if what == "amended":
+                try:
+                    used = json.loads(row["used"]) if row["used"] else {}
+                except ValueError:
+                    used = None
+                if e["amended"] or not e["ended"] or e["lost"] or e["kind"] != row["kind"]:
+                    self.problems.append(f"runs: {where}: {run} is amended twice, or before it ended, or after it was declared lost")
+                elif not flat(row["note"]) or not re.fullmatch(r"[0-9a-f]{64}", row["seal"]) or not isinstance(used, dict) or not used or not all(amount(v) for v in used.values()):
+                    self.problems.append(f"runs: {where}: {run} is amended with no reason, no seal, or a use that is not `{{\"<resource>\": <amount>}}`")
+                else:
+                    e["amended"] = {"at": row["at"], "seal": row["seal"], "used": used, "why": flat(row["note"])}
+            elif (what == "started" and e["started"]) or (what != "started" and e["ended"]) or e["kind"] != row["kind"]:
                 self.problems.append(f"runs: {where}: {run} is listed twice as {'started' if what == 'started' else 'ended'}")
             elif what == "started":
                 e["started"] = row["at"]
@@ -795,6 +806,13 @@ class Lab:
             r["orphan"] = r["state"] == "running" and r.get("host") == os.uname().nodename and not alive(r.get("pid"))
             note = d + ".unpublished"
             r["unpublished"] = read(note).strip() if os.path.exists(note) else ""
+            r["own_used"] = dict(r.get("used") or {})
+            amended = d + ".amended.json"  # what the run used and did not record, stated after it ended: beside its folder, not in it
+            r["amendment"] = None if r["local"] or not os.path.lexists(amended) else (self._json(amended) or {})
+            a = r["amendment"]
+            if isinstance(a, dict) and isinstance(a.get("used"), dict):
+                more = {k: v for k, v in a["used"].items() if k not in r["own_used"]}
+                r["used"], r["used_amended"] = {**r["own_used"], **more}, sorted(more)
             out.append(r)
         here = {r["id"] for r in out}
         for x in self.experiments:  # a run the ledger lists and the store does not hold: known to have run, with nothing to read

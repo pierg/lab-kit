@@ -271,6 +271,12 @@ def run(lab, rederive=True):
                     why = runs_.verify(os.path.join(root, r["dir"]))
                     if why:
                         bad("runs", where, why)
+                if r.get("amendment") is not None:
+                    why = runs_.check_amendment(lab, r, listed)
+                    if why:
+                        bad("runs", where, why)
+                elif listed and listed.get("amended") and not r["local"]:
+                    bad("runs", where, f"runs.tsv lists an amendment of it, and {r['id']}.amended.json is not beside it in the store")
                 for name, cap in (r.get("cap") or {}).items():
                     used = (r.get("used") or {}).get(name)
                     if used is None:

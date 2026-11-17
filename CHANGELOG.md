@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.11.0
+## 1.12.0
 
 - **Papers drive the work; the record names no paper** (method rule 8, model section 4). A lab that writes
   papers keeps one overview page of the whole trail and one page per active paper, written as that paper's
@@ -18,6 +18,18 @@
   that no paper lists, by themselves or by their question or goal.
 - The skills `lab-set-up`, `lab-work`, `lab-talk` and `lab-review` and the method changed: run `lab init` in a lab
   after upgrading.
+
+## 1.11.0
+
+- **An ended run that did not record what it used can be amended.** A run stopped before its machines' files came
+  back seals with no amount for a resource it ran on, and `lab check` says it "did not record what it used"; `lab
+  runs close` refused it, since it had ended. `lab runs close <run> "<why>" --used <resource>=<amount>...
+  --evidence <folder>` now writes a sealed amendment, `<run>.amended.json`, beside the run's folder in the store,
+  never inside it: the run's seal, the amounts, why, and every file of the evidence with its hash. `runs.tsv`
+  lists it on an `amended` row with its seal. It covers only resources the run ran on and did not record, once.
+  `lab check` counts the amounts, and checks the amendment's seal, its row, the run's seal and the evidence's
+  hashes.
+- The skill `lab-work` changed: run `lab init` in a lab after upgrading.
 
 ## 1.10.1
 

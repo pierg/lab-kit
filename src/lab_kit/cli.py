@@ -32,6 +32,7 @@ For evidence
   lab run <experiment> [--trial] [--wait] [--changed "<what changed since the last run, and why>"] -- <command>
   lab runs                                  every run; also: lab runs publish [--keep] | fetch <run>
   lab runs close <run> "<why>" [--used <resource>=<amount>]...   a run whose process died; --used for one that wrote no used.json
+  lab runs close <run> "<why>" --used <resource>=<amount>... --evidence <folder>   an ended run that did not record what it used of a resource it ran on
   lab runs lost <run> "<why>" [--used <resource>=<amount>]...    a run that started and whose folder is gone for good
   lab review <experiment> plan|results pass|fail "<note>" [--by <who>]
   lab check [--no-rederive] [--strict]      runs every command in results.tsv: only on a lab you trust. --strict fails when
@@ -163,13 +164,17 @@ def main(argv=None):
                     used[name] = float(text) if "." in text or "e" in text.lower() else int(text)
                 except ValueError:
                     raise SystemExit(f"--used {pair}: <resource>=<amount>")
+            evidence = flag("--evidence")
             if len(rest) != 3:
                 raise SystemExit(USAGE)
+            if evidence and rest[0] == "lost":
+                raise SystemExit("--evidence is for `lab runs close` on a run that has ended")
             if rest[0] == "lost":
                 with runs.exclusive(lab.root):
                     print(f"recorded as lost in {runs.lost(Lab(lab.root), rest[1], rest[2], used)}; commit it")
             else:
-                print(f"closed: {runs.close(lab, rest[1], rest[2], used)}")
+                done = runs.close(lab, rest[1], rest[2], used, evidence)
+                print(f"amended: {done[0]}, listed in {done[1]}; commit it" if isinstance(done, tuple) else f"closed: {done}")
         elif rest[0] == "publish":
             keep = flag("--keep", switch=True)
             for r in lab.runs:  # a run that ended where the lab could not be written gets its seal listed here
