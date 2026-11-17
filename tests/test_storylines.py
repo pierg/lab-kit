@@ -29,9 +29,19 @@ def page(root, path, title="Storyline A: The square-root law", included=(), excl
     open(f"{d}/index.html", "w").write(PAGE.format(title=title, included=links(*included), excluded=links(*excluded), open=links(*open_)))
 
 
-def storylines(root, overview="entries/where-the-results-stand", active=("entries/storyline-a",)):
+def storylines(root, overview="entries/where-the-results-stand", active=("entries/storyline-a",), listed=None):
     text = open(f"{root}/lab.toml").read().split("[storylines]")[0]
     open(f"{root}/lab.toml", "w").write(text + f'[storylines]\noverview = "{overview}"\nactive = [{", ".join(chr(34) + a + chr(34) for a in active)}]\n')
+    home_map(root, active if listed is None else listed)
+
+
+def home_map(root, listed, name="library", home=("library",), extra=""):
+    os.makedirs(f"{root}/docs/content/maps", exist_ok=True)
+    open(f"{root}/docs/folio.yaml", "w").write("name: lab\nhome:\n  maps: [" + ", ".join(home) + "]\n")
+    rows = "".join(f'<li><a href="/content/{a}/">{a}</a> <span class="why">why</span></li>' for a in listed)
+    open(f"{root}/docs/content/maps/{name}.html", "w").write(
+        f'<html><body><main><h2 id="current-storylines">Current storylines</h2><ul class="rows">{rows}</ul>{extra}'
+        f'<h2 id="what-the-lab-proves">What the lab proves</h2><ul class="rows"><li><a href="/content/entries/where-the-results-stand/">Overview</a></li></ul></main></body></html>')
 
 
 def two_experiments(root):
@@ -187,3 +197,35 @@ def test_a_table_inside_a_scope_cell_is_read_as_part_of_it(tmp_path):
     open(f"{d}/index.html", "w").write(f'<html><body><table><tr><td data-scope="included"><table><tr><td>{links(first, void)}</td></tr></table></td>'
                                        f'<td data-scope="excluded"></td><td data-scope="open">{links(later)}</td></tr></table></body></html>')
     assert f"lists {void} under included, which is void" in lab(root, "check", "--no-rederive", ok=False)
+
+
+def test_the_home_map_lists_the_active_storylines_under_current_storylines(tmp_path):
+    root = str(tmp_path)
+    first, void, later = two_experiments(root)
+    page(root, "entries/storyline-a", included=(first,), excluded=(void,), open_=(later,))
+    page(root, "entries/storyline-b", included=(first,), excluded=(void,), open_=(later,))
+    storylines(root, active=("entries/storyline-a", "entries/storyline-b"), listed=("entries/storyline-a", "entries/old-storyline"))
+    out = lab(root, "check", "--no-rederive", ok=False)
+    assert '"Current storylines" has no row for entries/storyline-b' in out
+    assert '"Current storylines" lists entries/old-storyline, which is not an active storyline' in out
+    assert "where-the-results-stand, which" not in out  # a row under another heading is not read
+    # only a row's first link, in a `rows` list, before the next h2 or h3, is a row; other forms of a page's link count
+    extra = ('<p>See <a href="/content/entries/prose/">a page</a>.</p><ul><li><a href="/content/entries/pointer/">x</a></li></ul>'
+             '<ul class="rows"><li><a href="/content/entries/storyline-b/index.html#top">B</a> <span class="why">vs '
+             '<a href="/content/entries/why/">why</a></span></li></ul><h3 id="later">Later</h3><ul class="rows">'
+             '<li><a href="/content/entries/under-h3/">c</a></li></ul>')
+    home_map(root, ("entries/storyline-a",), extra=extra)
+    assert "storylines:" not in lab(root, "check", "--no-rederive")
+    home_map(root, ("entries/storyline-a", "entries/storyline-a", "entries/storyline-b"))
+    assert '"Current storylines" lists entries/storyline-a more than once' in lab(root, "check", "--no-rederive", ok=False)
+    home_map(root, ("entries/storyline-a", "entries/storyline-b"))
+    home_map(root, ("entries/storyline-a",), name="another", home=("library", "another"))
+    assert 'has a second "Current storylines" section' in lab(root, "check", "--no-rederive", ok=False)
+    home_map(root, ("entries/storyline-a",), name="another", home=("library",))
+    assert "is not a home map" in lab(root, "check", "--no-rederive", ok=False)
+    os.remove(f"{root}/docs/content/maps/another.html")
+    os.remove(f"{root}/docs/content/maps/library.html")
+    assert 'no home map of the library has a section `<h2 id="current-storylines">' in lab(root, "check", "--no-rederive", ok=False)
+    storylines(root, active=())
+    os.remove(f"{root}/docs/content/maps/library.html")
+    assert "storylines:" not in lab(root, "check", "--no-rederive")  # no active storyline needs no section

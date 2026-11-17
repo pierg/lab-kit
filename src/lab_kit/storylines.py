@@ -10,7 +10,7 @@ serve no storyline.
 """
 from __future__ import annotations
 
-import os, re
+import glob, os, re
 from html.parser import HTMLParser
 
 from . import record as R
@@ -63,6 +63,70 @@ class _Scope(HTMLParser):
     def handle_data(self, data):
         if self._title:
             self.title += data
+
+
+SECTION = "current-storylines"
+PAGE_LINK = re.compile(r"^/content/(.+?)/?(?:index\.html)?(?:[#?].*)?$")
+
+
+class _Section(HTMLParser):
+    """The rows of a map's "Current storylines" section, as folio places them: from `<h2 id="current-storylines">`
+    to the next `h2` or `h3` or the end of `main`, each row the first link of an `<li>` in a list whose classes
+    include `rows`. A link in prose, in a row's reason or in another list is not a row."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.found, self.links, self._in, self._lists, self._li = 0, [], False, [], False
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag in ("h2", "h3"):
+            self._in = tag == "h2" and a.get("id") == SECTION
+            self.found += self._in
+        elif not self._in:
+            return
+        elif tag in ("ul", "ol"):
+            self._lists.append("rows" in (a.get("class") or "").split())
+        elif tag == "li":
+            self._li = bool(self._lists and self._lists[-1])
+        elif tag == "a" and self._li:
+            self._li = False  # only the row's first link places a page
+            m = PAGE_LINK.match(a.get("href") or "")
+            if m:
+                self.links.append(m.group(1).strip("/"))
+
+    def handle_endtag(self, tag):
+        if tag == "main":
+            self._in = False
+        elif self._in and tag in ("ul", "ol") and self._lists:
+            self._lists.pop()
+        elif tag == "li":
+            self._li = False
+
+
+def home_maps(lab):
+    """The map files the library's charter lists under `home.maps`."""
+    import yaml
+    docs = os.path.join(lab.root, lab.cfg.get("library", "docs"))
+    try:
+        charter = yaml.safe_load(open(os.path.join(docs, "folio.yaml"))) or {}
+    except (OSError, yaml.YAMLError):
+        return []
+    home = charter.get("home") if isinstance(charter, dict) else None
+    names = (home.get("maps") if isinstance(home, dict) else None) or []
+    return [os.path.join(docs, "content", "maps", f"{n}.html") for n in names if isinstance(n, str)]
+
+
+def section(lab):
+    """[(map file, [page paths], on a home map)] for each map of the library with a "Current storylines" section."""
+    home = {os.path.normpath(f) for f in home_maps(lab)}
+    out = []
+    for f in sorted(glob.glob(os.path.join(lab.root, lab.cfg.get("library", "docs"), "content", "maps", "*.html")),
+                    key=lambda f: (os.path.normpath(f) not in home, f)):
+        s = _Section()
+        s.feed(R.read(f))
+        out += [(f, s.links, os.path.normpath(f) in home)] * s.found
+    return out
 
 
 def page_file(lab, path):
@@ -180,6 +244,28 @@ def check(lab, bad, notes):
         for a, b in (("included", "excluded"), ("included", "open"), ("open", "excluded")):
             for i in sorted(i for i in set(rows[a]) & set(rows[b]) if lab.nodes.get(i, {}).get("type") != "decision"):  # a decision may be cited wherever it explains a row
                 bad("storylines", where, f"lists {i} under both {a} and {b}: a step or a question has one row; where another row needs it, name it in words, without its link")
+    found = section(lab)
+    for f, _, home in found:
+        if not home:
+            bad("storylines", lab.rel(f), "has a \"Current storylines\" section but is not a home map (`home.maps` in "
+                "folio.yaml): the section goes on a home map, where its rows are the pages' places")
+    found = [x for x in found if x[2]]
+    if not found and active:
+        bad("storylines", "lab.toml", f"no home map of the library has a section `<h2 id=\"{SECTION}\">Current storylines</h2>`: "
+            "one row for each active storyline")
+    for f, _, _ in found[1:]:
+        bad("storylines", lab.rel(f), f"has a second \"Current storylines\" section; the library has one, on {lab.rel(found[0][0])}")
+    if found:
+        f, listed, _ = found[0]
+        for a in active:
+            if a not in listed:
+                bad("storylines", lab.rel(f), f"\"Current storylines\" has no row for {a}, which `[storylines]` lists as active")
+        for x in sorted(set(listed)):
+            if x not in active:
+                bad("storylines", lab.rel(f), f"\"Current storylines\" lists {x}, which is not an active storyline: "
+                    "add it to `active`, or move its row under another heading (`folio map move`)")
+            elif listed.count(x) > 1:
+                bad("storylines", lab.rel(f), f"\"Current storylines\" lists {x} more than once")
     for q, step, at in stale(lab):
         notes.append(f"storylines: {q} was last committed before the result of {step} ({at}): bring the storyline's argument up to date with it")
 
