@@ -109,14 +109,15 @@ rule 8). The record itself never names a storyline: no card, no title, no So far
 - **The overview** (`overview`) keeps the whole trail, whatever storyline it serves: the words on one running
   example, the workflow, every related-work row, every established finding, every criticism and what answers
   it, and what runs now. Nothing is left off it for being off a storyline.
-- **A storyline page** (each of `active`) is that storyline's technical argument, in its community's voice:
-  the page a paper, a talk or a report is later written from. It never talks about the lab, its method or
-  itself ("this page shows", "the lab's record"). It opens, under its thesis, with the scope table: target audience and venues, core thesis, experiments included, experiments
-  excluded or superseded, open experiments. The last three cells carry `data-scope="included"`,
-  `"excluded"` and `"open"`, and list ids as links (`<a href="/lab/G1.Q1.4/">G1.Q1.4</a>`). Then: its words
-  on one running example, its pipeline, the published work of its community compared, its established
-  results citing only included work, the criticisms its reviewers will raise (for each: what is true in
-  it, what the record shows, what remains to run), and last what remains to run.
+- **A storyline page** (each of `active`) is that storyline's technical argument, in its community's voice: the
+  page a paper, a talk or a report is later written from. It never talks about the lab, its method or itself
+  ("this page shows", "the lab's record"). It opens, under its thesis, with the scope table: target audience and
+  venues, core thesis, experiments included, experiments excluded or superseded, open experiments. The last
+  three cells carry `data-scope="included"`, `"excluded"` and `"open"`, and list ids as links
+  (`<a href="/lab/G1.Q1.4/">G1.Q1.4</a>`). Then: its words on one running example, its pipeline, the published work
+  of its community compared, its established results citing only included work, the criticisms its reviewers
+  will raise (for each: what is true in it, what the record shows, what remains to run), and last what remains
+  to run.
 - **A step or a question has one row on a page.** Where another row needs to mention it (excluded because
   a newer run superseded it), name it in words, without its link. A decision may be cited anywhere.
 
