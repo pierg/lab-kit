@@ -173,7 +173,10 @@ Each arrow is a command that refuses when the step before it is missing. You see
   git: one row when a run or a trial starts, and one when it ends, with how it ended and its seal.
   Rows are only added. `lab run` reads that list as well as the store, so a clone without the store
   still knows what ran. `lab check` asks that every listed run is in the store with the seal that
-  was listed, and that every run in the store is listed. Where the store is not mounted the check
+  was listed, and that every run in the store is listed. A run in progress is in the `.lab/running`
+  of the checkout that started it until it ends: one listed as started and not ended whose folder is
+  there in another git worktree of the lab on this machine is running, and the check notes it
+  instead of asking for it in the store. Where the store is not mounted the check
   says so and checks no run.
   **A run that is lost.** A run can start and never report back: the machine dies with its folder on
   it. Its `started` row stays. `lab runs lost <run> "<why>"` adds a row that says so, with the reason

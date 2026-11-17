@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.11.1
+
+- **A run in progress in another checkout no longer fails `lab check`.** A run stays in the `.lab/running` of the
+  checkout that started it until it ends, so every other checkout of the same lab saw a run listed as started and
+  not in the store, and `lab check` failed there with "a run is never removed": with several sessions running
+  experiments in their own worktrees, the gate was red everywhere but in each run's own checkout. A run listed as
+  started and not ended, whose folder is in the `.lab/running` of another git worktree of the lab on this machine,
+  is now a note. A run listed as started whose folder is nowhere is still a problem, the prompt to declare it lost.
+
 ## 1.11.0
 
 - **An ended run that did not record what it used can be amended.** A run stopped before its machines' files came
