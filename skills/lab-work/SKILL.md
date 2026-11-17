@@ -110,7 +110,7 @@ rule 8). The record itself never names a paper: no card, no title, no So far say
   example, the workflow, every related-work row, every established finding, every criticism and what answers
   it, and what runs now. Nothing is left off it for being off a paper.
 - **A paper page** (each of `active`) is that paper's technical argument, in its community's voice, and
-  never talks about the lab, its method or itself ("this page", "a selective ledger"). It opens, under its
+  never talks about the lab, its method or itself ("this page shows", "the lab's record"). It opens, under its
   thesis, with the scope table: target audience and venues, core thesis, experiments included, experiments
   excluded or superseded, open experiments. The last three cells carry `data-scope="included"`,
   `"excluded"` and `"open"`, and list ids as links (`<a href="/lab/G1.Q1.4/">G1.Q1.4</a>`). Then: its words

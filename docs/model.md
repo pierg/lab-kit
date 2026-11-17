@@ -400,9 +400,9 @@ question's or an experiment's So far gives the current finding, not the story of
 replaced experiments and the reasons they were replaced keep that story.
 
 A lab opts in by naming the pages in `lab.toml` (section 9). Then `lab check` holds each scope table:
-included lists only finished work that is not void, replaced or dropped, open only work still to do, and a
-step or a question sits in one row; a paper page committed before a result about something it lists is
-noted. `lab now` lists each paper's open experiments, and the live steps no paper lists, by themselves or
+included lists only finished work that is not void, replaced or dropped, open only work still to do, nothing
+parked or dropped is in either, and a goal, a question or a step sits in one row; a paper page committed
+before a result about something it lists under included or open is noted. `lab now` lists each paper's open experiments, and the live steps no paper lists, by themselves or
 by their question or goal.
 
 ## 5. What the agent uses
@@ -951,11 +951,15 @@ in the library and marks the three cells of its scope table that list work, `dat
 <tr><th>Experiments included</th><td data-scope="included"><a href="/lab/G1.Q1.4/">G1.Q1.4</a>, ...</td></tr>
 ```
 
-A cell lists what its `/lab/<id>/` links name; any other text in it is prose. A goal or a question in a cell
-stands for every step under it. Under included, a step is done and not void, and a question or a goal is not
-parked or dropped; under open, a step is open, waiting or running, and a question or a goal is not done,
-parked or dropped. A step or a question has one row on a page: where another row needs to mention it, it is
-named in words, without its link. A decision may be cited in any row. A lab without `[papers]` has none of this.
+A cell lists what its `/lab/<id>/` links name, written from the site's root; any other text in it is prose. A
+cell whose closing tag is left out ends where the next cell or row begins. The rules hold for the ids written in
+the cells. Under included, a step is done and not void, and a question or a goal is not parked or dropped;
+under open, a step is open, waiting or running, and a question or a goal is not done, parked or dropped. A goal,
+a question or a step has one row on a page: where another row needs to mention it, it is named in words,
+without its link. A question written in one row and a step under it written in another is allowed: the open
+question with its one finished step included is the usual case. A decision may be cited in any row. In
+`lab now` and in the note on a stale page, a goal or a question written under included or open stands for
+every step under it. A lab without `[papers]` has none of this.
 
 **Worked-out states.** A goal is open until `reached: true` makes it done or `dropped:` drops it. A
 question is waiting while the decision it came from is open, then open, then done with its answer; it

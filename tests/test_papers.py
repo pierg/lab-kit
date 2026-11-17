@@ -124,3 +124,55 @@ def test_a_paper_older_than_a_result_it_lists_is_noted(tmp_path):
     out = lab(root, "check", "--no-rederive", ok=False)  # the question's So far is stale too, which is a problem
     assert f"note: papers: entries/paper-a was last committed before the result of {first}" in out
     assert "papers:" not in out.split("note: papers:")[1].split("\n", 1)[1]  # a note, never a problem
+
+
+def test_every_rule_on_a_row_and_on_the_table_has_a_refusal(tmp_path):
+    root = str(tmp_path)
+    first, void, later = two_experiments(root)
+    papers(root)
+    from test_flow import folder, front
+    front(f"{folder(root, later)}/experiment.md", dropped="the first comparison answers the question")
+    lab(root, "answer", "G1.Q1", "yes", "It halves at 400 flips.")
+    page(root, "entries/paper-a", included=(first,), excluded=(void,), open_=("G1.Q1",))
+    assert "lists G1.Q1 under open, which is done" in lab(root, "check", "--no-rederive", ok=False)
+    page(root, "entries/paper-a", included=("G1", first), excluded=(void,), open_=("G1",))
+    assert "lists G1 under both included and open" in lab(root, "check", "--no-rederive", ok=False)
+    # a question written in one row and a step under it in another is allowed
+    page(root, "entries/paper-a", included=("G1.Q1",), excluded=(void, later), open_=())
+    assert "papers:" not in lab(root, "check", "--no-rederive")
+    page(root, "entries/paper-a", included=(first,), excluded=("G1.Q1", void), open_=())
+    assert "papers:" not in lab(root, "check", "--no-rederive")
+    for table, said in (('papers = "entries/paper-a"', "`[papers]` is a table"),
+                        ('[papers]\noverview = "entries/where-the-results-stand"\nkept = 1', "`[papers]` holds `kept`"),
+                        ('[papers]\noverview = 3', "`[papers]` names its `overview`"),
+                        ('[papers]\noverview = "entries/where-the-results-stand"\nactive = "entries/paper-a"', "lists its `active` paper pages"),
+                        ('[papers]\noverview = "entries/where-the-results-stand"\nactive = ["entries/paper-a", "entries/paper-a/"]', "lists entries/paper-a more than once"),
+                        ('[papers]\noverview = "../outside"', "without `..`")):
+        text = open(f"{root}/lab.toml").read().split("[papers]")[0].split("papers =")[0]
+        open(f"{root}/lab.toml", "w").write(text + table + "\n")
+        assert said in lab(root, "check", "--no-rederive", ok=False), table
+
+
+def test_a_parked_or_dropped_question_is_in_neither_included_nor_open(tmp_path):
+    root = str(tmp_path)
+    first, void, later = two_experiments(root)
+    from test_parked import park
+    card, d = park(root, "G1.Q1", "Set the first sizes aside", "")
+    lab(root, "decide", d, "--with", "Ada", "Set the first sizes aside until the sampler is fixed.")
+    papers(root)
+    page(root, "entries/paper-a", included=("G1.Q1",), excluded=(void,))
+    assert "lists G1.Q1 under included, which is parked" in lab(root, "check", "--no-rederive", ok=False)
+    page(root, "entries/paper-a", excluded=(void,), open_=("G1.Q1",))
+    assert "lists G1.Q1 under open, which is parked" in lab(root, "check", "--no-rederive", ok=False)
+
+
+def test_a_cell_left_open_ends_where_the_next_cell_begins(tmp_path):
+    root = str(tmp_path)
+    first, void, later = two_experiments(root)
+    papers(root)
+    d = f"{root}/docs/content/entries/paper-a"
+    os.makedirs(d, exist_ok=True)
+    open(f"{d}/index.html", "w").write(f'<html><head><title>Paper A</title></head><body><table><tr><td data-scope="included">{links(first)}'
+                                       f'<tr><td data-scope="excluded">{links(void)}<tr><td data-scope="open">{links(later)}</table></body></html>')
+    assert "papers:" not in lab(root, "check", "--no-rederive")
+    assert f"open {later} Error at 400 and at 1600 flips (open)" in lab(root, "now")

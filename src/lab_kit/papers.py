@@ -30,6 +30,8 @@ class _Scope(HTMLParser):
         a = dict(attrs)
         if tag == "title":
             self._title = True
+        if self._row and ("data-scope" in a or (self._depth == 1 and self._tag in ("td", "th") and tag in ("td", "th", "tr"))):
+            self._row = None  # a cell whose closing tag is left out ends where the next cell or row begins
         if self._row:
             self._depth += tag == self._tag
             m = LINK.match(a.get("href") or "") if tag == "a" else None
@@ -78,6 +80,9 @@ def config(lab):
         problems.append("`[papers]` lists its `active` paper pages as library paths, such as [\"entries/paper-a\"]")
         active = []
     active = [a.strip("/") for a in active]
+    for path in ([overview] if overview else []) + active:
+        if ".." in path.split("/"):
+            problems.append(f"`[papers]` names {path}; a page is a path inside the library's content, without `..`")
     for a in sorted({a for a in active if active.count(a) > 1}):
         problems.append(f"`[papers]` lists {a} more than once")
     return (overview.strip("/") if overview else None), list(dict.fromkeys(active)), problems

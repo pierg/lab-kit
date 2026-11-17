@@ -44,7 +44,7 @@ You set the lab up in one discussion with the operator, so that everything it se
 11. The site: the lab's `docs/` folder is a folio library whose charter lists `lab_kit.site` under
     `views:`. Set it up with folio's own skill if it is not there.
 12. If the lab will write papers, ask the operator which papers it aims at now, for whom and where (it is
-    direction, and may stay empty). Write the overview page, `entries/where-the-results-stand`, with folio's
+    direction, and may stay empty). Write the overview page (for example `entries/where-the-results-stand`) with folio's
     write skill: the words on one running example, the workflow, the related work, and empty sections for the
     findings and the criticisms. For each paper, write `entries/paper-<slug>`: its thesis, then the scope table
     (target audience and venues, core thesis, experiments included, excluded or superseded, open), with the

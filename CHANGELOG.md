@@ -11,9 +11,9 @@
 - **`[papers]` in `lab.toml`** names the overview and the active paper pages, as library paths. It is optional:
   a lab without it is unchanged. With it, each paper page marks its scope cells `data-scope="included"`,
   `"excluded"` and `"open"`, and `lab check` refuses an id that is not in the lab, a step under included that is
-  not done or is void, a step under open that is finished, a parked or dropped question in either, and a step or
-  a question listed in two rows of one page. It notes a paper page committed before a result about something it
-  lists.
+  not done or is void, a step under open that is finished, a question or goal under open that is done, a parked
+  or dropped question or goal in either, and a goal, question or step listed in two rows of one page. It notes a
+  paper page committed before a result about something it lists under included or open.
 - **`lab now` lists the papers**: each active paper with the open work its scope names, then the live steps
   that no paper lists, by themselves or by their question or goal.
 - The skills `lab-set-up`, `lab-work`, `lab-talk` and `lab-review` and the method changed: run `lab init` in a lab
