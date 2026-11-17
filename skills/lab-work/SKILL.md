@@ -31,9 +31,11 @@ launch or resume one, follow the lab-mission skill: it starts sessions on the st
 works as this skill says.
 
 Then say what you are on, before the first edit: `lab log <id> doing "<what you are starting on>"
-"<why now>"`. Do it again each time you move to another card. This line is the top of the operator's
-front page: it is how they know the lab is alive without asking you. It ends by itself when you log a
-result, a stuck line or a choice about the same card.
+"<why now>"`, with `<id>` the step you work on (create the step first), not the question above it. Do it again each
+time you move to another card. This line is the top of the operator's front page: it is how they know the lab is
+alive without asking you. It ends by itself when you log a result, a stuck line or a choice about the same card or a
+card under it, or when that card is finished. If you stop without any of these, log a stuck or agent line on it, so the
+page does not keep saying you are on it.
 
 ## Writing a card
 

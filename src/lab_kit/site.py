@@ -939,7 +939,8 @@ def qcard(lab, T, q):
 
 
 def live_box(lab, T):
-    """The top of Now: everything live at this moment, each with a pulsing sign, and how fresh the record is."""
+    """The top of Now: the runs and missions going at this moment, each with a pulsing sign; what the agent last said it
+    is on, as a note with its age that never pulses; and how fresh the record is."""
     rows = []
     for x in lab.experiments:
         for r in x["runs"] + x["trials"]:
@@ -950,16 +951,20 @@ def live_box(lab, T):
         last = next((l for l in reversed(m["log"]) if l.get("what")), None)
         rows.append(f'<p><span class="who">mission</span>{mark("running")} <a href="/missions#{e(m["id"])}">{e(m["id"])} {e(m["title"])}</a>'
                     + (f' <span class="muted">last, {nice(last["day"])} {e(last["time"])}: {T(last["what"])}</span>' if last else "") + "</p>")
+    live = bool(rows)  # only a run or a mission is running; what the agent said it is on is a note, and never pulses
     d = lab.doing()
     if d:
-        rows.append(f'<p><span class="who">the agent</span>{mark("running")} on {named(lab, d["about"])}: {T(d["what"])} <span class="muted">Why now:</span> {T(d["so"])} <span class="muted">Since {clock(d["at"])}.</span></p>')
+        at = L.moment(d["at"])
+        rows.append(f'<p><span class="who">the agent</span>said at {clock(d["at"])}{f" ({ago(at)})" if at else ""} it was on {named(lab, d["about"])}: {T(d["what"])} <span class="muted">Why now:</span> {T(d["so"])}</p>')
     elif rows:
         rows.append('<p><span class="who">the agent</span><span class="muted">has not said it is on anything.</span></p>')
     if not rows:
         rows.append('<p><span class="who">quiet</span>Nothing is running and nobody is on anything.</p>')
+    elif not live:
+        rows.insert(0, '<p><span class="who">running</span>Nothing: no run and no mission is going.</p>')
     last = lab.last_record()
     stamp = f'<p class="stamp">Last recorded activity: {clock(last.isoformat())} UTC, {ago(last)}.</p>' if last else ""
-    quiet = "" if d or any("live" in r for r in rows) else " quiet"
+    quiet = "" if live else " quiet"
     return f'<div class="dash-live{quiet}">{"".join(rows)}{stamp}</div>'
 
 

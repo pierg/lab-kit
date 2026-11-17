@@ -342,8 +342,14 @@ def test_a_card_stands_on_its_own_a_replacement_says_why_and_the_agent_says_what
     lab(root, "log", "G1.Q1.2", "doing", "Choosing the sizes.", "The first pair could not tell the law from a flat line.")
     assert "- 09:30 | G1.Q1.2 | doing | Choosing the sizes. |" in open(f"{root}/log.md").read()
     now = lab(root, "now")
-    assert "on G1.Q1.2 The same at other sizes since 2026-01-02 09:30: Choosing the sizes." in now and "last recorded activity" in now
+    assert "said at 2026-01-02 09:30 it was on G1.Q1.2 The same at other sizes: Choosing the sizes." in now and "last recorded activity" in now
     lab(root, "log", "G1.Q1.2", "stuck", "The laptop is busy.")
+    assert "no `doing` line is open" in lab(root, "now")
+    # a doing line on a question is ended by a line about a step under it, and never by one about a sibling question
+    lab(root, "log", "G1.Q1", "doing", "Reading what the two sizes left.", "Both ended unclear.")
+    lab(root, "log", "G1.Q2", "agent", "Kept for after the first question.")
+    assert "it was on G1.Q1 " in lab(root, "now")
+    lab(root, "log", "G1.Q1.2", "result", "The two sizes cannot tell the law from a flat line.")
     assert "no `doing` line is open" in lab(root, "now")
 
 

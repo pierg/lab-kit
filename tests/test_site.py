@@ -138,6 +138,8 @@ def test_the_front_page_says_what_the_agent_is_on_and_a_goal_tells_its_story(tmp
     front_page = site.get("").main
     assert '<span class="who">the agent</span>' in front_page and "Porting the sampler to the GPU." in front_page and "Why now:" in front_page and "Last recorded activity:" in front_page
     assert front_page.index('<span class="who">the agent</span>') < front_page.index("To discuss with you") and "nobody is on anything" not in front_page
+    live = front_page[front_page.index('class="dash-live'):front_page.index("Last recorded activity:")]
+    assert "dash-live quiet" in front_page and " live" not in live and "Nothing: no run and no mission is going." in live and "it was on" in live  # what the agent said is a note, not a run
     assert "Porting the sampler" not in site.get("G1.Q1").main and "Porting the sampler" in site.get("log/doing").main  # a doing line is the present, not history
 
     goal = site.get("G1").main
