@@ -51,9 +51,9 @@ You set the lab up in one discussion with the operator, so that everything it se
     write `entries/storyline-<slug>`: its thesis, then the scope table (target audience and venues, core
     thesis, experiments included, excluded or superseded, open), with the last three cells marked
     `data-scope="included"`, `"excluded"` and `"open"`. Name them in `lab.toml` under `[storylines]`
-    (`overview`, `active`), and open the home map with a heading `<h2 id="current-storylines">Current
-    storylines</h2>` whose rows are the storyline pages (`folio map add <map> <id> --section "Current
-    storylines"`), and nothing else. No card names a storyline (method rule 8).
+    (`overview`, `active`), and give each storyline page its row on a home map under the heading Current
+    storylines (`folio map add <map> <id> --section "Current storylines"`, which writes
+    `<h2 id="current-storylines">`); nothing else goes under that heading. No card names a storyline (method rule 8).
 13. Commit. Git is what holds the record: nothing is held before the first commit, and
     `lab check --strict` says so.
 

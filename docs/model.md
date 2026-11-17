@@ -965,10 +965,13 @@ question with its one finished step included is the usual case. A decision may b
 `lab now` and in the note on a stale page, a goal or a question written under included or open stands for
 every step under it.
 
-The library's home map opens with a section headed `<h2 id="current-storylines">Current storylines</h2>`, and
-its rows are the active storyline pages, each linked as `/content/<path>/`, and nothing else. It is the one place
-those pages have on a map; the overview and a retired storyline have theirs under other headings. The library
-has one such section, on one map. A lab without `[storylines]` has none of this.
+While a storyline is active, one of the library's home maps (`home.maps` in `folio.yaml`) has a section headed
+`<h2 id="current-storylines">Current storylines</h2>`, and its rows are the active storyline pages and nothing
+else. A row is what folio counts as one: the first link, to `/content/<path>/`, of an item of a list whose classes
+include `rows`, from the heading to the next `h2` or `h3`. A link in prose or in a row's reason is not a row. It
+is the one place those pages have on a map; the overview and a retired storyline have theirs under other
+headings. The library has one such section, and no map that is not a home map has one. A lab without
+`[storylines]` has none of this.
 
 **Worked-out states.** A goal is open until `reached: true` makes it done or `dropped:` drops it. A
 question is waiting while the decision it came from is open, then open, then done with its answer; it
