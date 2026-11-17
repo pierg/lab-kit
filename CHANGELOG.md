@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.12.0
+
+- **Papers drive the work; the record names no paper** (method rule 8, model section 4). A lab that writes
+  papers keeps one overview page of the whole trail and one page per active paper, written as that paper's
+  argument and opening with a scope table: audience, thesis, experiments included, excluded or superseded, and
+  open. The papers' open rows and their reviewers' criticisms say what is proposed, ordered, parked or dropped,
+  and a result revises the overview and every paper it touches. So far gives the current finding, never the
+  story of the bugs on the way. Adding, merging or retiring a paper is direction.
+- **`[papers]` in `lab.toml`** names the overview and the active paper pages, as library paths. It is optional:
+  a lab without it is unchanged. With it, each paper page marks its scope cells `data-scope="included"`,
+  `"excluded"` and `"open"`, and `lab check` refuses an id that is not in the lab, a step under included that is
+  not done or is void, a step under open that is finished, a question or goal under open that is done, a parked
+  or dropped question or goal in either, and a goal, question or step listed in two rows of one page. It notes a
+  paper page committed before a result about something it lists under included or open.
+- **`lab now` lists the papers**: each active paper with the open work its scope names, then the live steps
+  that no paper lists, by themselves or by their question or goal.
+- The skills `lab-set-up`, `lab-work`, `lab-talk` and `lab-review` and the method changed: run `lab init` in a lab
+  after upgrading.
+
 ## 1.11.1
 
 - **A run in progress in another checkout no longer fails `lab check`.** A run stays in the `.lab/running` of the

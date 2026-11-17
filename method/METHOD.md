@@ -1,6 +1,6 @@
 # The method
 
-Seven rules every lab keeps. Each says what holds it: a command that refuses, a check, or a reviewer's
+Eight rules every lab keeps. Each says what holds it: a command that refuses, a check, or a reviewer's
 judgement. The lab's own `AGENTS.md` adds only what is local.
 
 1. **Say what would refute it before you run.** An experiment states what it compares, what would
@@ -25,13 +25,14 @@ judgement. The lab's own `AGENTS.md` adds only what is local.
 4. **Write for a reader who was not there.** Every page stands on its own: it says what each thing it
    mentions is, names each arm of an experiment and what it is, names another page by its exact
    title, and uses a term only as the glossary defines it, the one place a word is defined. A number is said once: it lives in its result row, and a card names it. A state is
-   worked out, never written, and So far says what was learned, never where a step stands. Every
+   worked out, never written, and So far says what is learned now, never where a step stands and never the story of
+   the bugs on the way: the replaced experiments keep that. Every
    card has one of the same states: open, waiting, running, parked, done, replaced or dropped. A
    number's label says what it counts and of how many, in one set of cases named once: "of the 20
    checks the solver leaves open", not "of 20". *The numbers and the budgets are held by `lab check`; whether a page
    can be read cold is judged, and the reviewer reads for it.*
 5. **Decide everything that is not direction or resources, and never wait idle.** Direction is the
-   goals and the questions. Resources are what `resources.toml` lists and how much. For those two,
+   goals, the questions and the active papers. Resources are what `resources.toml` lists and how much. For those two,
    open a decision that says what was seen, the options and what you recommend, and work on what it
    does not hold. What a decision settled needs no further yes. Everything else is yours: decide,
    record it, go on. A mission (`missions/`) carries out what a settled decision settled across sessions, and approves
@@ -49,3 +50,11 @@ judgement. The lab's own `AGENTS.md` adds only what is local.
    should never have to ask you. When you start on a card or move to another, log it:
    `lab log <id> doing "<what>" "<why now>"`. The line stands on the front page until a result, a
    stuck line or a choice about the same card ends it. *Judged.*
+8. **Papers drive the work; the record names no paper.** The record is the trail, and no card names a paper.
+   When the lab writes papers, its library keeps one overview of the whole trail, and one page per active
+   paper that is that paper's argument and nothing else. A paper page opens with its scope table: audience,
+   thesis, the experiments included, those excluded or superseded, and those still open. What you propose,
+   order, park or drop follows the papers' open rows and their reviewers' criticisms; when a result lands,
+   revise the overview and every paper it touches, and move what a newer run supersedes to excluded. Adding,
+   merging or retiring a paper is direction. *Held by `lab check` when `lab.toml` names the papers; otherwise
+   judged.*

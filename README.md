@@ -56,5 +56,5 @@ where folio serves the lab, which brings `folio-kb` 0.5.0 or later, and list `la
 ## Read more
 
 - [docs/model.md](docs/model.md): the contract. What you read, how a number becomes a result, who decides, the commands, the files.
-- [method/METHOD.md](method/METHOD.md): the seven rules every lab keeps.
+- [method/METHOD.md](method/METHOD.md): the eight rules every lab keeps.
 - [skills/](skills/): lab-set-up, lab-work, lab-review, lab-talk and lab-mission. [agents/](agents/): the reviewer.

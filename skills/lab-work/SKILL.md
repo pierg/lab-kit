@@ -21,6 +21,11 @@ When a decision has set the order of the work, **Yours next** is already in that
 decision set it; follow it, and bring a change of order to the operator rather than skipping ahead.
 `lab show <id>` before you touch anything.
 
+When the lab names its papers (`lab now` has a **Papers** section), read each active paper page's open row
+and its criticisms before you choose what to propose: they say what the lab is for now. A step listed under
+**Serving no active paper** is a candidate to park or drop, which you bring to the operator in a decision,
+or it belongs on a paper's open row, which you add.
+
 When `lab now` lists a current mission and you were started to run it, or the operator asks to save,
 launch or resume one, follow the lab-mission skill: it starts sessions on the steps, and each of them
 works as this skill says.
@@ -96,6 +101,34 @@ the plan in fixed boxes, then the steps and the record. Write the card for that 
 - **Options are named in words, never letters.** "Read `sll` apart", not "(a)". A decision's options
   are a list, each item opening with its name in bold.
 
+## The papers and the overview
+
+When `lab.toml` names papers (`[papers]`), the library holds two kinds of page above the record (method
+rule 8). The record itself never names a paper: no card, no title, no So far says "Paper A".
+
+- **The overview** (`overview`) keeps the whole trail, whatever paper it serves: the words on one running
+  example, the workflow, every related-work row, every established finding, every criticism and what answers
+  it, and what runs now. Nothing is left off it for being off a paper.
+- **A paper page** (each of `active`) is that paper's technical argument, in its community's voice, and
+  never talks about the lab, its method or itself ("this page shows", "the lab's record"). It opens, under its
+  thesis, with the scope table: target audience and venues, core thesis, experiments included, experiments
+  excluded or superseded, open experiments. The last three cells carry `data-scope="included"`,
+  `"excluded"` and `"open"`, and list ids as links (`<a href="/lab/G1.Q1.4/">G1.Q1.4</a>`). Then: its words
+  on one running example, its pipeline, the published work of its community compared, its established
+  results citing only included work, the criticisms its reviewers will raise (for each: what is true in
+  it, what the record shows, what remains to run), and last what remains to run.
+- **A step or a question has one row on a page.** Where another row needs to mention it (excluded because
+  a newer run superseded it), name it in words, without its link. A decision may be cited anywhere.
+
+When a result lands: bring the overview's findings up to date, then each paper whose argument it touches.
+If it supersedes an included run, move the old one to excluded and cite the new one. If it closes an open
+row, move it to included, or to excluded if it is void or no longer serves the argument. A result's review
+that fails makes the experiment void: take it off every included row. `lab check` refuses what a row may
+not list, and notes a paper committed before a result about something it lists.
+
+Adding, splitting, merging or retiring a paper is direction: bring it to the operator (the lab-talk skill),
+then change the pages and `[papers]`. A retired paper's page leaves `active` and stays in the library.
+
 ## When to open a decision
 
 Open one when a question is answered or an experiment refutes what was expected, when a result
@@ -109,7 +142,9 @@ parked question, and never take it up because it looks open: it is listed under 
 
 1. `lab new decision "<what it is about>" --about <the goals, questions or experiments it concerns>`.
 2. On its card write **Seen** (what was observed, naming results), **Options** (a list of two or
-   three, each item an option with what it costs and what it changes) and **Recommendation**. Put under `holds:` only the
+   three, each item an option with what it costs and what it changes) and **Recommendation**. When the
+   lab names its papers, say which paper's open row or criticism each option serves, by the paper's exact
+   title; an option that serves none says so. Put under `holds:` only the
    experiments that should not start before it is settled.
 3. Keep working on everything it does not hold. The lab-talk skill takes it to the operator and
    records what was decided.
@@ -182,10 +217,13 @@ until that decision is settled; after that it needs no further yes.
    of typing its number: `{attack-success}`. It is shown the way its row says it reads. Bring the
    experiment's **So far** up to date, and rewrite the question's **So far** the same way, with full names: `{G1.Q1.2:attack-success}`.
    So far says what was learned, never where a step stands ("is running", "is next", "no result yet"):
-   the pages draw each step's state. `lab check` reports a question's So far that was last committed
+   the pages draw each step's state. It says what is known now, from the clean runs. When a newer
+   experiment fixes a harness bug or replaces an earlier setup, rewrite So far as the current finding; do
+   not retell the earlier bug, which the replaced experiment and its `because:` keep. `lab check` reports a question's So far that was last committed
    before a result under it, or one it names. Give each result a label that says what it counts and
    of how many, in a set of cases the lab names once ("of the 20 checks the solver leaves open").
 10. `lab log <experiment> result "<what was found, in a sentence, without numbers>" "<so what>"`.
+11. When the lab names its papers, revise them in the same sitting (next section).
 
 The outcome is worked out from the lines: you never write it.
 
