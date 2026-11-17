@@ -374,16 +374,16 @@ def lost(lab, run_id, why, used=None):
     stop(f"no run {run_id} is listed as started")
 
 
-def close(lab, run_id, why, used=None):
+def close(lab, run_id, why, used=None, evidence=""):
     """Close a run whose process died: stop what it left running, record that it stopped and what it used, seal what it
-    left, move it into the store."""
+    left, move it into the store. On a run that has ended, record what it used and did not record (`amend`)."""
     run_id_or_stop(run_id)
     if not R.flat(why):
         stop("say why the run is closed")
     for r in lab.runs:
         if r["id"] == run_id:
             if r["state"] != "running":
-                stop(f"{run_id} has already ended")
+                return amend(lab, run_id, why, used, evidence)
             if r["missing"]:
                 stop(f"{run_id} is listed in runs.tsv and its folder is not on this machine: close it where it ran, or if it is gone for good, `lab runs lost {run_id} \"<why>\"`")
             if not r["orphan"]:
@@ -405,6 +405,97 @@ def close(lab, run_id, why, used=None):
             record_end(lab, record)
             return publish(lab, rdir) or lab.rel(rdir)
     stop(f"no run {run_id}")
+
+
+def amendment(lab, run_id):
+    """Where the amendment of an ended run is kept: beside its folder in the store, never inside it, since the seal
+    covers every file in the folder."""
+    return os.path.join(lab.store, run_id + ".amended.json")
+
+
+def evidence_files(folder):
+    """Every file under the evidence, with its hash."""
+    if os.path.isfile(folder):
+        return {os.path.basename(folder): R.sha(folder)}
+    return {os.path.relpath(os.path.join(top, f), folder): R.sha(os.path.join(top, f)) for top, _, fs in os.walk(folder) for f in fs}
+
+
+def evidence_at(lab, where):
+    return where if os.path.isabs(where) else os.path.join(lab.store_root, where)
+
+
+def check_amendment(lab, r, listed):
+    """Why the amendment beside an ended run does not stand, or None."""
+    a = r.get("amendment")
+    if not isinstance(a, dict) or not isinstance(a.get("used"), dict) or not isinstance(a.get("evidence"), dict) or not isinstance(a["evidence"].get("files"), dict):
+        return "its amendment cannot be read as one `lab runs close` wrote"
+    if R.seal_of(a) != a.get("seal"):
+        return "its amendment does not match its seal"
+    if a.get("run") != r["id"] or a.get("run_seal") != r.get("seal"):
+        return "its amendment is of another run, or of this run with another seal"
+    if not listed or (listed.get("amended") or {}).get("seal") != a["seal"]:
+        return f"its amendment is not the one runs.tsv lists: `lab runs close {r['id']}` lists it when it writes it"
+    for k, v in a["used"].items():
+        if not R.amount(v):
+            return f"its amendment records {v!r} as what it used of {k}: an amount is a number, finite and not negative"
+        if k in (r.get("own_used") or {}):
+            return f"its amendment states what it used of {k}, which the run recorded itself"
+    where = evidence_at(lab, str(a["evidence"].get("path") or ""))
+    if not a["evidence"]["files"] or not os.path.exists(where):
+        return f"the evidence of its amendment, {a['evidence'].get('path')}, is not there"
+    for p, h in a["evidence"]["files"].items():
+        f = where if os.path.isfile(where) else os.path.join(where, p)
+        if not os.path.isfile(f) or R.sha(f) != h:
+            return f"the evidence of its amendment changed: {p} does not match its hash"
+    return None
+
+
+def amend(lab, run_id, why, used, evidence):
+    """Record what an ended run used and did not record: a sealed amendment beside its folder in the store, naming
+    the files the amounts were read from with their hashes, and listed in runs.tsv. What the run recorded stands."""
+    r = next((x for x in lab.runs if x["id"] == run_id), None)
+    if r["missing"] or r["local"]:
+        stop(f"{run_id} is not in the store here: an amendment is written beside a run in the store" + (", so `lab runs publish` it first" if r["local"] else ""))
+    if not used:
+        stop("--used <resource>=<amount>: what the run used and did not record")
+    if not evidence:
+        stop("--evidence <folder>: the files the amounts were read from, kept outside the run's folder")
+    used = stated(lab, used)
+    own = r.get("own_used") or {}
+    for k in used:
+        if k in own:
+            stop(f"{run_id} recorded what it used of {k} itself, and that stands")
+        if k not in (r.get("cap") or {}):
+            stop(f"{run_id} did not run on {k}")
+    rdir = os.path.join(lab.root, r["dir"])
+    why_not = verify(rdir)
+    if why_not:
+        stop(f"{run_id} does not match its seal: {why_not}")
+    path = amendment(lab, run_id)
+    if os.path.lexists(path) or (lab.nodes[r["experiment"]]["listed"].get(run_id) or {}).get("amended"):
+        stop(f"{run_id} has already been amended: an amendment is never rewritten")
+    ev = os.path.abspath(evidence)
+    if not os.path.exists(ev):
+        stop(f"--evidence {evidence}: not there")
+    if ev == os.path.abspath(rdir) or ev.startswith(os.path.realpath(rdir) + os.sep) or ev.startswith(os.path.abspath(rdir) + os.sep):
+        stop("--evidence is outside the run's folder: the run's own files are sealed as they are")
+    files = evidence_files(ev)
+    if not files:
+        stop(f"--evidence {evidence}: holds no files")
+    store = os.path.realpath(lab.store_root)
+    real = os.path.realpath(ev)
+    where = os.path.relpath(real, store) if real.startswith(store + os.sep) else real
+    a = {"run": run_id, "run_seal": r["seal"], "at": now(), "why": " ".join(why.split()), "used": used,
+         "evidence": {"path": where, "files": dict(sorted(files.items()))}}
+    a["seal"] = R.seal_of(a)
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(a, f, indent=1, sort_keys=True)
+        f.write("\n")
+    os.chmod(tmp, 0o444)
+    os.rename(tmp, path)
+    ledger(lab, lab.nodes[r["experiment"]], run_id, r["kind"], "amended", a["at"], seal=a["seal"], used=json.dumps(used, sort_keys=True), note=why)
+    return lab.rel(path), os.path.join(lab.nodes[r["experiment"]]["dir"], "runs.tsv")
 
 
 def listing(lab):

@@ -263,6 +263,11 @@ what should come next: open a decision.
 - **A run's process died.** `lab runs close <run> "<why>"`. It stops whatever the run left going and
   reads the run's `used.json`. If the run used a metered resource and wrote none, say what it used:
   `--used <resource>=<amount>`.
+- **A run ended without recording what it used of a resource it ran on** (it was stopped before its
+  machines' files came back, and `lab check` says it "did not record what it used"). Copy the files
+  the amounts can be read from to a folder outside the run's, read the amounts there, then
+  `lab runs close <run> "<why>" --used <resource>=<amount>... --evidence <folder>`, and commit
+  `runs.tsv`. The amendment is sealed beside the run's folder; the folder is never touched.
 - **A run started and its folder is gone for good** (the machine was deleted with it). `lab runs lost
   <run> "<why>"`, with `--used <resource>=<amount>` for what it spent, then commit. It counts as a
   failed run, and another may follow.

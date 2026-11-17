@@ -389,7 +389,8 @@ that resource, under `about:`.
   the store (`lab runs publish`) and copies one from a store this machine does not mount
   (`lab runs fetch`). Closing a run stops whatever its command left running, reads what it said it
   used, and takes `--used <resource>=<amount>` for a run that said nothing; that amount is recorded
-  as stated by hand. Where the system gives no way to tell that a process is the run's, nothing is
+  as stated by hand. On a run that has already ended, `lab runs close` with `--used` and
+  `--evidence <folder>` writes an amendment instead (below, under `runs.tsv`). Where the system gives no way to tell that a process is the run's, nothing is
   stopped and the command says so. `lab runs lost` records a run that started and whose folder is
   gone for good.
 - **Once:** `lab init`. Run again, it restores the method, the skills and the reviewer role.
@@ -835,10 +836,24 @@ import it in place of a script, and no hash covers it. `lab lock` and `lab run` 
 `lab check` reports it. Under a lock that 1.0.0 made, whose hash did count such a file, it stays.
 
 **`runs.tsv`**, beside the lock and in git, is written by `lab run` and by the run as it ends: `run`
-(its id), `kind` (run, trial), `what` (started, ended, lost), `at`, on the ended row `exit` and `seal`,
-and on a lost row `used` (`{"<resource>": <amount>}`, or empty) and `note` (why it is lost). When a
+(its id), `kind` (run, trial), `what` (started, ended, lost, amended), `at`, on the ended row `exit` and `seal`,
+on a lost row `used` (`{"<resource>": <amount>}`, or empty) and `note` (why it is lost), and on an
+amended row the amendment's `seal`, `used` and `note` (why). When a
 run ends on a machine that cannot write the lab, `lab runs publish`, `lab runs fetch` or
 `lab runs close` adds its ended row.
+
+**An amendment** records what an ended run used of a resource it ran on (one in its `cap`) and did not
+record itself, for example because it was stopped before its machines' files came back:
+`lab runs close <run> "<why>" --used <resource>=<amount>... --evidence <folder>`. The run's folder is
+sealed, every file in it hashed, so nothing is added to it: the amendment is `<run>.amended.json`
+beside the folder in the store, read-only, holding the run's seal, the amounts, why, and the
+evidence the amounts were read from, a folder outside the run's (its path, relative to the store
+when it is in it, and every file in it with its hash), with one seal over it all. Its seal goes into
+`runs.tsv` on an amended row. A run is amended at most once, and what it recorded itself stands.
+`lab check` counts the amended amounts as what the run used, and asks that the amendment matches
+its seal, names this run with its seal, is the one `runs.tsv` lists, and that every file of its
+evidence is still there with its hash; and that a run `runs.tsv` lists as amended has its amendment
+beside it.
 
 **A run** writes into the folder `LAB_RUN` names. If it uses a metered resource it writes
 `used.json` there: `{"<resource>": <amount>}`, each amount a number, finite and not negative;
