@@ -24,16 +24,17 @@ class _Scope(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.title, self.cells, self.marked, self.unknown = "", {r: [] for r in ROWS}, set(), []
-        self._title, self._row, self._tag, self._depth = False, None, None, 0
+        self._title, self._row, self._tag, self._depth, self._tables = False, None, None, 0, 0
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
         if tag == "title":
             self._title = True
-        if self._row and ("data-scope" in a or (self._depth == 1 and self._tag in ("td", "th") and tag in ("td", "th", "tr"))):
+        if self._row and ("data-scope" in a or (self._depth == 1 and not self._tables and self._tag in ("td", "th") and tag in ("td", "th", "tr"))):
             self._row = None  # a cell whose closing tag is left out ends where the next cell or row begins
         if self._row:
             self._depth += tag == self._tag
+            self._tables += tag == "table"  # a table inside the cell has rows and cells of its own
             m = LINK.match(a.get("href") or "") if tag == "a" else None
             if m and m.group(1) not in self.cells[self._row]:
                 self.cells[self._row].append(m.group(1))
@@ -44,12 +45,14 @@ class _Scope(HTMLParser):
         if row not in ROWS:
             self.unknown.append(row)
             return
-        self._row, self._tag, self._depth = row, tag, 1
+        self._row, self._tag, self._depth, self._tables = row, tag, 1, 0
         self.marked.add(row)
 
     def handle_endtag(self, tag):
         if tag == "title":
             self._title = False
+        if self._row and tag == "table" and self._tables:
+            self._tables -= 1
         if self._row and tag == self._tag:
             self._depth -= 1
             if not self._depth:

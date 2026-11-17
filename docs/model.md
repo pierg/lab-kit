@@ -402,7 +402,8 @@ replaced experiments and the reasons they were replaced keep that story.
 A lab opts in by naming the pages in `lab.toml` (section 9). Then `lab check` holds each scope table:
 included lists only finished work that is not void, replaced or dropped, open only work still to do, nothing
 parked or dropped is in either, and a goal, a question or a step sits in one row; a paper page committed
-before a result about something it lists under included or open is noted. `lab now` lists each paper's open experiments, and the live steps no paper lists, by themselves or
+before a result about something it lists under included or open is noted. `lab now` lists each paper's open
+experiments, and the live steps no paper lists, by themselves or
 by their question or goal.
 
 ## 5. What the agent uses

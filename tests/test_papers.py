@@ -176,3 +176,14 @@ def test_a_cell_left_open_ends_where_the_next_cell_begins(tmp_path):
                                        f'<tr><td data-scope="excluded">{links(void)}<tr><td data-scope="open">{links(later)}</table></body></html>')
     assert "papers:" not in lab(root, "check", "--no-rederive")
     assert f"open {later} Error at 400 and at 1600 flips (open)" in lab(root, "now")
+
+
+def test_a_table_inside_a_scope_cell_is_read_as_part_of_it(tmp_path):
+    root = str(tmp_path)
+    first, void, later = two_experiments(root)
+    papers(root)
+    d = f"{root}/docs/content/entries/paper-a"
+    os.makedirs(d, exist_ok=True)
+    open(f"{d}/index.html", "w").write(f'<html><body><table><tr><td data-scope="included"><table><tr><td>{links(first, void)}</td></tr></table></td>'
+                                       f'<td data-scope="excluded"></td><td data-scope="open">{links(later)}</td></tr></table></body></html>')
+    assert f"lists {void} under included, which is void" in lab(root, "check", "--no-rederive", ok=False)
