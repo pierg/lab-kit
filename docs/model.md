@@ -385,14 +385,14 @@ because storylines change, split, merge and are dropped while the record stays a
 them. Above the record, the lab's library holds one **overview** page that keeps the whole trail in one place,
 whatever storyline it serves: the words on one running example, the workflow, every related-work row, every
 established finding, every criticism and what answers it. Beside it, each **active storyline** has its own
-page, written as that argument's technical case and nothing else: it never talks about the lab or how it
+page, written as that storyline's technical argument and nothing else: it never talks about the lab or how it
 works. A storyline page opens, under its thesis, with a **scope table** of five rows: the target audience and
 venues, the core thesis, the experiments included (the clean runs each claim rests on), the experiments
 excluded or superseded (a run that hit a harness bug, a subset a full run replaced, work that belongs to
 another storyline), and the open experiments the storyline still needs. Then come its words on one running
 example, its pipeline, its comparison with the published work of its community, its established results
 citing only included work, the criticisms a reviewer in that community will raise with what answers each,
-and what remains to run. When the time comes to write the paper itself, it is written from this page.
+and what remains to run. When the time comes to write the paper, the talk or the report itself, it is written from this page.
 
 The control runs from the storylines to the lab, not the other way. Which questions and experiments are
 proposed, ordered, parked or dropped follows the open rows and the criticisms on the active storyline pages: a
