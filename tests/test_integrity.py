@@ -516,6 +516,14 @@ def test_a_run_that_never_reports_back_is_declared_lost(tmp_path):
     assert f"lab runs lost {gone}" in lab(root, "run", ident, "--wait", "--", *command, ok=False)
     assert f"lab runs lost {gone}" in lab(root, "runs", "close", gone, "the machine is gone", ok=False)
     assert f"lab runs lost {gone}" in lab(root, "check", "--no-rederive", ok=False)
+    # while its folder is in another checkout's .lab/running on this machine, it is running there: a note, not a problem
+    other = str(tmp_path) + "-other"
+    subprocess.run(["git", "-C", root, "worktree", "add", "-q", "--detach", other], check=True, capture_output=True)
+    os.makedirs(f"{other}/.lab/running/{gone}")
+    out = lab(root, "check", "--no-rederive")
+    assert "the record is sound" in out and f"still running in another checkout on this machine, checked once they end: {gone}" in out
+    shutil.rmtree(f"{other}/.lab/running/{gone}")
+    assert f"lab runs lost {gone}" in lab(root, "check", "--no-rederive", ok=False)
     assert "no run 20260102-0931_G1.Q1.1_zzzz is listed" in lab(root, "runs", "lost", "20260102-0931_G1.Q1.1_zzzz", "gone", ok=False)
     assert "say why" in lab(root, "runs", "lost", gone, " ", ok=False)
     assert "--used laptop=1" in lab(root, "runs", "lost", gone, "The machine was deleted.", "--used", "laptop=1", ok=False)
