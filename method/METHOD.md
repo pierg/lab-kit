@@ -32,7 +32,7 @@ judgement. The lab's own `AGENTS.md` adds only what is local.
    checks the solver leaves open", not "of 20". *The numbers and the budgets are held by `lab check`; whether a page
    can be read cold is judged, and the reviewer reads for it.*
 5. **Decide everything that is not direction or resources, and never wait idle.** Direction is the
-   goals, the questions and the active papers. Resources are what `resources.toml` lists and how much. For those two,
+   goals, the questions and the active storylines. Resources are what `resources.toml` lists and how much. For those two,
    open a decision that says what was seen, the options and what you recommend, and work on what it
    does not hold. What a decision settled needs no further yes. Everything else is yours: decide,
    record it, go on. A mission (`missions/`) carries out what a settled decision settled across sessions, and approves
@@ -50,11 +50,12 @@ judgement. The lab's own `AGENTS.md` adds only what is local.
    should never have to ask you. When you start on a card or move to another, log it:
    `lab log <id> doing "<what>" "<why now>"`. The line stands on the front page until a result, a
    stuck line or a choice about the same card ends it. *Judged.*
-8. **Papers drive the work; the record names no paper.** The record is the trail, and no card names a paper.
-   When the lab writes papers, its library keeps one overview of the whole trail, and one page per active
-   paper that is that paper's argument and nothing else. A paper page opens with its scope table: audience,
+8. **Storylines drive the work; the record names no storyline.** The record is the trail, and no card names a storyline.
+   When the lab keeps storylines (the arguments its papers, talks or reports will be written from), its
+   library keeps one overview of the whole trail, and one page per active
+   storyline that is that storyline's argument and nothing else. A storyline page opens with its scope table: audience,
    thesis, the experiments included, those excluded or superseded, and those still open. What you propose,
-   order, park or drop follows the papers' open rows and their reviewers' criticisms; when a result lands,
-   revise the overview and every paper it touches, and move what a newer run supersedes to excluded. Adding,
-   merging or retiring a paper is direction. *Held by `lab check` when `lab.toml` names the papers; otherwise
+   order, park or drop follows the storylines' open rows and their reviewers' criticisms; when a result lands,
+   revise the overview and every storyline it touches, and move what a newer run supersedes to excluded. Adding,
+   merging or retiring a storyline is direction. *Held by `lab check` when `lab.toml` names the storylines; otherwise
    judged.*

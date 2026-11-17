@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 
-from . import papers, record as R
+from . import storylines, record as R
 
 
 def num(x):
@@ -91,7 +91,7 @@ def _now(lab):
             key = x["label"] if x["state"] == "done" and x.get("label") else x["state"]
             counts[key] = counts.get(key, 0) + 1
         out += [f"- {q['id']} ({state(q)}): {q['title']} [{', '.join(f'{n} {k}' for k, n in counts.items()) or 'nothing under it'}]"]
-    out += papers.now_lines(lab)
+    out += storylines.now_lines(lab)
     aside = lab.set_aside()
     if any(aside.values()):
         out += ["", "Set aside"] + [f"- {q['id']} (parked by {lab.parked_by(q['id'])['id']}): {q['title']}" for q in aside["parked"]]

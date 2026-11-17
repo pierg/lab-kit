@@ -33,9 +33,9 @@ from the record, shortest first. A decision is a discussion, not a request for a
   comes up, give its definition from `lab define` in a few words. Never use a word in its everyday
   sense when it is also a lab term. Compare items in a table.
 - For "where are we": each goal in a line, each open question with what is known so far, what is
-  running, what is next, what there is to discuss. No more than a screen. When the lab names its papers,
-  lead with them: each active paper by its title, with what its open row still needs, then the steps
-  serving no paper.
+  running, what is next, what there is to discuss. No more than a screen. When the lab names its storylines,
+  lead with them: each active storyline by its title, with what its open row still needs, then the steps
+  serving no storyline.
 - `lab brief` is the question's page as text. Give it as it is, cut to what they asked. If what you
   want to say is not in it, the card is missing something: fix the card, then answer.
 - If the record does not say, say so. Never fill a gap from memory.
@@ -66,14 +66,14 @@ that resource or that experiment under `about:` before it is decided: `lab new d
 --about <resource or id>`. What a locked decision is about cannot be changed afterwards, and a
 resource's new amount names the decision in `from`.
 
-## Papers
+## Storylines
 
-When the lab names its papers, they set the direction: the options you bring follow their open rows and
-their reviewers' criticisms, and an order of work (`order:`) is built from the open rows, the paper the
-operator cares about first. Adding, splitting, merging or retiring a paper is a decision like a question's:
-`lab new decision "<what it is about>"`, with the paper named in Seen and Decided by its page's title. Then
-change the pages and `[papers]` in `lab.toml` (the lab-work skill, The papers and the overview). A
-retired paper's open work is parked or dropped in the same decision, or moved to another paper's open row.
+When the lab names its storylines, they set the direction: the options you bring follow their open rows and
+their reviewers' criticisms, and an order of work (`order:`) is built from the open rows, the storyline the
+operator cares about first. Adding, splitting, merging or retiring a storyline is a decision like a question's:
+`lab new decision "<what it is about>"`, with the storyline named in Seen and Decided by its page's title. Then
+change the pages and `[storylines]` in `lab.toml` (the lab-work skill, The storylines and the overview). A
+retired storyline's open work is parked or dropped in the same decision, or moved to another storyline's open row.
 
 ## When they decide something nobody raised
 
