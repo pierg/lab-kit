@@ -313,6 +313,52 @@ def test_what_a_run_says_it_used_is_an_amount(tmp_path):
     assert "gpu: 0 of 10 hours used" in lab(root, "now") and "nan" not in lab(root, "now").lower()
 
 
+def test_an_ended_run_that_did_not_record_what_it_used_is_amended_beside_its_folder(tmp_path):
+    root = str(tmp_path)
+    open_question(root)
+    ident, d, command = experiment(root, uses="[gpu]", command=WRITES % "0.5")  # it writes no used.json: stopped before it could
+    lab(root, "review", ident, "plan", "pass", "One thing varies; the refuting line can hold.")
+    lab(root, "lock", ident)
+    assert "finished" in lab(root, "run", ident, "--wait", "--", *command)
+    run_id = open(f"{d}/runs.tsv").read().splitlines()[1].split("\t")[0]
+    assert "did not record what it used" in lab(root, "check", "--no-rederive", ok=False)
+    os.makedirs(f"{root}/recovered/helper-1")
+    open(f"{root}/recovered/helper-1/used.json", "w").write('{"gpu": 0.75}\n')
+
+    # it names its evidence, outside the run's folder, and only what the run ran on and did not record
+    assert "--evidence <folder>" in lab(root, "runs", "close", run_id, "stopped", "--used", "gpu=0.75", ok=False)
+    assert "outside the run's folder" in lab(root, "runs", "close", run_id, "stopped", "--used", "gpu=0.75", "--evidence", f"runs/{run_id}", ok=False)
+    assert "a metered resource" in lab(root, "runs", "close", run_id, "stopped", "--used", "laptop=1", "--evidence", "recovered", ok=False)
+    assert "--evidence is for" in lab(root, "runs", "lost", run_id, "stopped", "--evidence", "recovered", ok=False)
+    out = lab(root, "runs", "close", run_id, "Stopped before its members' files came back; read from their used.json.", "--used", "gpu=0.75", "--evidence", "recovered")
+    assert f"amended: runs/{run_id}.amended.json" in out
+    seal = json.load(open(f"{root}/runs/{run_id}/run.json"))["seal"]
+    a = json.load(open(f"{root}/runs/{run_id}.amended.json"))
+    assert a["run_seal"] == seal and a["used"] == {"gpu": 0.75} and a["evidence"] == {"path": "recovered", "files": {"helper-1/used.json": a["evidence"]["files"]["helper-1/used.json"]}}
+    assert [r.split("\t")[2] for r in open(f"{d}/runs.tsv").read().splitlines()[1:]] == ["started", "ended", "amended"]
+    assert "the record is sound" in lab(root, "check", "--no-rederive")
+    assert "used 0.75 hours (stated after it ended" in lab(root, "show", ident) and "gpu: 0.75 of 10 hours used" in lab(root, "now")
+    assert "never rewritten" in lab(root, "runs", "close", run_id, "again", "--used", "gpu=1", "--evidence", "recovered", ok=False)
+
+    # the evidence, the amendment and its row in runs.tsv hold one another
+    open(f"{root}/recovered/helper-1/used.json", "w").write('{"gpu": 0.5}\n')
+    assert "the evidence of its amendment changed" in lab(root, "check", "--no-rederive", ok=False)
+    open(f"{root}/recovered/helper-1/used.json", "w").write('{"gpu": 0.75}\n')
+    ledger = open(f"{d}/runs.tsv").read()
+    open(f"{d}/runs.tsv", "w").write("\n".join(ledger.splitlines()[:-1]) + "\n")
+    assert "is not the one runs.tsv lists" in lab(root, "check", "--no-rederive", ok=False)
+    open(f"{d}/runs.tsv", "w").write(ledger)
+    path = f"{root}/runs/{run_id}.amended.json"
+    text = open(path).read()
+    os.chmod(path, 0o644)
+    open(path, "w").write(text.replace('"gpu": 0.75', '"gpu": 0.25'))
+    assert "does not match its seal" in lab(root, "check", "--no-rederive", ok=False)
+    os.remove(path)
+    assert "is not beside it in the store" in lab(root, "check", "--no-rederive", ok=False)
+    open(path, "w").write(text)
+    assert "the record is sound" in lab(root, "check", "--no-rederive")
+
+
 def test_a_run_may_write_any_file_and_a_run_is_named_by_its_id(tmp_path):
     root = str(tmp_path)
     open_question(root)
