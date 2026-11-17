@@ -32,6 +32,22 @@ def run(lab, rederive=True):
     if lab.held.get("error"):  # what locks a decision is read from git; without it a lock could be edited away unseen
         bad("history", "git", f"what locks a decision could not be read from the lab's history: {lab.held['error']}")
 
+    elsewhere, others = [], []  # runs runs.tsv lists as started and not ended whose folder is in another checkout's .lab/running
+
+    def running_elsewhere():
+        """The runs whose folder is in the .lab/running of another git worktree of this lab, on this machine."""
+        if not others:
+            top = history.git(root, "rev-parse", "--show-toplevel")
+            sub = os.path.relpath(root, top.strip()) if top else "."
+            trees = [l[len("worktree "):] for l in (history.git(root, "worktree", "list", "--porcelain") or "").splitlines() if l.startswith("worktree ")]
+            found = set()
+            for t in trees:
+                folder = os.path.join(t, sub, ".lab", "running")
+                if os.path.realpath(os.path.join(t, sub)) != os.path.realpath(root) and os.path.isdir(folder):
+                    found.update(os.listdir(folder))
+            others.append(found)
+        return others[0]
+
     absent = {}  # the libraries the charter names whose folder is not on this machine
 
     def see(where, page, who=""):
@@ -243,7 +259,9 @@ def run(lab, rederive=True):
             where = f"{r['dir']}"
             listed = x["listed"].get(r["id"])
             if r["missing"]:  # runs.tsv is in git and the store is not: a run the ledger lists stays where it was sealed
-                if here and not r["lost"]:
+                if here and not r["lost"] and r["state"] == "running" and r["id"] in running_elsewhere():  # it runs in another checkout here
+                    elsewhere.append(r["id"])
+                elif here and not r["lost"]:
                     bad("runs", where, f"is listed in {x['dir']}/runs.tsv and is not in the store: a run is never removed. If it started and its folder is gone for good, `lab runs lost {r['id']} \"<why>\"` records that")
                 continue
             if listed and listed["lost"]:
@@ -425,6 +443,8 @@ def run(lab, rederive=True):
     waiting = [r for r in lab.runs if r["local"] and r["state"] != "running"]
     if waiting:
         notes.append(f"{len(waiting)} ended run(s) are still on this machine, not in the store: `lab runs publish`")
+    if elsewhere:  # its own checkout checks it; it is held here once runs.tsv says it ended
+        notes.append(f"{len(elsewhere)} run(s) still running in another checkout on this machine, checked once they end: {', '.join(elsewhere)}")
     found, said = history.check(lab)
     said += history.uncommitted(lab)  # not held by git yet: a note, and a failure when the check is strict
     problems += found
