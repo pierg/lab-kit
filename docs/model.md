@@ -667,7 +667,7 @@ The pages are written for a reader, and the agent's detail stays in the files an
 | A log per goal and per question, ten kinds of line | One log, five kinds of line |
 | Everything under a question is an experiment | Three kinds of step: an experiment (bars set in advance), a build, and a reading (a look at what exists, which suggests and never confirms) |
 | Sixteen rules, six skills, twenty-one commands | Seven rules, five skills, sixteen commands |
-| Asking the agent in chat whether it is working | The front page says what is running, what the agent is on and since when, and when the record last moved |
+| Asking the agent in chat whether it is working | The front page says what is running, what the agent last said it is on and how long ago, and when the record last moved |
 | `lab.yaml`, and the record kept as folio documents: questions, claims, results, protocols, a journal | `lab.toml`, and cards in `goals/` and `decisions/`. folio draws the site from them through `lab_kit.site` and stores no page |
 | folio as a requirement of the command | The command needs no folio; only the site does |
 | The `lab-kit` command | `lab`. `lab-kit` still starts it |

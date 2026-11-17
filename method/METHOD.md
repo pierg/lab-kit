@@ -48,8 +48,9 @@ judgement. The lab's own `AGENTS.md` adds only what is local.
    record is faithful is judged.*
 7. **Say what you are on.** The operator reads the site to know whether anything is happening, and
    should never have to ask you. When you start on a card or move to another, log it:
-   `lab log <id> doing "<what>" "<why now>"`. The line stands on the front page until a result, a
-   stuck line or a choice about the same card ends it. *Judged.*
+   `lab log <id> doing "<what>" "<why now>"`, naming the step you work on, not the question above it. The
+   line stands on the front page until a result, a stuck line or a choice about the same card or a card under
+   it ends it, and it is never shown as running. *Judged.*
 8. **Papers drive the work; the record names no paper.** The record is the trail, and no card names a paper.
    When the lab writes papers, its library keeps one overview of the whole trail, and one page per active
    paper that is that paper's argument and nothing else. A paper page opens with its scope table: audience,
