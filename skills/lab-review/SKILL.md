@@ -44,7 +44,8 @@ A failed plan is fixed by its author and read again.
    the first sentence and folds the rest.
 
 A failed results review is final for that experiment. Say in the note what a replacement must do
-differently.
+differently. Its numbers can then be cited nowhere: if a paper page lists it under included, `lab check`
+says so, and the author takes it off.
 
 When you read a plan, also read the card as someone who was not there. If an arm is named and not
 explained, or the card points at something it does not say, say so in the note: it does not fail the

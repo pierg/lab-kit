@@ -252,7 +252,7 @@ in points. When a named result belongs to a replaced experiment, the page says s
 You decide two things: **direction** and **resources**. You decide them in a discussion with the agent,
 not by approving requests.
 
-- **Direction.** The goals and the questions.
+- **Direction.** The goals, the questions, and the papers they serve.
 - **Resources.** Everything outside the lab that it may touch: what it may use, how much, and what it
   may do there.
 
@@ -373,6 +373,35 @@ is a resource and a cap, nothing else. A lower cap is the agent's to write. A hi
 rule, a new resource or a larger grant comes out of a decision: one that lists that experiment, or
 that resource, under `about:`.
 
+**Papers drive the work; the record names no paper.** A lab that writes papers keeps two layers apart. The
+record (`goals/`, `decisions/`, `runs/`) is the trail: every question, run, failed attempt and replaced
+experiment, so that every number has an origin. No card names a paper, because papers change, split, merge
+and are dropped while the record stays as it is and is read by each of them. Above the record, the lab's
+library holds one **overview** page that keeps the whole trail in one place, whatever paper it serves: the
+words on one running example, the workflow, every related-work row, every established finding, every
+criticism and what answers it. Beside it, each **active paper** has its own page, written as that paper's
+technical argument and nothing else: it never talks about the lab or how it works. A paper page opens, under
+its thesis, with a **scope table** of five rows: the target audience and venues, the core thesis, the
+experiments included (the clean runs each claim rests on), the experiments excluded or superseded (a run
+that hit a harness bug, a subset a full run replaced, work that belongs to another paper), and the open
+experiments the paper still needs. Then come its words on one running example, its pipeline, its
+comparison with the published work of its community, its established results citing only included work,
+the criticisms a reviewer in that community will raise with what answers each, and what remains to run.
+
+The control runs from the papers to the lab, not the other way. Which questions and experiments are
+proposed, ordered, parked or dropped follows the open rows and the criticisms on the active paper pages: a
+decision says which paper row it serves, and a step that serves none is a candidate to park or drop. When a
+result lands, the overview and every paper it touches are revised; a run that a newer one supersedes moves
+from included to excluded. Adding, merging or retiring a paper is direction, so it is decided with you. A
+question's or an experiment's So far gives the current finding, not the story of the bugs on the way: the
+replaced experiments and the reasons they were replaced keep that story.
+
+A lab opts in by naming the pages in `lab.toml` (section 9). Then `lab check` holds each scope table:
+included lists only finished work that is not void, replaced or dropped, open only work still to do, and a
+step or a question sits in one row; a paper page committed before a result about something it lists is
+noted. `lab now` lists each paper's open experiments, and the live steps no paper lists, by themselves or
+by their question or goal.
+
 ## 5. What the agent uses
 
 - **To look:** `lab now`, `lab show <id or path>`, `lab brief <question>`, `lab since`, `lab define <term>`. Each shows one level,
@@ -445,7 +474,7 @@ Five skills: `lab-set-up`, `lab-work`, `lab-review`, `lab-talk` (tell you where 
 a decision to you, record what was decided), and `lab-mission` (save, launch, resume and close a mission). One
 role: the reviewer.
 
-Seven rules:
+Eight rules:
 
 1. Say what would refute it before you run.
 2. A number counts only as a reviewed result of a locked plan.
@@ -458,11 +487,13 @@ Seven rules:
 6. Record what was decided and why, in the lab's words, and show the operator the text as recorded.
    Never record a decision that was not discussed with them.
 7. Say what you are on. When you start on a card, log what you are doing and why now.
+8. Papers drive the work; the record names no paper. The papers' open rows and criticisms say what to
+   propose, order, park or drop, and a result revises the overview and every paper it touches.
 
 `lab check` holds what can be held mechanically: ids and links, the goal's vocabulary being terms of the glossary, a title and a description on every
 card, short cards that write only their own front matter, a test on every line, a reason on every
 replacement, unchanged locks, sealed runs, results that still re-derive and were reviewed, use inside
-the resources' amounts, a decision behind every goal, question and metered amount, an experiment
+the resources' amounts, what each paper's scope table lists when the lab names its papers, a decision behind every goal, question and metered amount, an experiment
 behind every answer, the method and the skills as the kit installed them, and a history that only
 grows. What it cannot read as this page describes (a mistyped folder, a list written as one value, a
 file that is not text) is a problem it reports; no command stops on it.
@@ -884,6 +915,29 @@ The front matter holds `title:`, `status:` (next, current, done or stopped, whic
 holds the line `launched`, else next, and `lab check` asks for the status to be written. `lab check`
 reports a mission that breaks any of this, one whose `carries:` is not a decision, and a current mission whose
 decision is still open.
+
+**Papers.** `lab.toml` names the library's paper pages in a table, as library paths (the path under
+`content/`, as `see:` writes it):
+
+```
+[papers]
+overview = "entries/where-the-results-stand"
+active = ["entries/paper-a", "entries/paper-b"]
+```
+
+`overview` is the page that keeps the whole trail; it is never an active paper. Each page under `active` is
+in the library and marks the three cells of its scope table that list work, `data-scope="included"`,
+`data-scope="excluded"` and `data-scope="open"`, empty when it lists nothing:
+
+```
+<tr><th>Experiments included</th><td data-scope="included"><a href="/lab/G1.Q1.4/">G1.Q1.4</a>, ...</td></tr>
+```
+
+A cell lists what its `/lab/<id>/` links name; any other text in it is prose. A goal or a question in a cell
+stands for every step under it. Under included, a step is done and not void, and a question or a goal is not
+parked or dropped; under open, a step is open, waiting or running, and a question or a goal is not done,
+parked or dropped. A step or a question has one row on a page: where another row needs to mention it, it is
+named in words, without its link. A decision may be cited in any row. A lab without `[papers]` has none of this.
 
 **Worked-out states.** A goal is open until `reached: true` makes it done or `dropped:` drops it. A
 question is waiting while the decision it came from is open, then open, then done with its answer; it
