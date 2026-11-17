@@ -112,7 +112,8 @@ def home_maps(lab):
         charter = yaml.safe_load(open(os.path.join(docs, "folio.yaml"))) or {}
     except (OSError, yaml.YAMLError):
         return []
-    names = (charter.get("home") or {}).get("maps") or []
+    home = charter.get("home") if isinstance(charter, dict) else None
+    names = (home.get("maps") if isinstance(home, dict) else None) or []
     return [os.path.join(docs, "content", "maps", f"{n}.html") for n in names if isinstance(n, str)]
 
 
