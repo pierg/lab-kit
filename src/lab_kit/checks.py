@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import glob, os, re
 
-from . import history, papers, record as R, runs as runs_, write
+from . import history, storylines, record as R, runs as runs_, write
 
 KEYS = {  # what a card's front matter may hold; a state is never among them
     "goal": {"title", "from", "reached", "dropped", "see"},
@@ -427,8 +427,8 @@ def run(lab, rederive=True):
     for t in sorted({t for t in terms if terms.count(t) > 1}):
         bad("glossary", "GLOSSARY.md", f"{t!r} is defined twice")
 
-    # papers: each active paper's scope lists only what it may
-    papers.check(lab, bad, notes)
+    # storylines: each active storyline's scope lists only what it may
+    storylines.check(lab, bad, notes)
 
     # clean: the plans and the store stay out of default searches
     ignore = R.read(f"{root}/.ignore") if os.path.exists(f"{root}/.ignore") else ""

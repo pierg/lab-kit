@@ -1,10 +1,12 @@
-"""Papers: the library's pages that argue for one target paper each, above a record that names no paper.
+"""Storylines: the library's pages that each argue one line of the lab's findings, above a record that names no storyline.
 
-A lab opts in with `[papers]` in `lab.toml`: `overview`, the page that keeps the whole trail, and `active`, the page
-of each paper being written. Each paper page opens with a scope table whose cells are marked
+A storyline is what a paper, a talk or a report will be written from; it is the argument, not the artifact.
+
+A lab opts in with `[storylines]` in `lab.toml`: `overview`, the page that keeps the whole trail, and `active`, the page
+of each storyline being written. Each storyline page opens with a scope table whose cells are marked
 `data-scope="included"`, `"excluded"` and `"open"`; the `/lab/<id>/` links inside a cell are what it lists.
-`lab check` holds what a cell may list, and `lab now` says what each paper still has open and which live steps
-serve no paper.
+`lab check` holds what a cell may list, and `lab now` says what each storyline still has open and which live steps
+serve no storyline.
 """
 from __future__ import annotations
 
@@ -68,33 +70,33 @@ def page_file(lab, path):
 
 
 def config(lab):
-    """(overview, active pages, problems). (None, [], []) when the lab keeps no papers."""
-    p = lab.cfg.get("papers")
+    """(overview, active pages, problems). (None, [], []) when the lab keeps no storylines."""
+    p = lab.cfg.get("storylines")
     if p is None:
         return None, [], []
     if not isinstance(p, dict):
-        return None, [], ["`[papers]` is a table that names `overview` and `active`"]
-    problems = [f"`[papers]` holds `{k}`; it names only `overview` and `active`" for k in sorted(set(p) - {"overview", "active"})]
+        return None, [], ["`[storylines]` is a table that names `overview` and `active`"]
+    problems = [f"`[storylines]` holds `{k}`; it names only `overview` and `active`" for k in sorted(set(p) - {"overview", "active"})]
     overview, active = p.get("overview"), p.get("active", [])
     if not isinstance(overview, str) or not overview.strip():
-        problems.append("`[papers]` names its `overview`: the library page that keeps the whole trail, such as \"entries/where-the-results-stand\"")
+        problems.append("`[storylines]` names its `overview`: the library page that keeps the whole trail, such as \"entries/where-the-results-stand\"")
         overview = None
     if not isinstance(active, list) or not all(isinstance(a, str) and a.strip() for a in active):
-        problems.append("`[papers]` lists its `active` paper pages as library paths, such as [\"entries/paper-a\"]")
+        problems.append("`[storylines]` lists its `active` storyline pages as library paths, such as [\"entries/storyline-a\"]")
         active = []
     active = [a.strip("/") for a in active]
     for path in ([overview] if overview else []) + active:
         if ".." in path.split("/"):
-            problems.append(f"`[papers]` names {path}; a page is a path inside the library's content, without `..`")
+            problems.append(f"`[storylines]` names {path}; a page is a path inside the library's content, without `..`")
     for a in sorted({a for a in active if active.count(a) > 1}):
-        problems.append(f"`[papers]` lists {a} more than once")
+        problems.append(f"`[storylines]` lists {a} more than once")
     return (overview.strip("/") if overview else None), list(dict.fromkeys(active)), problems
 
 
 def read(lab):
-    """Each active paper page as read: path, title, its cells' ids, the rows it marks; `missing` when not there."""
-    if getattr(lab, "_papers", None) is not None:
-        return lab._papers
+    """Each active storyline page as read: path, title, its cells' ids, the rows it marks; `missing` when not there."""
+    if getattr(lab, "_storylines", None) is not None:
+        return lab._storylines
     _, active, _ = config(lab)
     out = []
     for path in active:
@@ -105,7 +107,7 @@ def read(lab):
         s = _Scope()
         s.feed(R.read(f))
         out.append({"path": path, "title": " ".join(s.title.split()) or path, "cells": s.cells, "marked": s.marked, "unknown": s.unknown, "missing": False})
-    lab._papers = out
+    lab._storylines = out
     return out
 
 
@@ -122,7 +124,7 @@ def _covered(lab, ident):
 
 
 def serving(lab):
-    """The live steps that no active paper lists under included or open, by themselves or by their question or goal."""
+    """The live steps that no active storyline lists under included or open, by themselves or by their question or goal."""
     named = set()
     for p in read(lab):
         for row in ("included", "open"):
@@ -136,54 +138,54 @@ def _say(n):
 
 
 def check(lab, bad, notes):
-    """What `lab check` holds about the papers: the table in `lab.toml`, each page's scope, and what each row lists."""
+    """What `lab check` holds about the storylines: the table in `lab.toml`, each page's scope, and what each row lists."""
     overview, active, problems = config(lab)
     for p in problems:
-        bad("papers", "lab.toml", p)
+        bad("storylines", "lab.toml", p)
     if overview is None and not active:
         return
     if overview and not os.path.exists(page_file(lab, overview)):
-        bad("papers", "lab.toml", f"`overview` names {overview}, which is not a page of the library")
+        bad("storylines", "lab.toml", f"`overview` names {overview}, which is not a page of the library")
     if overview and overview in active:
-        bad("papers", "lab.toml", f"{overview} is the overview and an active paper: the overview keeps the whole trail, a paper only what it argues")
+        bad("storylines", "lab.toml", f"{overview} is the overview and an active storyline: the overview keeps the whole trail, a storyline only what it argues")
     for p in read(lab):
         where = lab.rel(page_file(lab, p["path"]))
         if p["missing"]:
-            bad("papers", "lab.toml", f"`active` names {p['path']}, which is not a page of the library")
+            bad("storylines", "lab.toml", f"`active` names {p['path']}, which is not a page of the library")
             continue
         for row in ROWS:
             if row not in p["marked"]:
-                bad("papers", where, f"has no scope cell marked data-scope=\"{row}\": a paper page opens with its scope table, and each of included, excluded and open is a marked cell, empty if it lists nothing")
+                bad("storylines", where, f"has no scope cell marked data-scope=\"{row}\": a storyline page opens with its scope table, and each of included, excluded and open is a marked cell, empty if it lists nothing")
         for row in p["unknown"]:
-            bad("papers", where, f"marks a cell data-scope=\"{row}\"; a scope cell is included, excluded or open")
+            bad("storylines", where, f"marks a cell data-scope=\"{row}\"; a scope cell is included, excluded or open")
         rows = {row: [lab.folded.get(i, i) for i in p["cells"][row]] for row in ROWS}
         for row, ids in rows.items():
             for i in ids:
                 n = lab.nodes.get(i)
                 if not n:
-                    bad("papers", where, f"lists {i} under {row}, which is not a goal, a question, a step or a decision of the lab")
+                    bad("storylines", where, f"lists {i} under {row}, which is not a goal, a question, a step or a decision of the lab")
                     continue
                 if row == "included":
                     if n["type"] in R.STEPS and (n["state"] != "done" or n.get("label") == "void"):
                         to = "open" if n["state"] in LIVE else "excluded"
-                        bad("papers", where, f"lists {i} under included, which is {_say(n)}: a paper includes only finished work that is not void, replaced or dropped; list it under {to}")
+                        bad("storylines", where, f"lists {i} under included, which is {_say(n)}: a storyline includes only finished work that is not void, replaced or dropped; list it under {to}")
                     elif n["type"] in ("question", "goal") and n["state"] in ("parked", "dropped"):
-                        bad("papers", where, f"lists {i} under included, which is {n['state']}: list it under excluded")
+                        bad("storylines", where, f"lists {i} under included, which is {n['state']}: list it under excluded")
                 elif row == "open":
                     if n["type"] in R.STEPS and n["state"] not in LIVE:
                         to = "included or excluded" if n["state"] == "done" and n.get("label") != "void" else "excluded"
-                        bad("papers", where, f"lists {i} under open, which is {_say(n)}: open holds only work still to do; list it under {to}")
+                        bad("storylines", where, f"lists {i} under open, which is {_say(n)}: open holds only work still to do; list it under {to}")
                     elif n["type"] in ("question", "goal") and n["state"] in ("done", "parked", "dropped"):
-                        bad("papers", where, f"lists {i} under open, which is {n['state']}: open holds only work still to do")
+                        bad("storylines", where, f"lists {i} under open, which is {n['state']}: open holds only work still to do")
         for a, b in (("included", "excluded"), ("included", "open"), ("open", "excluded")):
             for i in sorted(i for i in set(rows[a]) & set(rows[b]) if lab.nodes.get(i, {}).get("type") != "decision"):  # a decision may be cited wherever it explains a row
-                bad("papers", where, f"lists {i} under both {a} and {b}: a step or a question has one row; where another row needs it, name it in words, without its link")
+                bad("storylines", where, f"lists {i} under both {a} and {b}: a step or a question has one row; where another row needs it, name it in words, without its link")
     for q, step, at in stale(lab):
-        notes.append(f"papers: {q} was last committed before the result of {step} ({at}): bring the paper's argument up to date with it")
+        notes.append(f"storylines: {q} was last committed before the result of {step} ({at}): bring the storyline's argument up to date with it")
 
 
 def stale(lab):
-    """[(page, step, when)]: an active paper page last committed before the newest `result` line about a step it lists
+    """[(page, step, when)]: an active storyline page last committed before the newest `result` line about a step it lists
     under included or open, or under a question or goal it lists there. Nothing where git cannot tell."""
     from . import history
     root, out = lab.root, []
@@ -209,11 +211,11 @@ def stale(lab):
 
 
 def now_lines(lab):
-    """The lines `lab now` gives the papers: each active paper with what it has open, then the steps no paper serves."""
+    """The lines `lab now` gives the storylines: each active storyline with what it has open, then the steps no storyline serves."""
     _, active, _ = config(lab)
     if not active:
         return []
-    out = ["", "Papers (direction comes from their open rows and their criticisms)"]
+    out = ["", "Storylines (direction comes from their open rows and their criticisms)"]
     for p in read(lab):
         if p["missing"]:
             out.append(f"- {p['path']}: not in the library")
@@ -223,6 +225,6 @@ def now_lines(lab):
         out.append(f"- {p['title']} ({p['path']}): open {todo}")
     idle = serving(lab)
     if idle:
-        out += ["", "Serving no active paper (add to a paper's open row, or bring parking or dropping it to the operator)"]
+        out += ["", "Serving no active storyline (add to a storyline's open row, or bring parking or dropping it to the operator)"]
         out += [f"- {x['id']} {x['title']} ({x['state']})" for x in idle]
     return out

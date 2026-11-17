@@ -43,13 +43,14 @@ You set the lab up in one discussion with the operator, so that everything it se
    here first.
 11. The site: the lab's `docs/` folder is a folio library whose charter lists `lab_kit.site` under
     `views:`. Set it up with folio's own skill if it is not there.
-12. If the lab will write papers, ask the operator which papers it aims at now, for whom and where (it is
-    direction, and may stay empty). Write the overview page (for example `entries/where-the-results-stand`) with folio's
+12. If the lab will argue its findings to an audience (a paper, a talk, a report), ask the operator which
+    storylines it aims at now, for whom and where (it is direction, and may stay empty). A storyline is the
+    argument such an output is written from, not the output itself. Write the overview page (for example `entries/where-the-results-stand`) with folio's
     write skill: the words on one running example, the workflow, the related work, and empty sections for the
-    findings and the criticisms. For each paper, write `entries/paper-<slug>`: its thesis, then the scope table
+    findings and the criticisms. For each storyline, write `entries/storyline-<slug>`: its thesis, then the scope table
     (target audience and venues, core thesis, experiments included, excluded or superseded, open), with the
     last three cells marked `data-scope="included"`, `"excluded"` and `"open"`. Name them in `lab.toml` under
-    `[papers]` (`overview`, `active`). No card names a paper (method rule 8).
+    `[storylines]` (`overview`, `active`). No card names a storyline (method rule 8).
 13. Commit. Git is what holds the record: nothing is held before the first commit, and
     `lab check --strict` says so.
 

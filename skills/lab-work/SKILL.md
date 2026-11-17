@@ -21,10 +21,10 @@ When a decision has set the order of the work, **Yours next** is already in that
 decision set it; follow it, and bring a change of order to the operator rather than skipping ahead.
 `lab show <id>` before you touch anything.
 
-When the lab names its papers (`lab now` has a **Papers** section), read each active paper page's open row
+When the lab names its storylines (`lab now` has a **Storylines** section), read each active storyline page's open row
 and its criticisms before you choose what to propose: they say what the lab is for now. A step listed under
-**Serving no active paper** is a candidate to park or drop, which you bring to the operator in a decision,
-or it belongs on a paper's open row, which you add.
+**Serving no active storyline** is a candidate to park or drop, which you bring to the operator in a decision,
+or it belongs on a storyline's open row, which you add.
 
 When `lab now` lists a current mission and you were started to run it, or the operator asks to save,
 launch or resume one, follow the lab-mission skill: it starts sessions on the steps, and each of them
@@ -101,16 +101,16 @@ the plan in fixed boxes, then the steps and the record. Write the card for that 
 - **Options are named in words, never letters.** "Read `sll` apart", not "(a)". A decision's options
   are a list, each item opening with its name in bold.
 
-## The papers and the overview
+## The storylines and the overview
 
-When `lab.toml` names papers (`[papers]`), the library holds two kinds of page above the record (method
-rule 8). The record itself never names a paper: no card, no title, no So far says "Paper A".
+When `lab.toml` names storylines (`[storylines]`), the library holds two kinds of page above the record (method
+rule 8). The record itself never names a storyline: no card, no title, no So far says "Storyline A".
 
-- **The overview** (`overview`) keeps the whole trail, whatever paper it serves: the words on one running
+- **The overview** (`overview`) keeps the whole trail, whatever storyline it serves: the words on one running
   example, the workflow, every related-work row, every established finding, every criticism and what answers
-  it, and what runs now. Nothing is left off it for being off a paper.
-- **A paper page** (each of `active`) is that paper's technical argument, in its community's voice, and
-  never talks about the lab, its method or itself ("this page shows", "the lab's record"). It opens, under its
+  it, and what runs now. Nothing is left off it for being off a storyline.
+- **A storyline page** (each of `active`) is that storyline's technical argument, in its community's voice:
+  the page a paper or a talk is later written from. It never talks about the lab, its method or itself ("this page shows", "the lab's record"). It opens, under its
   thesis, with the scope table: target audience and venues, core thesis, experiments included, experiments
   excluded or superseded, open experiments. The last three cells carry `data-scope="included"`,
   `"excluded"` and `"open"`, and list ids as links (`<a href="/lab/G1.Q1.4/">G1.Q1.4</a>`). Then: its words
@@ -120,14 +120,14 @@ rule 8). The record itself never names a paper: no card, no title, no So far say
 - **A step or a question has one row on a page.** Where another row needs to mention it (excluded because
   a newer run superseded it), name it in words, without its link. A decision may be cited anywhere.
 
-When a result lands: bring the overview's findings up to date, then each paper whose argument it touches.
+When a result lands: bring the overview's findings up to date, then each storyline whose argument it touches.
 If it supersedes an included run, move the old one to excluded and cite the new one. If it closes an open
 row, move it to included, or to excluded if it is void or no longer serves the argument. A result's review
 that fails makes the experiment void: take it off every included row. `lab check` refuses what a row may
-not list, and notes a paper committed before a result about something it lists.
+not list, and notes a storyline committed before a result about something it lists.
 
-Adding, splitting, merging or retiring a paper is direction: bring it to the operator (the lab-talk skill),
-then change the pages and `[papers]`. A retired paper's page leaves `active` and stays in the library.
+Adding, splitting, merging or retiring a storyline is direction: bring it to the operator (the lab-talk skill),
+then change the pages and `[storylines]`. A retired storyline's page leaves `active` and stays in the library.
 
 ## When to open a decision
 
@@ -143,7 +143,7 @@ parked question, and never take it up because it looks open: it is listed under 
 1. `lab new decision "<what it is about>" --about <the goals, questions or experiments it concerns>`.
 2. On its card write **Seen** (what was observed, naming results), **Options** (a list of two or
    three, each item an option with what it costs and what it changes) and **Recommendation**. When the
-   lab names its papers, say which paper's open row or criticism each option serves, by the paper's exact
+   lab names its storylines, say which storyline's open row or criticism each option serves, by the storyline's exact
    title; an option that serves none says so. Put under `holds:` only the
    experiments that should not start before it is settled.
 3. Keep working on everything it does not hold. The lab-talk skill takes it to the operator and
@@ -223,7 +223,7 @@ until that decision is settled; after that it needs no further yes.
    before a result under it, or one it names. Give each result a label that says what it counts and
    of how many, in a set of cases the lab names once ("of the 20 checks the solver leaves open").
 10. `lab log <experiment> result "<what was found, in a sentence, without numbers>" "<so what>"`.
-11. When the lab names its papers, revise them in the same sitting (next section).
+11. When the lab names its storylines, revise them in the same sitting (next section).
 
 The outcome is worked out from the lines: you never write it.
 
