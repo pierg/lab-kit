@@ -14,7 +14,7 @@ except ModuleNotFoundError:  # Python 3.10: the same parser, from PyPI
 import yaml
 
 KINDS = ["decision", "agent", "result", "stuck", "doing"]  # a decision recorded, a choice of the agent's, a result, something in the way, what the agent is on now
-CLOSES = ("agent", "result", "stuck")  # a later line of these kinds about the same card ends a `doing` line
+CLOSES = ("agent", "result", "stuck")  # a later line of these kinds about the same card, or a card under it, ends a `doing` line
 SLOTS = {  # every slot a card has, with its word budget: a ceiling against sprawl, with room for a table or a numbered list
     "goal": (("Claim", 90), ("Example", 260), ("Approach", 340), ("Roles", 170), ("Vocabulary", 260)),
     "question": (("How we would know", 180), ("Example", 380), ("We expect", 70), ("Wrong if", 70), ("So far", 220)),
@@ -1199,12 +1199,13 @@ class Lab:
         return "open", "write Found and Means, naming its results", True
 
     def doing(self):
-        """What the record says the agent is on: its last `doing` line, until a later line about the same card ends it."""
+        """What the record says the agent is on: its last `doing` line, until a later line about the same card, or about a
+        card under it, ends it. A `doing` line on a question is ended by a result on one of its steps."""
         last = None
         for l in self.lines:
             if l["kind"] == "doing":
                 last = l
-            elif last and l["kind"] in CLOSES and l["about"] == last["about"]:
+            elif last and l["kind"] in CLOSES and (l["about"] == last["about"] or str(l["about"]).startswith(f'{last["about"]}.')):
                 last = None
         if last and self.nodes.get(last["about"], {}).get("state") in CLOSED:
             return None

@@ -70,7 +70,7 @@ def _now(lab):
     out = [f"{lab.cfg.get('title', lab.cfg['name'])}"] + [f"Goal {g['id']} ({g['state']}): {g['title']}. {g['description']}" for g in lab.live(lab.goals)]
     d, last = lab.doing(), lab.last_record()
     out += ["", "Right now, as the operator sees it"]
-    out += [f"- on {d['about']} {lab.nodes[d['about']]['title']} since {d['day']} {d['time']}: {d['what']} Why now: {d['so']}"] if d else ["- no `doing` line is open: the site says nobody is on anything. When you start: lab log <id> doing \"<what>\" \"<why now>\""]
+    out += [f"- said at {d['day']} {d['time']} it was on {d['about']} {lab.nodes[d['about']]['title']}: {d['what']} Why now: {d['so']}"] if d else ["- no `doing` line is open: the site says nobody is on anything. When you start: lab log <id> doing \"<what>\" \"<why now>\""]
     out += [f"- last recorded activity: {last.strftime('%Y-%m-%d %H:%M')} UTC"] if last else []
     out += [mission_line(lab, m).replace("- M", "- mission M", 1) for m in lab.missions if m["state"] in ("next", "current")]
     waiting = lab.open_decisions()

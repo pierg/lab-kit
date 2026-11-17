@@ -415,8 +415,8 @@ by their question or goal.
   look empty.
 - **To write:** `lab new` (a goal, a question, an experiment, a build, a reading, a decision),
   `lab log`, `lab decide`, `lab answer`.
-- **To be seen:** `lab log <id> doing "<what>" "<why now>"` whenever it starts on a card. It is the
-  one line the operator reads to know what the agent is on.
+- **To be seen:** `lab log <id> doing "<what>" "<why now>"` whenever it starts on a card, naming the
+  step it works on rather than the question above it. It is the one line the operator reads to know what the agent is on.
 - **For evidence:** `lab lock`, `lab run`, `lab runs`, `lab review`, `lab check`. `lab runs` lists
   every run; it also closes a run whose process died (`lab runs close`), moves an ended run into
   the store (`lab runs publish`) and copies one from a store this machine does not mount
@@ -471,8 +471,11 @@ recorded, the agent decided, a result, something is stuck, and what the agent is
 
 **The present.** The operator's first question is whether anything is happening. The record answers
 it: the front page opens with the runs still going, the agent's last `doing` line (what, why now,
-since when), and the time of the last recorded activity. A `doing` line stands until a later line
-about the same card, or the card being finished, ends it. When there is none, the page says that
+when it was said, and how long ago), and the time of the last recorded activity. A `doing` line stands until a later line
+about the same card or a card under it (an `agent`, `result` or `stuck` line), or the card being finished, ends it: a result on a
+step ends a `doing` line on its question. Only a run that is going or a current mission is shown as running, with a pulsing
+sign. A `doing` line is what the agent said, shown with its age and never as running: when it is the only thing on the
+page, the page first says that nothing is running. When there is none, the page says that
 nobody is on anything and names the next step. Nothing is inferred from a session being open.
 
 Five skills: `lab-set-up`, `lab-work`, `lab-review`, `lab-talk` (tell you where things stand, bring
@@ -664,7 +667,7 @@ The pages are written for a reader, and the agent's detail stays in the files an
 | A log per goal and per question, ten kinds of line | One log, five kinds of line |
 | Everything under a question is an experiment | Three kinds of step: an experiment (bars set in advance), a build, and a reading (a look at what exists, which suggests and never confirms) |
 | Sixteen rules, six skills, twenty-one commands | Seven rules, five skills, sixteen commands |
-| Asking the agent in chat whether it is working | The front page says what is running, what the agent is on and since when, and when the record last moved |
+| Asking the agent in chat whether it is working | The front page says what is running, what the agent last said it is on and how long ago, and when the record last moved |
 | `lab.yaml`, and the record kept as folio documents: questions, claims, results, protocols, a journal | `lab.toml`, and cards in `goals/` and `decisions/`. folio draws the site from them through `lab_kit.site` and stores no page |
 | folio as a requirement of the command | The command needs no folio; only the site does |
 | The `lab-kit` command | `lab`. `lab-kit` still starts it |

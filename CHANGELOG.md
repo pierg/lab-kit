@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.12.1
+
+- **A `doing` line on a question ends when a step under it ends.** A later `agent`, `result` or `stuck` line about
+  a card under the one a `doing` line names now ends it too. Before, a `doing` line logged on a question stayed on
+  the front page after the reading it announced had finished, because the result named the step.
+- **What the agent said is not shown as running.** The front page shows the last `doing` line as "said at <time>
+  (<age>) it was on ...", with no pulsing sign. Only a run that is going or a current mission pulses; when the
+  `doing` line is the only thing there, the page first says that nothing is running. `lab now` words it the same way.
+- `lab-work` asks for the `doing` line on the step being worked on, not the question above it: run `lab init` in a
+  lab after upgrading.
+
 ## 1.12.0
 
 - **Papers drive the work; the record names no paper** (method rule 8, model section 4). A lab that writes
