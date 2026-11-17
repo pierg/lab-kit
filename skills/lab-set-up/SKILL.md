@@ -45,12 +45,15 @@ You set the lab up in one discussion with the operator, so that everything it se
     `views:`. Set it up with folio's own skill if it is not there.
 12. If the lab will argue its findings to an audience (a paper, a talk, a report), ask the operator which
     storylines it aims at now, for whom and where (it is direction, and may stay empty). A storyline is the
-    argument such an output is written from, not the output itself. Write the overview page (for example `entries/where-the-results-stand`) with folio's
-    write skill: the words on one running example, the workflow, the related work, and empty sections for the
-    findings and the criticisms. For each storyline, write `entries/storyline-<slug>`: its thesis, then the scope table
-    (target audience and venues, core thesis, experiments included, excluded or superseded, open), with the
-    last three cells marked `data-scope="included"`, `"excluded"` and `"open"`. Name them in `lab.toml` under
-    `[storylines]` (`overview`, `active`). No card names a storyline (method rule 8).
+    argument such an output is written from, not the output itself. Write the overview page (for example
+    `entries/where-the-results-stand`) with folio's write skill: the words on one running example, the
+    workflow, the related work, and empty sections for the findings and the criticisms. For each storyline,
+    write `entries/storyline-<slug>`: its thesis, then the scope table (target audience and venues, core
+    thesis, experiments included, excluded or superseded, open), with the last three cells marked
+    `data-scope="included"`, `"excluded"` and `"open"`. Name them in `lab.toml` under `[storylines]`
+    (`overview`, `active`), and open the home map with a heading `<h2 id="current-storylines">Current
+    storylines</h2>` whose rows are the storyline pages (`folio map add <map> <id> --section "Current
+    storylines"`), and nothing else. No card names a storyline (method rule 8).
 13. Commit. Git is what holds the record: nothing is held before the first commit, and
     `lab check --strict` says so.
 

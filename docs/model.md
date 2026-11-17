@@ -402,7 +402,8 @@ moves from included to excluded. Adding, merging or retiring a storyline is dire
 you. A question's or an experiment's So far gives the current finding, not the story of the bugs on the way:
 the replaced experiments and the reasons they were replaced keep that story.
 
-A lab opts in by naming the pages in `lab.toml` (section 9). Then `lab check` holds each scope table:
+A lab opts in by naming the pages in `lab.toml` (section 9), and its library's home map lists them under one
+section, Current storylines. Then `lab check` holds that section and each scope table:
 included lists only finished work that is not void, replaced or dropped, open only work still to do, nothing
 parked or dropped is in either, and a goal, a question or a step sits in one row; a storyline page committed
 before a result about something it lists under included or open is noted. `lab now` lists each storyline's
@@ -962,7 +963,12 @@ a question or a step has one row on a page: where another row needs to mention i
 without its link. A question written in one row and a step under it written in another is allowed: the open
 question with its one finished step included is the usual case. A decision may be cited in any row. In
 `lab now` and in the note on a stale page, a goal or a question written under included or open stands for
-every step under it. A lab without `[storylines]` has none of this.
+every step under it.
+
+The library's home map opens with a section headed `<h2 id="current-storylines">Current storylines</h2>`, and
+its rows are the active storyline pages, each linked as `/content/<path>/`, and nothing else. It is the one place
+those pages have on a map; the overview and a retired storyline have theirs under other headings. The library
+has one such section, on one map. A lab without `[storylines]` has none of this.
 
 **Worked-out states.** A goal is open until `reached: true` makes it done or `dropped:` drops it. A
 question is waiting while the decision it came from is open, then open, then done with its answer; it

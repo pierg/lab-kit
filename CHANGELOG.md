@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.14.0
+
+- **The home map opens with Current storylines.** When `lab.toml` names its storylines, the library's home map
+  has one section `<h2 id="current-storylines">Current storylines</h2>` whose rows are the active storyline
+  pages and nothing else, so every lab shows its storylines in the same place. `lab check` refuses a library
+  with no such section or with two, an active storyline with no row there, and a row there that is not an
+  active storyline. lab-set-up writes the section, and lab-work keeps it when a storyline is added or retired.
+  Run `lab init` in a lab after upgrading.
+
 ## 1.13.0
 
 - **A scope page is a storyline.** A storyline is one argument the lab is building from its findings, for one

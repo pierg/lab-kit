@@ -127,8 +127,12 @@ row, move it to included, or to excluded if it is void or no longer serves the a
 that fails makes the experiment void: take it off every included row. `lab check` refuses what a row may
 not list, and notes a storyline committed before a result about something it lists.
 
+The home map opens with the section Current storylines (`<h2 id="current-storylines">`): one row per active
+storyline page, and nothing else. `lab check` holds that its rows and `active` name the same pages.
+
 Adding, splitting, merging or retiring a storyline is direction: bring it to the operator (the lab-talk skill),
-then change the pages and `[storylines]`. A retired storyline's page leaves `active` and stays in the library.
+then change the pages, `[storylines]` and the Current storylines rows. A retired storyline's page leaves `active`
+and stays in the library, moved to its place under another heading.
 
 ## When to open a decision
 

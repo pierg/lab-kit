@@ -10,7 +10,7 @@ serve no storyline.
 """
 from __future__ import annotations
 
-import os, re
+import glob, os, re
 from html.parser import HTMLParser
 
 from . import record as R
@@ -63,6 +63,40 @@ class _Scope(HTMLParser):
     def handle_data(self, data):
         if self._title:
             self.title += data
+
+
+SECTION = "current-storylines"
+PAGE_LINK = re.compile(r"^/content/(.+?)/?(?:index\.html)?(?:[#?].*)?$")
+
+
+class _Section(HTMLParser):
+    """The library pages a map's "Current storylines" section links to: the `<h2 id="current-storylines">` and
+    everything up to the next `h2`."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.found, self.links, self._in = False, [], False
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag == "h2":
+            self._in = a.get("id") == SECTION
+            self.found = self.found or self._in
+        elif self._in and tag == "a":
+            m = PAGE_LINK.match(a.get("href") or "")
+            if m and m.group(1).strip("/") not in self.links:
+                self.links.append(m.group(1).strip("/"))
+
+
+def section(lab):
+    """[(map file, [page paths])] for each map of the library with a "Current storylines" section."""
+    out = []
+    for f in sorted(glob.glob(os.path.join(lab.root, lab.cfg.get("library", "docs"), "content", "maps", "*.html"))):
+        s = _Section()
+        s.feed(R.read(f))
+        if s.found:
+            out.append((f, s.links))
+    return out
 
 
 def page_file(lab, path):
@@ -180,6 +214,21 @@ def check(lab, bad, notes):
         for a, b in (("included", "excluded"), ("included", "open"), ("open", "excluded")):
             for i in sorted(i for i in set(rows[a]) & set(rows[b]) if lab.nodes.get(i, {}).get("type") != "decision"):  # a decision may be cited wherever it explains a row
                 bad("storylines", where, f"lists {i} under both {a} and {b}: a step or a question has one row; where another row needs it, name it in words, without its link")
+    found = section(lab)
+    if not found and active:
+        bad("storylines", "lab.toml", f"no map of the library has a section `<h2 id=\"{SECTION}\">Current storylines</h2>`: "
+            "the library's home map opens with it, one row for each active storyline")
+    for f, listed in found[1:]:
+        bad("storylines", lab.rel(f), f"has a second \"Current storylines\" section; the library has one, on {lab.rel(found[0][0])}")
+    if found:
+        f, listed = found[0]
+        for a in active:
+            if a not in listed:
+                bad("storylines", lab.rel(f), f"\"Current storylines\" has no row for {a}, which `[storylines]` lists as active")
+        for x in listed:
+            if x not in active:
+                bad("storylines", lab.rel(f), f"\"Current storylines\" lists {x}, which is not an active storyline: "
+                    "add it to `active`, or give it its place under another heading")
     for q, step, at in stale(lab):
         notes.append(f"storylines: {q} was last committed before the result of {step} ({at}): bring the storyline's argument up to date with it")
 
