@@ -317,15 +317,22 @@ def lock(lab, ident):
     return lab.rel(path)
 
 
-def review(lab, ident, stage, verdict, note, by=None):
-    """One independent reading of a plan or of an experiment's results, bound to exactly what it read."""
+def review(lab, ident, stage, verdict, note, by=None, supersedes=None):
+    """One independent reading of a plan or of an experiment's results, bound to exactly what it read. With
+    `supersedes`, a passing results review of rows that were changed after an earlier results review passed them: it
+    names that review by its `of`, and the note says why the rows changed. The rows that review read are held no more;
+    these are, once committed."""
     x = lab.nodes.get(ident)
     if not x or x["type"] != "experiment":
         stop(f"no experiment {ident}")
     if stage not in ("plan", "results") or verdict not in ("pass", "fail"):
         stop("lab review <experiment> plan|results pass|fail \"<note>\"")
+    if supersedes is not None and (stage != "results" or verdict != "pass"):
+        stop("only a results review that passes supersedes another")
     if not R.flat(note):
         stop("a review says what it read and what it found")
+    if R.SUPERSEDING.search(R.flat(note).rstrip()):
+        stop("a note does not end by superseding a review: name the earlier review with --supersedes <of>, and the command writes that sentence")
     if stage == "plan" and x["lock"]:
         stop(f"{ident} is locked: a plan is reviewed before its lock")
     if stage == "results":
@@ -333,6 +340,16 @@ def review(lab, ident, stage, verdict, note, by=None):
             stop(f"{ident} has no finished run with results to review")
         if lab.reviewed(x, "results")[0] == "fail":
             stop(f"{ident} already failed its results review, and that is final: replace the experiment")
+    if supersedes is not None:
+        if not re.fullmatch(r"[0-9a-f]{8,16}", supersedes or ""):
+            stop("--supersedes names the earlier review by its `of`, eight to sixteen hex digits")
+        earlier = {r["of"] for r in x["reviews"] if r.get("stage") == "results" and r.get("verdict") == "pass" and (r.get("of") or "").startswith(supersedes)}
+        if len(earlier) != 1:
+            stop(f"{ident} has {'no' if not earlier else 'more than one'} results review that passed whose `of` begins {supersedes}")
+        earlier = earlier.pop()
+        if earlier in (lab.content(x, stage), lab.content(x, stage, 1)):
+            stop(f"the review {earlier} read the rows as they are now: there is nothing to supersede, so review them without --supersedes")
+        note = f"{R.flat(note).rstrip()} {R.SUPERSEDES.format(earlier)}"
     path = os.path.join(lab.root, x["dir"], "reviews.tsv")
     if not os.path.exists(path):
         open(path, "w").write("date\tstage\tverdict\tby\tof\tnote\n")

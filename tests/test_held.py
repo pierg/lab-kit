@@ -406,3 +406,64 @@ def test_a_page_of_another_library_is_looked_for_where_that_library_is(tmp_path)
     # a library the charter does not name is a problem wherever the check runs
     front(f"{qdir}/question.md", see="[elsewhere:/content/readings/the-law.html]")
     assert "which is not a page of a library the charter names" in lab(root, "check", ok=False)
+
+
+def test_a_later_review_supersedes_an_earlier_one_only_by_naming_it(tmp_path):
+    root = under(tmp_path, "lab")
+    ident, d = finished(root)  # its rows reviewed, passed and committed
+    rows, reviews, held = f"{d}/results.tsv", f"{d}/reviews.tsv", "a row that a review had passed in"
+    was = open(rows).read()
+    first = [l.split("\t") for l in open(reviews).read().splitlines() if "\tresults\tpass\t" in l][-1][4]
+
+    # a reviewed row read again another way, to the same value: held, and a second review alone does not change that
+    open(rows, "w").write(was.replace("cat $RUN/ratio.txt", "python3 -c \"print(open('$RUN/ratio.txt').read().strip())\""))
+    assert open(rows).read() != was
+    assert held in lab(root, "check", "--no-rederive", ok=False)
+    lab(root, "review", ident, "results", "pass", "Read the new command; it prints the same value.")
+    commit(root, "the row read another way, reviewed again")
+    assert held in lab(root, "check", "--no-rederive", ok=False)
+
+    # what --supersedes refuses: a plan review, a fail, a review that is not there, one that read the rows as they are now
+    second = [l.split("\t") for l in open(reviews).read().splitlines() if "\tresults\tpass\t" in l][-1][4]
+    assert "only a results review that passes" in lab(root, "review", ident, "plan", "pass", "x", "--supersedes", first, ok=False)
+    assert "only a results review that passes" in lab(root, "review", ident, "results", "fail", "x", "--supersedes", first, ok=False)
+    assert "eight to sixteen hex" in lab(root, "review", ident, "results", "pass", "x", "--supersedes", "zz", ok=False)
+    assert "no results review that passed" in lab(root, "review", ident, "results", "pass", "x", "--supersedes", "0123abcd", ok=False)
+    assert "nothing to supersede" in lab(root, "review", ident, "results", "pass", "x", "--supersedes", second, ok=False)
+    assert "eight to sixteen hex" in lab(root, "review", ident, "results", "pass", "x", "--supersedes", "", ok=False)
+    assert "name the earlier review with --supersedes" in lab(root, "review", ident, "results", "pass", f"x. Supersedes the results review of {first}.", ok=False)
+
+    # named, with why: the rows the first review read are held no more, and these are
+    out = lab(root, "review", ident, "results", "pass", "The row now reads the value through $RUN, as the gate asks; the value is the same.", "--supersedes", first[:8])
+    assert "recorded in" in out
+    assert open(reviews).read().rstrip().endswith(f"Supersedes the results review of {first}.")
+    commit(root, "the first review superseded")
+    assert "the record is sound" in lab(root, "check", "--no-rederive", "--strict")
+    open(rows, "w").write(was)
+    assert held in lab(root, "check", "--no-rederive", ok=False)  # the superseding review's rows are held in their turn
+
+
+def test_a_review_that_names_no_earlier_pass_supersedes_nothing(tmp_path):
+    root = under(tmp_path, "lab")
+    ident, d = finished(root)
+    reviews = f"{d}/reviews.tsv"
+    line = [l for l in open(reviews).read().splitlines() if "\tresults\tpass\t" in l][-1]
+    open(reviews, "a").write(line + " Supersedes the results review of 0123456789abcdef.\n")
+    assert "which is no earlier results review of other rows that passed" in lab(root, "check", "--no-rederive", ok=False)
+
+
+def test_a_superseding_review_frees_nothing_until_its_own_rows_are_committed_with_it(tmp_path):
+    root = under(tmp_path, "lab")
+    ident, d = finished(root)
+    rows, reviews, held = f"{d}/results.tsv", f"{d}/reviews.tsv", "a row that a review had passed in"
+    was = open(rows).read()
+    first = [l.split("\t") for l in open(reviews).read().splitlines() if "\tresults\tpass\t" in l][-1][4]
+    other = was.replace("cat $RUN/ratio.txt", "cat \"$RUN/ratio.txt\"")
+    open(rows, "w").write(other)
+    lab(root, "review", ident, "results", "pass", "The command quotes $RUN now; same value.", "--supersedes", first)
+    git(root, "add", reviews)
+    git(root, "commit", "-qm", "the review, without the rows it read")
+    open(rows, "w").write(other.replace("cat \"$RUN/ratio.txt\"", "cat $RUN/ratio.txt # a third way"))
+    lab(root, "review", ident, "results", "pass", "Read the rows again.")
+    commit(root, "a third way, reviewed without naming anything")
+    assert held in lab(root, "check", "--no-rederive", ok=False)

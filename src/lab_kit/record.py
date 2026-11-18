@@ -52,6 +52,18 @@ RUN_ID = re.compile(r"^\d{8}-\d{4}_G\d+\.Q\d+\.\d+_[a-z0-9]{4}$")  # <date>-<tim
 # it lost (what it used, and why). A file written before `used` and `note` existed has the first six columns.
 LEDGER = ("run", "kind", "what", "at", "exit", "seal", "used", "note")
 COLUMNS = {"results.tsv": ("name", "label", "value", "reads", "versus", "command"), "reviews.tsv": ("date", "stage", "verdict", "by", "of", "note")}
+# A results review that passed rows changed after an earlier one passed them ends its note with this, naming the
+# earlier review by its `of` (`lab review ... --supersedes`): the rows the earlier one read are then held no more.
+SUPERSEDES = "Supersedes the results review of {}."
+SUPERSEDING = re.compile(r"Supersedes the results review of ([0-9a-f]{16})\.$")
+
+
+def superseded(reviews):
+    """The `of` of each results review that a later passing results review supersedes."""
+    found = (SUPERSEDING.search((r.get("note") or "").rstrip()) for r in reviews if r.get("stage") == "results" and r.get("verdict") == "pass")
+    return {m.group(1) for m in found if m}
+
+
 HASH = 2  # how a folder is hashed in the locks and runs made now; one without the marker was made with the first way
 NUMBER = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?")
 LISTS = {"goal": ("see",), "question": ("needs", "see"), "experiment": ("needs", "uses", "see"), "build": ("needs", "commits", "tests", "see"),

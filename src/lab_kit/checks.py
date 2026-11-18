@@ -305,6 +305,10 @@ def run(lab, rederive=True):
             if r["stage"] not in ("plan", "results") or r["verdict"] not in ("pass", "fail") or not R.day(r["date"]) or not r["of"]:
                 bad("reviews", p, f"a row of reviews.tsv is not one `lab review` wrote: {R.flat(' '.join(r.values()))[:60]!r}")
                 break
+        for i, r in enumerate(x["reviews"]):
+            m = R.SUPERSEDING.search((r.get("note") or "").rstrip()) if r.get("stage") == "results" and r.get("verdict") == "pass" else None
+            if m and not any(e.get("stage") == "results" and e.get("verdict") == "pass" and e.get("of") == m.group(1) and e.get("of") != r.get("of") for e in x["reviews"][:i]):
+                bad("reviews", p, f"a results review supersedes {m.group(1)}, which is no earlier results review of other rows that passed")
         if x["results"]:
             if not x["lock"] or not x["finished"]:
                 bad("results", p, "has results with no locked plan and finished run behind them")
