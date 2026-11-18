@@ -382,6 +382,9 @@ def check(lab):
         rows, read = where.rsplit("/", 1)[0] + "/results.tsv", set()
         if rows not in now:
             continue  # never committed, so nothing is held; or committed and gone, which is said above
+        # A passing results review that names an earlier one by its `of` supersedes it (`lab review ... --supersedes`):
+        # the rows that one read are held no more, and the superseding review's own rows are, once committed.
+        gone = R.superseded(R.table(R.read(os.path.join(root, now[where][0])), R.COLUMNS["reviews.tsv"])) if where in now else set()
         for c, path in reversed(commits + versions.get(rows, [])):  # every commit that touched the reviews or the rows
             folder = os.path.dirname(path)
             if c in read:
@@ -395,6 +398,8 @@ def check(lab):
             seals = [l[5] for l in listed if len(l) >= 6 and l[1] == "run" and l[2] == "ended" and l[4] == "0"]  # the finished run, as that commit lists it
             if passed[-1].get("of") not in {R.text_hash(R.text_hash(was) + str(seal))[:16] for seal in seals}:
                 continue  # the last review that passed there read other rows than these
+            if passed[-1].get("of") in gone:
+                continue  # a later review superseded it, and said why
             lost = subsequence(was.splitlines(), R.read(os.path.join(root, now[rows][0])).splitlines())
             if lost is not None:
                 bad(now[rows][0], f"a row that a review had passed in {c[:8]} is gone or changed: {lost[:70]!r}. Reviewed rows stay; a different result is a new experiment")

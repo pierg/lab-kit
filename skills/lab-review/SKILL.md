@@ -42,6 +42,11 @@ A failed plan is fixed by its author and read again.
    can read, saying what you conclude ("The numbers are what the rows say, and the bars were fixed
    before the run."). What you re-ran and what you could not verify comes after it: the page shows
    the first sentence and folds the rest.
+5. When rows that an earlier results review passed have changed since (`lab check` says "a row that a
+   review had passed in ... is gone or changed"), read what changed (`git diff` of `results.tsv` from
+   the commit it names) as well as the rows. Pass it only when each changed row still reports the same
+   result, read another way, and add `--supersedes <of>`, naming that earlier review's `of` from
+   `reviews.tsv`: the note says why the rows changed. A different result is a new experiment: fail it.
 
 A failed results review is final for that experiment. Say in the note what a replacement must do
 differently. Its numbers can then be cited nowhere: if a storyline page lists it under included, `lab check`

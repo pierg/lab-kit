@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.15.0
+
+- **A later results review can supersede an earlier one, by name.** A reviewed row that had to be read another
+  way, to the same result (a command that read the run by a fixed path, rewritten to read `$RUN` so the gate
+  passes), was held as it was: `lab check` said "a row that a review had passed in ... is gone or changed", a
+  second passing review did not lift it, and putting the old row back brought back the failure it was changed
+  to fix. `lab review <experiment> results pass "<why>" --supersedes <of>` now names the earlier passing results
+  review by its `of`; it ends the note with "Supersedes the results review of <of>.", and the rows that review
+  read are held no more, while the new rows are held once committed. A review that does not name the earlier one
+  still supersedes nothing. `lab review` refuses it on a plan or a failing review, for an `of` no earlier passing
+  results review has, and when the earlier review read the rows as they are now; `lab check` refuses a note that
+  names no earlier passing results review of other rows.
+- The skill `lab-review` changed: run `lab init` in a lab after upgrading.
+
 ## 1.14.0
 
 - **A home map has Current storylines.** When `lab.toml` names active storylines, one of the library's home

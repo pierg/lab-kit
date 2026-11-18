@@ -199,6 +199,18 @@ Each arrow is a command that refuses when the step before it is missing. You see
   problem `lab check` reports at every step: a different result is a new experiment. A review is
   bound to the rows it read by its `of`, so only those are held: a draft row committed after a
   review, which that review never read, may still be corrected before the next review reads it.
+  **A review that supersedes another.** A reviewed row that must be read another way, to the same
+  result (a command that read the run by a fixed path and now reads `$RUN`), is not a new
+  experiment. A later results review that passes the new rows says so by name: `lab review
+  <experiment> results pass "<why the rows changed, and what was re-read>" --supersedes <of>`, where
+  `<of>` is the earlier passing results review's `of` (eight to sixteen of its first hex digits).
+  The command ends the note with "Supersedes the results review of <of>.", and from then on the rows
+  that earlier review read are held no more; the superseding review's own rows are, once committed.
+  A later review that passes changed rows without naming the earlier one supersedes nothing, so the
+  old rows are still held. `lab review` refuses `--supersedes` on a plan review or a failing one, an
+  `of` that no earlier passing results review has, and a review that read the rows as they are now;
+  `lab check` refuses a note that names a review that is not an earlier passing results review of
+  other rows.
   **The history that is read.** The check reads the history of the record under the lab's root as
   that root is now. Moving the lab's root inside its repository, or to another repository, starts
   again what is held: what was committed under the old root is not compared. And it needs the
@@ -822,7 +834,8 @@ with each quote inside written twice, as a spreadsheet writes it, is read withou
 quote is a character like any other.
 
 **`reviews.tsv`** is written by `lab review`: `date`, `stage` (plan, results), `verdict` (pass, fail),
-`by`, `of` (a hash of what was read), `note`.
+`by`, `of` (a hash of what was read), `note`. A results review written with `--supersedes` ends its
+note with "Supersedes the results review of <of>." (section 3, Reviewed rows stay).
 
 **`resources.toml`** has one table per resource: `what`, `key` (where it is kept), `rules` (a list of
 sentences), `retired` (why, once it is no longer used), and for a metered resource `unit`, `granted`,

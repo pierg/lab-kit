@@ -34,7 +34,9 @@ For evidence
   lab runs close <run> "<why>" [--used <resource>=<amount>]...   a run whose process died; --used for one that wrote no used.json
   lab runs close <run> "<why>" --used <resource>=<amount>... --evidence <folder>   an ended run that did not record what it used of a resource it ran on
   lab runs lost <run> "<why>" [--used <resource>=<amount>]...    a run that started and whose folder is gone for good
-  lab review <experiment> plan|results pass|fail "<note>" [--by <who>]
+  lab review <experiment> plan|results pass|fail "<note>" [--by <who>] [--supersedes <of>]
+                                            --supersedes: a results review that passes rows changed after the review
+                                            whose `of` it names had passed them; the note says why they changed
   lab check [--no-rederive] [--strict]      runs every command in results.tsv: only on a lab you trust. --strict fails when
                                             history or the store could not be checked, as in CI
 Once
@@ -191,10 +193,10 @@ def main(argv=None):
         else:
             raise SystemExit(USAGE)
     elif cmd == "review":
-        by = flag("--by")
+        by, supersedes = flag("--by"), flag("--supersedes")
         if len(rest) != 4:
             raise SystemExit(USAGE)
-        print(f"recorded in {write.review(lab, rest[0], rest[1], rest[2], rest[3], by or None)}")
+        print(f"recorded in {write.review(lab, rest[0], rest[1], rest[2], rest[3], by or None, supersedes or None)}")
     elif cmd == "check":
         if set(rest) - {"--no-rederive", "--strict"}:
             raise SystemExit(USAGE)
