@@ -204,8 +204,10 @@ Each arrow is a command that refuses when the step before it is missing. You see
   experiment. A later results review that passes the new rows says so by name: `lab review
   <experiment> results pass "<why the rows changed, and what was re-read>" --supersedes <of>`, where
   `<of>` is the earlier passing results review's `of` (eight to sixteen of its first hex digits).
-  The command ends the note with "Supersedes the results review of <of>.", and from then on the rows
-  that earlier review read are held no more; the superseding review's own rows are, once committed.
+  The command ends the note with "Supersedes the results review of <of>.". Once that review is
+  committed together with the rows it read, the rows the earlier review read are held no more, and
+  the new rows are held in their place; until then it supersedes nothing. A note cannot end with that
+  sentence except through `--supersedes`.
   A later review that passes changed rows without naming the earlier one supersedes nothing, so the
   old rows are still held. `lab review` refuses `--supersedes` on a plan review or a failing one, an
   `of` that no earlier passing results review has, and a review that read the rows as they are now;

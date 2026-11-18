@@ -430,6 +430,8 @@ def test_a_later_review_supersedes_an_earlier_one_only_by_naming_it(tmp_path):
     assert "eight to sixteen hex" in lab(root, "review", ident, "results", "pass", "x", "--supersedes", "zz", ok=False)
     assert "no results review that passed" in lab(root, "review", ident, "results", "pass", "x", "--supersedes", "0123abcd", ok=False)
     assert "nothing to supersede" in lab(root, "review", ident, "results", "pass", "x", "--supersedes", second, ok=False)
+    assert "eight to sixteen hex" in lab(root, "review", ident, "results", "pass", "x", "--supersedes", "", ok=False)
+    assert "name the earlier review with --supersedes" in lab(root, "review", ident, "results", "pass", f"x. Supersedes the results review of {first}.", ok=False)
 
     # named, with why: the rows the first review read are held no more, and these are
     out = lab(root, "review", ident, "results", "pass", "The row now reads the value through $RUN, as the gate asks; the value is the same.", "--supersedes", first[:8])
@@ -448,3 +450,20 @@ def test_a_review_that_names_no_earlier_pass_supersedes_nothing(tmp_path):
     line = [l for l in open(reviews).read().splitlines() if "\tresults\tpass\t" in l][-1]
     open(reviews, "a").write(line + " Supersedes the results review of 0123456789abcdef.\n")
     assert "which is no earlier results review of other rows that passed" in lab(root, "check", "--no-rederive", ok=False)
+
+
+def test_a_superseding_review_frees_nothing_until_its_own_rows_are_committed_with_it(tmp_path):
+    root = under(tmp_path, "lab")
+    ident, d = finished(root)
+    rows, reviews, held = f"{d}/results.tsv", f"{d}/reviews.tsv", "a row that a review had passed in"
+    was = open(rows).read()
+    first = [l.split("\t") for l in open(reviews).read().splitlines() if "\tresults\tpass\t" in l][-1][4]
+    other = was.replace("cat $RUN/ratio.txt", "cat \"$RUN/ratio.txt\"")
+    open(rows, "w").write(other)
+    lab(root, "review", ident, "results", "pass", "The command quotes $RUN now; same value.", "--supersedes", first)
+    git(root, "add", reviews)
+    git(root, "commit", "-qm", "the review, without the rows it read")
+    open(rows, "w").write(other.replace("cat \"$RUN/ratio.txt\"", "cat $RUN/ratio.txt # a third way"))
+    lab(root, "review", ident, "results", "pass", "Read the rows again.")
+    commit(root, "a third way, reviewed without naming anything")
+    assert held in lab(root, "check", "--no-rederive", ok=False)

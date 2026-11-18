@@ -331,6 +331,8 @@ def review(lab, ident, stage, verdict, note, by=None, supersedes=None):
         stop("only a results review that passes supersedes another")
     if not R.flat(note):
         stop("a review says what it read and what it found")
+    if R.SUPERSEDING.search(R.flat(note).rstrip()):
+        stop("a note does not end by superseding a review: name the earlier review with --supersedes <of>, and the command writes that sentence")
     if stage == "plan" and x["lock"]:
         stop(f"{ident} is locked: a plan is reviewed before its lock")
     if stage == "results":

@@ -8,8 +8,8 @@
   second passing review did not lift it, and putting the old row back brought back the failure it was changed
   to fix. `lab review <experiment> results pass "<why>" --supersedes <of>` now names the earlier passing results
   review by its `of`; it ends the note with "Supersedes the results review of <of>.", and the rows that review
-  read are held no more, while the new rows are held once committed. A review that does not name the earlier one
-  still supersedes nothing. `lab review` refuses it on a plan or a failing review, for an `of` no earlier passing
+  read are held no more once it is committed together with the rows it read, which are held in their place. A review that does not name the earlier one
+  still supersedes nothing, and a note may not end with that sentence by hand. `lab review` refuses it on a plan or a failing review, for an `of` no earlier passing
   results review has, and when the earlier review read the rows as they are now; `lab check` refuses a note that
   names no earlier passing results review of other rows.
 - The skill `lab-review` changed: run `lab init` in a lab after upgrading.

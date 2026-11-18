@@ -193,10 +193,11 @@ def main(argv=None):
         else:
             raise SystemExit(USAGE)
     elif cmd == "review":
+        named = "--supersedes" in rest
         by, supersedes = flag("--by"), flag("--supersedes")
         if len(rest) != 4:
             raise SystemExit(USAGE)
-        print(f"recorded in {write.review(lab, rest[0], rest[1], rest[2], rest[3], by or None, supersedes or None)}")
+        print(f"recorded in {write.review(lab, rest[0], rest[1], rest[2], rest[3], by or None, supersedes if named else None)}")
     elif cmd == "check":
         if set(rest) - {"--no-rederive", "--strict"}:
             raise SystemExit(USAGE)
