@@ -1041,8 +1041,8 @@ with the result's value, rounded half up to as many decimals as the page shows, 
 shows (`reads`: a share as a percentage, a difference in points); names joined by `+` are summed and by `*`
 multiplied, and a single result that reads as a percent or in points is compared as one, never added to others. The
 result is usable: its experiment's results were reviewed, and it was not replaced or dropped. An element whose end
-tag is left out ends where HTML ends it, with its parent; one still open where the page ends is refused. A storyline
-page carries `<meta name="numbers" content="tagged">` and shows a number only in such an element, in an element
+tag is left out ends where HTML ends it, with its parent; one still open where the page ends is refused. Each HTML
+file of a storyline page carries `<meta name="numbers" content="tagged">` and shows a number only in such an element, in an element
 marked `data-plain`, in `<code>`, a `<figure>` or an `<svg>`, in a link to a card (`/lab/<id>/`), or as the total
 in "k of n", a year, or right after one of `names` or of Result, Step, Figure, Table, Section, Part and Version, in
 any case. A link to a glossary term is `<a class="term" href="/lab/glossary/#<anchor>" title="<definition>">`, the

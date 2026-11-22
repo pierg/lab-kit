@@ -110,8 +110,9 @@ Follow the lab's own writing rules (its AGENTS.md says where they are) and lab-w
 - **Numbers.** Write "k of n" with what n is, never a bare percentage. A storyline page carries
   `<meta name="numbers" content="tagged">`, and every number on it from a card sits in an element naming its result:
   `<span data-result="G1.Q1.1:ratio">50%</span>`, or `<span data-result="G1.Q2.1:held+held-late">12</span> of 12`. Names joined by `+` are summed and by `*`
-  multiplied, so a share times its total gives a count; a single result read as a percent is compared as one. The
-  first number the element shows is compared, after rounding the card's value to as many decimals as the page shows.
+  multiplied, so a share times its total gives a count; a single result read as a percent or in points is compared
+  as one. The first number the element shows is compared with the card's value rounded to as many decimals as the page
+  shows, or with the number the card itself shows.
   A number that is not a result (a definition, a count of what is studied) sits in an element marked `data-plain`;
   the total in "k of n", a year, and a number right after a word `pages.toml` lists under `names` need neither.
 - **Definitions live in the glossary.** The lab defines each word once, in `GLOSSARY.md`, served at

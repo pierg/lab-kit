@@ -69,6 +69,7 @@ def test_a_quoted_number_is_the_cards_and_its_results_were_reviewed(tmp_path):
         '<span data-result="G1.Q7.1:ratio">5</span>': "names no result of an experiment of the record",
         f'<span data-result="{first}:ratio">half</span>': "shows no number",
         f'<span data-result="{first}:ratio">50%</span> over 200 estimates': "shows numbers outside a data-result element (200)",
+        f'<span data-result="{first}:ratio">50%</span>, 3.5x faster in 40ms on H100': "shows numbers outside a data-result element (3.5, 40)",
     }
     for body, said in cases.items():
         write(root, "entries/the-error-halves", body, tagged=True)

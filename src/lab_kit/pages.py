@@ -40,7 +40,7 @@ TITLE = re.compile(r"""\s+title=(?:"[^"]*"|'[^']*'|[^\s>]+)""")
 FIRST = (r"for the first time", r"\bfirst[- ]ever\b", r"\bnever before\b", r"\bhad not been done\b",
          r"\bnever been (?:\w+ )?(?:done|shown|proved|measured)\b")  # a claim to be first, unless `pages.toml` says otherwise
 SPLIT = re.compile(r"(?<!\be\.g\.)(?<!\bi\.e\.)(?<!\bvs\.)(?<!\bcf\.)(?<=[.!?])\s")
-LOOSE = re.compile(r"(?<![\w.−-])[−-]?(?:\d(?:[\d,]*\d)?(?:\.\d+)?|\.\d+)(?!\w|\.\w)")
+LOOSE = re.compile(r"(?<![\w.−-])[−-]?(?:\d(?:[\d,]*\d)?(?:\.\d+)?|\.\d+)(?![\d,]*\d|\.\d)")  # a unit after it ("3.5x", "40ms") still makes it a number
 NUMBER = re.compile(r"[-−]?(?:\d[\d,]*(?:\.\d+)?|\.\d+)")
 STEP_LINK = re.compile(r"^/lab/(G\d+(?:\.Q\d+(?:\.\d+)?)?)/")
 PAGE_LINK = re.compile(r"^/content/([^#?]+?)/?(?:index\.html)?(?:[#?].*)?$")
