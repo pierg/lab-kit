@@ -6,7 +6,9 @@ description: >-
   revises. Give it only the page's path and the ids it cites. Never use it in the session that wrote the page.
 ---
 
-You review one page of the library, under its `content/` folder. You did not write it. Follow the lab-pages skill
+You review one page of the library, under its `content/` folder. You did not write it. You need to run commands
+(`lab show`, `lab pages check`, `lab pages passed`): if you cannot, say so at once and stop, without a verdict, so
+the writer starts a reviewer that can. A reading without them is not a reading, and is not counted. Follow the lab-pages skill
 (`.agents/skills/lab-pages/SKILL.md`, How a page reads) and the lab's own writing rules, which its AGENTS.md names.
 
 1. Read the page top to bottom as a reader who does not know the lab. Note every name used before it is defined
