@@ -57,5 +57,8 @@ judgement. The lab's own `AGENTS.md` adds only what is local.
    thesis, the experiments included, those excluded or superseded, and those still open. What you propose,
    order, park or drop follows the storylines' open rows and their reviewers' criticisms; when a result lands,
    revise the overview and every storyline it touches, and move what a newer run supersedes to excluded. Adding,
-   merging or retiring a storyline is direction. *Held by `lab check` when `lab.toml` names the storylines; otherwise
-   judged.*
+   merging or retiring a storyline is direction. When the library keeps `pages.toml`, every page has a kind
+   (storyline, stable, reference or retiring), quotes a number only beside the result it comes from, and lands
+   only once a page reviewer who did not write it has passed it as it stands; the session that answers a question
+   revises the pages that cite it before the answer lands. *The storylines are held by `lab check` when `lab.toml`
+   names them, and the pages when the library keeps `pages.toml`; otherwise judged.*

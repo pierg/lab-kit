@@ -22,7 +22,8 @@ The tests build a small lab with the command itself and take it from a question 
 
 - The model wins. Change `docs/model.md` first, then the code, the method and the skills, in the same change.
 - A rule a command holds is in `docs/model.md`, in the code and in a test together, with a case that it refuses.
-- A command validates before it writes, and says what it wrote. No command writes a computed view into a lab.
+- A command validates before it writes, and says what it wrote. No command writes a computed view into a lab. The one exception is `lab pages terms`,
+  which copies each glossary definition into the links to it, as hover text that `lab check` otherwise refuses.
 - Never `git add -A`. Add the files you touched.
 
 ## Content and gate

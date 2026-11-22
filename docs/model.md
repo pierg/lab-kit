@@ -423,6 +423,25 @@ parked or dropped is in either, and a goal, a question or a step sits in one row
 before a result about something it lists under included or open is noted. `lab now` lists each storyline's
 open experiments, and the live steps no storyline lists, by themselves or by their question or goal.
 
+**Pages: the cards are the facts, and every page is passed as it stands.** Above the record, the library's pages
+argue and explain; they never repeat a question card. A lab may opt in to hold its pages to the record by giving
+its library a `pages.toml` (section 9), which gives every page a **kind**. A **storyline** page carries the
+argument and is revised when a question it cites is answered. A **stable** page explains how the method works, or
+the words and objects every page leans on, and is changed only to correct it. A **reference** page holds the full
+trail, the appendices, the guide and the maps. A **retiring** page waits to be merged into another and retired.
+The session that answers a question revises, in the same sitting, the storyline pages that cite it, and a **page
+reviewer** who did not write them reads each against the cards and records a pass with a fingerprint of the page
+as it read it. A page is read again only when its text changes. Then `lab check` holds that every page under the
+sections the lab lists has a kind; a number a page quotes inside a `data-result` element is the value its card gives
+that result, from results that were reviewed and not replaced or dropped; a storyline page says its numbers are
+tagged and shows no other; no page but a retiring one uses a phrase the lab has dropped, or claims to be first
+without "to our knowledge"; every
+storyline and stable page matches a recorded pass; every question answered since the day the lab names has a row
+saying its answer reached its pages; each active storyline page links every storyline page; and a link to a
+glossary term names a term the glossary has, with its definition, as it now stands, as hover text. `lab now` lists
+the answers that have not reached their pages and the pages waiting for a reviewer. A lab without `pages.toml` has
+none of this.
+
 ## 5. What the agent uses
 
 - **To look:** `lab now`, `lab show <id or path>`, `lab brief <question>`, `lab since`, `lab define <term>`. Each shows one level,
@@ -443,10 +462,17 @@ open experiments, and the live steps no storyline lists, by themselves or by the
   `--evidence <folder>` writes an amendment instead (below, under `runs.tsv`). Where the system gives no way to tell that a process is the run's, nothing is
   stopped and the command says so. `lab runs lost` records a run that started and whose folder is
   gone for good.
-- **Once:** `lab init`. Run again, it restores the method, the skills and the reviewer role.
+- **Once:** `lab init`. Run again, it restores the method, the skills and the reviewer roles.
 - **To carry out a decision:** `lab mission` (below).
+- **For the library's pages,** when it keeps `pages.toml`: `lab pages` lists every page with its kind and
+  whether a page reviewer passed it as it now stands; `lab pages check` runs only what `lab check` holds about the
+  pages; `lab pages cites <id>` lists the storyline pages that cite a question or a step; `lab pages passed <page>
+  "<note>"` is the page reviewer's pass; `lab pages answered <question> "<note>"` records that an answer reached its
+  pages, and is refused while a storyline or stable page waits for a pass; `lab pages terms` writes each glossary
+  link's hover text from `GLOSSARY.md`. It is the one command that writes into a page, and it writes only what
+  `lab check` would otherwise refuse: the definition, as the glossary gives it, in the link's `title`.
 
-That is sixteen commands. `lab --help` lists them the same way.
+That is seventeen commands. `lab --help` lists them the same way.
 
 **A mission.** A settled decision says what is done and why: the questions, the order, the resources. Carrying
 it out can take many sessions, each starting sessions or runs of its own and watching them, and a session that
@@ -492,9 +518,10 @@ since when), and the time of the last recorded activity. A `doing` line stands u
 about the same card, or the card being finished, ends it. When there is none, the page says that
 nobody is on anything and names the next step. Nothing is inferred from a session being open.
 
-Five skills: `lab-set-up`, `lab-work`, `lab-review`, `lab-talk` (tell you where things stand, bring
-a decision to you, record what was decided), and `lab-mission` (save, launch, resume and close a mission). One
-role: the reviewer.
+Six skills: `lab-set-up`, `lab-work`, `lab-review`, `lab-talk` (tell you where things stand, bring
+a decision to you, record what was decided), `lab-mission` (save, launch, resume and close a mission), and
+`lab-pages` (revise and review the library's pages when it keeps `pages.toml`). Two roles: the reviewer, and the
+page reviewer.
 
 Eight rules:
 
@@ -987,6 +1014,47 @@ include `rows`, from the heading to the next `h2` or `h3`. A link in prose or in
 is the one place those pages have on a map; the overview and a retired storyline have theirs under other
 headings. The library has one such section, and no map that is not a home map has one. A lab without
 `[storylines]` has none of this.
+
+**Pages.** A library that keeps `pages.toml` (beside `folio.yaml`) gives every page a kind, and says how the
+page check reads its pages:
+
+```
+since = "2026-11-21"                       # every question answered from this day on records that it reached its pages
+dropped = ["law of everything", "breakthrough"]  # phrases no page but a retiring one uses, as case-blind regular expressions
+names = ["Model", "Trial"]                 # words after which a number is a name, not a result ("Model 4", "Trial 2")
+sections = ["entries", "concepts", "guides"]   # the folders under content/ whose pages each need a kind (these by default)
+first = ["for the first time", "first[- ]ever", "never before"]   # claims to be first, which say "to our knowledge"
+
+[pages]
+"index" = "reference"
+"entries/the-error-halves" = "storyline"
+"concepts/error-ratio" = "stable"
+```
+
+A page is a path under `content/`: a folder, whose HTML files are all the page, or a file `<page>.html` (the home
+page, a map), never with `..`. `since` is required, a date; `dropped` is empty and `sections` is as shown unless set;
+`first` lists the claims to be first that a sentence makes only with "to our knowledge", and by default holds "for
+the first time", "first-ever", "never before", "had not been done" and "never been done", "shown", "proved" or
+"measured"; `[]` turns it off. Every folder under a listed section has a kind, and every page `[pages]` lists is
+there. A number quotes a result in an element `data-result="<experiment>:<result>"`, whose first number is compared
+with the result's value, rounded half up to as many decimals as the page shows, or with the number the card itself
+shows (`reads`: a share as a percentage, a difference in points); names joined by `+` are summed and by `*`
+multiplied, and a single result that reads as a percent or in points is compared as one, never added to others. The
+result is usable: its experiment's results were reviewed, and it was not replaced or dropped. An element whose end
+tag is left out ends where HTML ends it, with its parent; one still open where the page ends is refused. Each HTML
+file of a storyline page carries `<meta name="numbers" content="tagged">` and shows a number only in such an element, in an element
+marked `data-plain`, in `<code>`, a `<figure>` or an `<svg>`, in a link to a card (`/lab/<id>/`), or as the total
+in "k of n", a year, or right after one of `names` or of Result, Step, Figure, Table, Section, Part and Version, in
+any case. A link to a glossary term is `<a class="term" href="/lab/glossary/#<anchor>" title="<definition>">`, the
+anchor being the entry's heading, or a name under its `- also:`, in lower case with spaces as hyphens.
+
+Two records sit beside `pages.toml`, each a TSV whose rows are only added, through the commands:
+`page-reviews.tsv` (`page`, `fingerprint`, `date`, `note`), one row per pass, and `answers-in-pages.tsv`
+(`question`, `answered`, `date`, `note`), one row per answer that reached its pages, keyed by the question and the
+date on its `answered:` line. A page's fingerprint is the first 16 hex digits of the SHA-256 of its HTML files, in
+path order, each as its path under `content/`, a zero byte, its bytes with every glossary link's `title` left out,
+and a zero byte. A storyline or stable page whose fingerprint no row of `page-reviews.tsv` holds waits for a page
+reviewer; a reference page never read is listed by `lab pages`, and not held.
 
 **Worked-out states.** A goal is open until `reached: true` makes it done or `dropped:` drops it. A
 question is waiting while the decision it came from is open, then open, then done with its answer; it
