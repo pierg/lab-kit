@@ -435,11 +435,20 @@ def check_amendment(lab, r, listed):
         return "its amendment is of another run, or of this run with another seal"
     if not listed or (listed.get("amended") or {}).get("seal") != a["seal"]:
         return f"its amendment is not the one runs.tsv lists: `lab runs close {r['id']}` lists it when it writes it"
+    corrected = a.get("corrected") or {}
+    if not isinstance(corrected, dict):
+        return "its amendment cannot be read as one `lab runs close` wrote"
+    own = r.get("own_used") or {}
     for k, v in a["used"].items():
         if not R.amount(v):
             return f"its amendment records {v!r} as what it used of {k}: an amount is a number, finite and not negative"
-        if k in (r.get("own_used") or {}):
-            return f"its amendment states what it used of {k}, which the run recorded itself"
+        if k in own:
+            if k not in corrected:
+                return f"its amendment states what it used of {k}, which the run recorded itself"
+            if corrected[k] != own[k] or not R.amount(own[k]) or not v < own[k]:
+                return f"its amendment corrects what the run recorded of {k}, {corrected[k]!r}, which is not what the run recorded ({own[k]!r}) or not more than {v:g}"
+        elif k in corrected:
+            return f"its amendment corrects what the run recorded of {k}, and the run recorded none"
     where = evidence_at(lab, str(a["evidence"].get("path") or ""))
     if not a["evidence"]["files"] or not os.path.exists(where):
         return f"the evidence of its amendment, {a['evidence'].get('path')}, is not there"
@@ -447,12 +456,38 @@ def check_amendment(lab, r, listed):
         f = where if os.path.isfile(where) else os.path.join(where, p)
         if not os.path.isfile(f) or R.sha(f) != h:
             return f"the evidence of its amendment changed: {p} does not match its hash"
+    for k in corrected:
+        shown = evidence_sum(where, k)
+        if shown is None or abs(shown - a["used"][k]) > 1e-9:
+            return f"the evidence of its correction of {k} does not add up to {a['used'][k]:g}" + ("" if shown is None else f" (its JSON files say {shown:g})")
     return None
+
+
+def evidence_sum(folder, resource):
+    """What the evidence's JSON files say was used of `resource`, added up: each file a JSON object whose `resource`
+    is an amount (a member's `used.json`). None when no file says it, or one says something that is not an amount."""
+    paths = [folder] if os.path.isfile(folder) else [os.path.join(top, f) for top, _, fs in os.walk(folder) for f in fs]
+    total, seen = 0.0, False
+    for p in sorted(paths):
+        if not p.endswith(".json"):
+            continue
+        try:
+            with open(p) as f:
+                d = json.load(f)
+        except (OSError, ValueError):
+            continue
+        if isinstance(d, dict) and resource in d:
+            if not R.amount(d[resource]):
+                return None
+            total, seen = total + d[resource], True
+    return total if seen else None
 
 
 def amend(lab, run_id, why, used, evidence):
     """Record what an ended run used and did not record: a sealed amendment beside its folder in the store, naming
-    the files the amounts were read from with their hashes, and listed in runs.tsv. What the run recorded stands."""
+    the files the amounts were read from with their hashes, and listed in runs.tsv. What the run recorded stands,
+    unless the amendment corrects it downward: an amount lower than the run recorded, which the evidence's JSON files
+    (its members' `used.json`) add up to exactly. The recorded amount is kept beside the correction."""
     r = next((x for x in lab.runs if x["id"] == run_id), None)
     if r["missing"] or r["local"]:
         stop(f"{run_id} is not in the store here: an amendment is written beside a run in the store" + (", so `lab runs publish` it first" if r["local"] else ""))
@@ -462,11 +497,14 @@ def amend(lab, run_id, why, used, evidence):
         stop("--evidence <folder>: the files the amounts were read from, kept outside the run's folder")
     used = stated(lab, used)
     own = r.get("own_used") or {}
+    corrected = {}
     for k in used:
-        if k in own:
-            stop(f"{run_id} recorded what it used of {k} itself, and that stands")
         if k not in (r.get("cap") or {}):
             stop(f"{run_id} did not run on {k}")
+        if k in own:
+            if not (R.amount(own[k]) and used[k] < own[k]):
+                stop(f"{run_id} recorded what it used of {k} itself, and that stands: only an amount it over-recorded is corrected, downward")
+            corrected[k] = own[k]
     rdir = os.path.join(lab.root, r["dir"])
     why_not = verify(rdir)
     if why_not:
@@ -482,11 +520,17 @@ def amend(lab, run_id, why, used, evidence):
     files = evidence_files(ev)
     if not files:
         stop(f"--evidence {evidence}: holds no files")
+    for k in corrected:
+        shown = evidence_sum(ev, k)
+        if shown is None or abs(shown - used[k]) > 1e-9:
+            stop(f"{run_id} recorded {own[k]:g} of {k}: a correction to {used[k]:g} needs evidence whose JSON files (the members' used.json) add up to it" + ("" if shown is None else f"; they add up to {shown:g}"))
     store = os.path.realpath(lab.store_root)
     real = os.path.realpath(ev)
     where = os.path.relpath(real, store) if real.startswith(store + os.sep) else real
     a = {"run": run_id, "run_seal": r["seal"], "at": now(), "why": " ".join(why.split()), "used": used,
          "evidence": {"path": where, "files": dict(sorted(files.items()))}}
+    if corrected:
+        a["corrected"] = corrected  # what the run recorded, kept beside the lower amount that replaces it
     a["seal"] = R.seal_of(a)
     tmp = path + ".tmp"
     with open(tmp, "w") as f:
@@ -502,7 +546,7 @@ def listing(lab):
     out = []
     for r in lab.runs:
         state = "its process is gone: close it" if r["orphan"] else f"lost ({r['lost']})" if r["lost"] else r["state"] + (f" (exit {r['exit']})" if r["state"] == "failed" else "")
-        used = "".join(f", used {v:g} {lab.resources.get(k, {}).get('unit', k)}" for k, v in (r.get("used") or {}).items() if R.amount(v))
+        used = "".join(f", used {v:g} {lab.resources.get(k, {}).get('unit', k)}" + (f" (corrected from {(r.get('used_corrected') or {})[k]:g})" if k in (r.get("used_corrected") or {}) else "") for k, v in (r.get("used") or {}).items() if R.amount(v))
         where = "nowhere" if r["lost"] else "listed in runs.tsv, and not here" if r["missing"] else "on this machine, not yet in the store" if r["local"] else "in the store"
         out.append(f"{r['id']}  {'trial, ' if r['kind'] == 'trial' else ''}{state}  {where}{used}")
     return out

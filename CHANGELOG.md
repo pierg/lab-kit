@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.18.0
+
+- **An ended run that over-recorded what it used is corrected downward.** `lab runs close <run> "<why>" --used
+  <resource>=<amount> --evidence <folder>` on an ended run now also takes a resource the run recorded itself, when the
+  amount is lower than the recorded one and the evidence's JSON files (its machines' `used.json`) add up to it exactly.
+  The amendment keeps the recorded amount under `corrected`; the sealed run is not touched. `lab check` counts the
+  corrected amount, holds it against the run's cap and checks that the evidence still adds up; `lab show` and
+  `lab runs` show both figures. A higher amount, or one the evidence does not add up to, is refused.
+
 ## 1.17.0
 
 - **A decision and a mission are about the research only.** Direction, resources and the order of the work are

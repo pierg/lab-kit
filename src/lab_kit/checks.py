@@ -300,7 +300,8 @@ def run(lab, rederive=True):
                     if used is None:
                         bad("resources", where, f"ran on {name} and did not record what it used (`$LAB_RUN/used.json`)")
                     elif R.amount(used) and R.amount(cap) and used > cap:
-                        bad("resources", where, f"used {used:g} of {name}, above its cap of {cap:g}")
+                        was = (r.get("used_corrected") or {}).get(name)
+                        bad("resources", where, f"used {used:g} of {name}" + (f" (corrected from the {was:g} it recorded)" if was is not None else "") + f", above its cap of {cap:g}")
         for r in x["reviews"]:
             if r["stage"] not in ("plan", "results") or r["verdict"] not in ("pass", "fail") or not R.day(r["date"]) or not r["of"]:
                 bad("reviews", p, f"a row of reviews.tsv is not one `lab review` wrote: {R.flat(' '.join(r.values()))[:60]!r}")

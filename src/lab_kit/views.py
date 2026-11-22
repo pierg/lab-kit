@@ -269,7 +269,7 @@ def _show(lab, ident):
     if x["results"]:
         out += ["", "Results" + ("" if x["reviewed"] else " (not reviewed: not to be used on a card yet)")] + [f"- {r['name']} = {r['value']}" + (f", shown as {R.shown(r)}" if R.shown(r) != r["value"] else "") + f"  ({r.get('label') or 'no label'}; against: {r.get('versus', '')})" for r in x["results"]]
     for r in x["trials"] + x["runs"]:
-        used = "".join(f", used {num(v)} {lab.resources.get(k, {}).get('unit', k)}" + (" (stated by hand when it was closed)" if k in (r.get("used_by_hand") or []) else " (stated after it ended, from the evidence its amendment names)" if k in (r.get("used_amended") or []) else "") for k, v in (r.get("used") or {}).items() if R.amount(v))
+        used = "".join(f", used {num(v)} {lab.resources.get(k, {}).get('unit', k)}" + (" (stated by hand when it was closed)" if k in (r.get("used_by_hand") or []) else " (stated after it ended, from the evidence its amendment names)" if k in (r.get("used_amended") or []) else f" (corrected after it ended from the {num((r.get('used_corrected') or {})[k])} it recorded, from the evidence its amendment names)" if k in (r.get("used_corrected") or {}) else "") for k, v in (r.get("used") or {}).items() if R.amount(v))
         out += ["", f"{'Trial run' if r['kind'] == 'trial' else 'Run'} {r['id']}: {r['state']}" + (f" (exit {r['exit']})" if r["state"] == "failed" else "") + f"{used}, {r['dir']}"]
         out += [f"  declared lost: {r['lost']}"] if r["lost"] else ["  listed in runs.tsv; its folder is not in the store here"] if r["missing"] else []
         out += [f"  closed by hand: {r['closed']}"] if r.get("closed") and not r["lost"] else []

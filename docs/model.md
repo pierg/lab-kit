@@ -476,7 +476,8 @@ none of this.
   (`lab runs fetch`). Closing a run stops whatever its command left running, reads what it said it
   used, and takes `--used <resource>=<amount>` for a run that said nothing; that amount is recorded
   as stated by hand. On a run that has already ended, `lab runs close` with `--used` and
-  `--evidence <folder>` writes an amendment instead (below, under `runs.tsv`). Where the system gives no way to tell that a process is the run's, nothing is
+  `--evidence <folder>` writes an amendment instead (below, under `runs.tsv`), or a correction of an amount it
+  over-recorded, downward and only to what the evidence adds up to. Where the system gives no way to tell that a process is the run's, nothing is
   stopped and the command says so. `lab runs lost` records a run that started and whose folder is
   gone for good.
 - **Once:** `lab init`. Run again, it restores the method, the skills and the reviewer roles.
@@ -952,6 +953,13 @@ when it is in it, and every file in it with its hash), with one seal over it all
 its seal, names this run with its seal, is the one `runs.tsv` lists, and that every file of its
 evidence is still there with its hash; and that a run `runs.tsv` lists as amended has its amendment
 beside it.
+
+**A correction** is an amendment of an amount the run did record, when the run over-recorded it (for example,
+counting each machine's sessions twice). Only a lower amount is taken, and only when the evidence's JSON files
+(the machines' own `used.json`) add up to it exactly. The amendment keeps the recorded amount under `corrected`;
+the run's sealed record is not touched. `lab check` counts the corrected amount as what the run used and holds it
+against the run's cap, asks that `corrected` is what the run recorded and above the correction, and that the
+evidence still adds up to it; `lab show` and `lab runs` show both figures.
 
 **A run** writes into the folder `LAB_RUN` names. If it uses a metered resource it writes
 `used.json` there: `{"<resource>": <amount>}`, each amount a number, finite and not negative;
