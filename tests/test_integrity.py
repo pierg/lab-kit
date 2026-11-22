@@ -359,6 +359,44 @@ def test_an_ended_run_that_did_not_record_what_it_used_is_amended_beside_its_fol
     assert "the record is sound" in lab(root, "check", "--no-rederive")
 
 
+def test_an_ended_run_that_over_recorded_what_it_used_is_corrected_downward_from_its_evidence(tmp_path):
+    root = str(tmp_path)
+    open_question(root)
+    over = WRITES % "0.5" + "open(os.path.join(os.environ['LAB_RUN'], 'used.json'), 'w').write('{\"gpu\": 3}')\n"
+    ident, d, command = experiment(root, uses="[gpu]", command=over)  # it counted its members' hours twice: 3, not 1.5
+    lab(root, "review", ident, "plan", "pass", "One thing varies; the refuting line can hold.")
+    lab(root, "lock", ident)
+    assert "finished" in lab(root, "run", ident, "--wait", "--", *command)
+    run_id = open(f"{d}/runs.tsv").read().splitlines()[1].split("\t")[0]
+    assert "used 3 of gpu, above its cap of 2" in lab(root, "check", "--no-rederive", ok=False)
+    for m, n in (("helper-1", 0.5), ("helper-2", 1)):
+        os.makedirs(f"{root}/recovered/{m}")
+        open(f"{root}/recovered/{m}/used.json", "w").write('{"gpu": %s}\n' % n)
+
+    # only downward, and only to what the members' used.json add up to
+    assert "only an amount it over-recorded" in lab(root, "runs", "close", run_id, "counted twice", "--used", "gpu=4", "--evidence", "recovered", ok=False)
+    assert "they add up to 1.5" in lab(root, "runs", "close", run_id, "counted twice", "--used", "gpu=1", "--evidence", "recovered", ok=False)
+    os.makedirs(f"{root}/notes")
+    open(f"{root}/notes/why.txt", "w").write("counted twice\n")
+    assert "needs evidence whose JSON files" in lab(root, "runs", "close", run_id, "counted twice", "--used", "gpu=1.5", "--evidence", "notes", ok=False)
+    out = lab(root, "runs", "close", run_id, "Its used.json counted each member's hours twice; the members' used.json say 0.5 and 1.", "--used", "gpu=1.5", "--evidence", "recovered")
+    assert f"amended: runs/{run_id}.amended.json" in out
+    a = json.load(open(f"{root}/runs/{run_id}.amended.json"))
+    assert a["used"] == {"gpu": 1.5} and a["corrected"] == {"gpu": 3}
+    assert json.load(open(f"{root}/runs/{run_id}/run.json"))["used"] == {"gpu": 3}  # the sealed record is untouched
+    assert "the record is sound" in lab(root, "check", "--no-rederive")
+    assert "used 1.5 hours (corrected after it ended from the 3 it recorded" in lab(root, "show", ident)
+    assert "used 1.5 hours (corrected from 3)" in lab(root, "runs")
+    assert "never rewritten" in lab(root, "runs", "close", run_id, "again", "--used", "gpu=1", "--evidence", "recovered", ok=False)
+
+    # the evidence must stay as it was
+    open(f"{root}/recovered/helper-2/used.json", "w").write('{"gpu": 2}\n')
+    out = lab(root, "check", "--no-rederive", ok=False)
+    assert "the evidence of its amendment changed" in out
+    open(f"{root}/recovered/helper-2/used.json", "w").write('{"gpu": 1}\n')
+    assert "the record is sound" in lab(root, "check", "--no-rederive")
+
+
 def test_a_run_may_write_any_file_and_a_run_is_named_by_its_id(tmp_path):
     root = str(tmp_path)
     open_question(root)

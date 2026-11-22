@@ -842,8 +842,10 @@ class Lab:
             r["amendment"] = None if r["local"] or not os.path.lexists(amended) else (self._json(amended) or {})
             a = r["amendment"]
             if isinstance(a, dict) and isinstance(a.get("used"), dict):
-                more = {k: v for k, v in a["used"].items() if k not in r["own_used"]}
-                r["used"], r["used_amended"] = {**r["own_used"], **more}, sorted(more)
+                fixed = a.get("corrected") if isinstance(a.get("corrected"), dict) else {}
+                more = {k: v for k, v in a["used"].items() if k not in r["own_used"] or k in fixed}
+                r["used"], r["used_amended"] = {**r["own_used"], **more}, sorted(k for k in more if k not in fixed)
+                r["used_corrected"] = {k: r["own_used"][k] for k in more if k in fixed and k in r["own_used"]}
             out.append(r)
         here = {r["id"] for r in out}
         for x in self.experiments:  # a run the ledger lists and the store does not hold: known to have run, with nothing to read
