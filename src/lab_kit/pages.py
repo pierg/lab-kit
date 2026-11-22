@@ -5,9 +5,10 @@ gives every page a kind: `storyline` pages carry the argument and are revised wh
 `stable` pages explain how the method works and are only corrected, `reference` pages hold the trail, the appendices
 and the maps, and `retiring` pages wait to be merged. Then `lab check` holds that:
 
-- every page has a kind, and every listed page is there;
-- a number a page quotes inside `data-result="<step>:<result>"` is the value that result has, and its experiment's
-  results were reviewed; a storyline page that carries `<meta name="numbers" content="tagged">` shows no other number;
+- every page under the listed sections has a kind, and every listed page is there;
+- a number a page quotes inside `data-result="<step>:<result>"` is the value that result has, from results that were
+  reviewed and not replaced or dropped; a storyline page carries `<meta name="numbers" content="tagged">` and shows
+  no other number;
 - no page but a retiring one uses a phrase `pages.toml` drops, or claims to be first without "to our knowledge";
 - a storyline or stable page has passed a page reviewer as it now stands (`page-reviews.tsv`, by fingerprint);
 - a question answered on or after `since` records that its answer reached its pages (`answers-in-pages.tsv`);
@@ -36,11 +37,11 @@ NAMES = ("Result", "Step", "Figure", "Table", "Section", "Part", "Version")  # a
 GLOSSARY_URL = "/lab/glossary/#"
 TERM_LINK = re.compile(r"""<a\b[^>]*\bhref=(?:"/lab/glossary/#([^"]*)"|'/lab/glossary/#([^']*)')[^>]*>""")
 TITLE = re.compile(r"""\s+title=(?:"[^"]*"|'[^']*'|[^\s>]+)""")
-FIRST = re.compile(r"for the first time|\bthe first\b.{0,40}?\b(?:prove[sd]?|proving|proofs?)\b"
-                   r"|had not been done|never been (?:\w+ )?proved", re.I)
+FIRST = (r"for the first time", r"\bfirst[- ]ever\b", r"\bnever before\b", r"\bhad not been done\b",
+         r"\bnever been (?:\w+ )?(?:done|shown|proved|measured)\b")  # a claim to be first, unless `pages.toml` says otherwise
 SPLIT = re.compile(r"(?<!\be\.g\.)(?<!\bi\.e\.)(?<!\bvs\.)(?<!\bcf\.)(?<=[.!?])\s")
-LOOSE = re.compile(r"(?<![\w.−-])[−-]?\d(?:[\d,]*\d)?(?:\.\d+)?(?![\w])")
-NUMBER = re.compile(r"[-−]?\d[\d,]*(?:\.\d+)?")
+LOOSE = re.compile(r"(?<![\w.−-])[−-]?(?:\d(?:[\d,]*\d)?(?:\.\d+)?|\.\d+)(?!\w|\.\w)")
+NUMBER = re.compile(r"[-−]?(?:\d[\d,]*(?:\.\d+)?|\.\d+)")
 STEP_LINK = re.compile(r"^/lab/(G\d+(?:\.Q\d+(?:\.\d+)?)?)/")
 PAGE_LINK = re.compile(r"^/content/([^#?]+?)/?(?:index\.html)?(?:[#?].*)?$")
 
@@ -84,31 +85,42 @@ def settings(lab):
     for page, kind in sorted(kinds.items()):
         if kind not in KINDS:
             problems.append(f"gives {page} the kind {kind!r}; a kind is {', '.join(KINDS)}")
-    since = str(raw.get("since", ""))[:10]
-    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", since):
+        if str(page).startswith("/") or ".." in str(page).split("/"):
+            problems.append(f"lists {page}; a page is a path inside the library's content, without `..`")
+    since = None
+    if "since" not in raw:
         problems.append("names no `since = \"<date>\"`: the day from which every answered question records that its answer reached its pages")
-        since = None
-    dropped = []
-    for p in raw.get("dropped", []) if isinstance(raw.get("dropped", []), list) else [None]:
+    else:
+        import datetime
         try:
-            dropped.append(re.compile(str(p), re.I)) if isinstance(p, str) and p else problems.append("`dropped` lists phrases, each a regular expression")
-        except re.error as err:
-            problems.append(f"`dropped` holds {p!r}, which is not a regular expression: {err}")
+            since = (raw["since"] if isinstance(raw["since"], datetime.date) else datetime.date.fromisoformat(str(raw["since"]))).isoformat()
+        except ValueError:
+            problems.append(f"`since` is {raw['since']!r}, not a date such as \"2026-01-31\"")
+
+    def patterns(key, default):
+        found, given = [], raw.get(key, list(default))
+        if not isinstance(given, list):
+            problems.append(f"`{key}` lists phrases, each a regular expression")
+            given = []
+        for p in given:
+            try:
+                found.append(re.compile(p, re.I)) if isinstance(p, str) and p else problems.append(f"`{key}` lists phrases, each a regular expression")
+            except re.error as err:
+                problems.append(f"`{key}` holds {p!r}, which is not a regular expression: {err}")
+        return found
+
+    dropped, first = patterns("dropped", ()), patterns("first", FIRST)
     names = raw.get("names", [])
     if not isinstance(names, list) or not all(isinstance(n, str) and n.strip() for n in names):
-        problems.append("`names` lists words, such as [\"Opus\", \"Program\"], after which a number is not a result")
+        problems.append("`names` lists words, such as [\"Model\", \"Trial\"], after which a number is not a result")
         names = []
     sections = raw.get("sections", list(SECTIONS))
     if not isinstance(sections, list) or not all(isinstance(s, str) and s.strip() and "/" not in s for s in sections):
         problems.append("`sections` lists the folders under content/ whose pages each have a kind, such as [\"entries\", \"concepts\"]")
         sections = list(SECTIONS)
-    first = raw.get("first", True)
-    if not isinstance(first, bool):
-        problems.append("`first` is true or false")
-        first = True
     words = sorted({*NAMES, *(n.strip() for n in names)}, key=len, reverse=True)
     lab._pages = ({"kinds": {str(p).strip("/"): k for p, k in kinds.items() if k in KINDS}, "since": since, "dropped": dropped, "first": first,
-                   "names": re.compile(r"\b(?:" + "|".join(re.escape(w) for w in words) + r")\s+$"), "sections": sections, "where": where},
+                   "names": re.compile(r"\b(?:" + "|".join(re.escape(w) for w in words) + r")\s+$", re.I), "sections": sections, "where": where},
                   problems)
     return lab._pages
 
@@ -120,7 +132,7 @@ class _Page(HTMLParser):
     and to glossary terms, and (on a tagged page) every number shown outside a result."""
 
     VOID = {"br", "img", "hr", "input", "meta", "link", "wbr", "source", "col", "area", "base", "embed", "param", "track"}
-    PLAIN = {"code", "svg", "style", "script", "title", "head"}
+    PLAIN = {"code", "svg", "figure", "style", "script", "title", "head"}
 
     def __init__(self, names):
         super().__init__(convert_charrefs=True)
@@ -152,14 +164,10 @@ class _Page(HTMLParser):
         self.handle_data(" ")
         if tag in self.VOID or not any(t == tag for t, _, _ in self._stack):
             return
-        while self._stack:
-            open_tag, spec, _ = self._stack[-1]
-            text = self._text.pop(len(self._stack), "")
-            self._stack.pop()
-            if open_tag != tag:
-                inner = [s for _, s, _ in self._stack if s]
-                self.unclosed += inner[-1:] + ([spec] if spec else [])
-            elif spec:
+        while self._stack:  # an element whose end tag is left out ends where its parent ends, as HTML reads it
+            open_tag, spec, _ = self._stack.pop()
+            text = self._text.pop(len(self._stack) + 1, "")
+            if spec:
                 self.results.append((spec, text))
             if open_tag == tag:
                 break
@@ -177,7 +185,7 @@ class _Page(HTMLParser):
 
     def close(self):
         super().close()
-        self.unclosed += [spec for _, spec, _ in self._stack if spec]
+        self.unclosed += [spec for _, spec, _ in self._stack if spec]  # still open when the page ends: what it shows is unclear
 
 
 def read_page(lab, files):
@@ -376,32 +384,38 @@ def _number(lab, spec, shown):
         return f"data-result={spec!r} names no result of an experiment of the record (<step>:<result>)"
     rows = {r.get("name"): r for r in n["results"]}
     terms = [[x.strip() for x in t.split("*")] for t in names.split("+")]
-    total, percents = Decimal(0), 0
+    total, scaled_reads = Decimal(0), set()
     for t in terms:
         product = Decimal(1)
         for name in t:
             if name not in rows:
                 return f"data-result={spec!r}: {step} has no result {name!r}"
-            try:
-                product *= Decimal(str(rows[name].get("value", "")).strip())
-            except InvalidOperation:
+            if rows[name].get("num") is None:
                 return f"data-result={spec!r}: {name} is {rows[name].get('value')!r}, not a number"
-            percents += rows[name].get("reads") == "percent"
+            product *= Decimal(str(rows[name]["value"]).strip())
+            scaled_reads.add(rows[name].get("reads") or "")
         total += product
-    if any(len(t) == 1 and rows[t[0]].get("reads") == "percent" for t in terms) and len(terms) > 1:
-        return f"data-result={spec!r} adds a percentage to other results"
-    if not n.get("reviewed"):
-        return f"data-result={spec!r}: the results of {step} are not reviewed, so no page quotes them"
+    single = rows[terms[0][0]] if len(terms) == 1 and len(terms[0]) == 1 else None
+    if not single and scaled_reads & {"percent", "points"} and any(len(t) == 1 and rows[t[0]].get("reads") in ("percent", "points") for t in terms):
+        return f"data-result={spec!r} adds a percentage or a difference in points to other results"
+    if not all(rows[x].get("usable") for t in terms for x in t):
+        return f"data-result={spec!r}: the results of {step} are not reviewed, or {step} was replaced or dropped, so no page quotes them"
     m = NUMBER.search(shown)
     if not m:
         return f"data-result={spec!r} shows no number: {' '.join(shown.split())!r}"
-    text = m.group(0).replace(",", "").replace("−", "-")
-    scaled = total * 100 if len(terms) == 1 and len(terms[0]) == 1 and percents == 1 else total
+    text = m.group(0).replace(",", "").replace("\u2212", "-")
+    scaled = total * 100 if single and single.get("reads") in ("percent", "points") else total
+    places = len(text.split(".")[1]) if "." in text else 0
     try:
-        expected = scaled.quantize(Decimal(1).scaleb(-(len(text.split(".")[1]) if "." in text else 0)), rounding=ROUND_HALF_UP)
+        expected = scaled.quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP)
     except InvalidOperation:
         return f"data-result={spec!r}: the card's value {scaled} cannot be shown as a number"
-    return None if Decimal(text) == expected else f"shows {m.group(0)} for {spec}, but the card says {expected}"
+    if Decimal(text) == expected:
+        return None
+    card = NUMBER.search(R.shown(single)) if single else None  # the card's own way of showing it is right too
+    if card and Decimal(card.group(0).replace(",", "").replace("\u2212", "-")) == Decimal(text):
+        return None
+    return f"shows {m.group(0)} for {spec}, but the card says {expected}"
 
 
 def check(lab, bad, notes):
@@ -442,13 +456,16 @@ def check(lab, bad, notes):
                 if wrong:
                     bad("pages", rel, wrong)
             for spec in p.unclosed:
-                bad("pages", rel, f"the element with data-result={spec!r} is not closed by its own tag")
+                bad("pages", rel, f"the element with data-result={spec!r} is still open where the page ends")
             for a, title in p.terms:
                 a = html.unescape(a)
                 if a not in defs:
                     bad("pages", rel, f"links the glossary term {a!r}, which GLOSSARY.md has no entry for: add the entry or fix the link")
                 elif title != defs[a]:
                     bad("pages", rel, f"the hover text of the link to {a!r} is not its glossary definition: run `lab pages terms`")
+            if kind == "storyline" and not p.tagged:
+                bad("pages", rel, "is a storyline page without `<meta name=\"numbers\" content=\"tagged\">`: a storyline page quotes every "
+                    "number beside the result it comes from")
             if kind == "storyline" and p.tagged and p.loose:
                 bad("pages", rel, f"shows numbers outside a data-result element ({', '.join(p.loose[:8])}): tag each with the result it "
                     "comes from, or mark a number that is not a result (a definition, a count of what is studied) with data-plain")
@@ -459,17 +476,20 @@ def check(lab, bad, notes):
                     hit = pattern.search(sentence)
                     if hit:
                         bad("pages", rel, f"says {hit.group(0)!r}, a phrase {where} drops")
-                hit = FIRST.search(sentence) if s["first"] else None
-                if hit and "to our knowledge" not in sentence.lower():
-                    bad("pages", rel, f"claims to be first ({hit.group(0)!r}) without \"to our knowledge\"")
+                for pattern in s["first"]:
+                    hit = pattern.search(sentence)
+                    if hit and "to our knowledge" not in sentence.lower():
+                        bad("pages", rel, f"claims to be first ({hit.group(0)!r}) without \"to our knowledge\"")
 
 
 # ------------------------------------------------------------------ what the agent sees
 
 def now_lines(lab):
     """The lines `lab now` gives the pages: answers that have not reached their pages, and pages waiting for a reviewer."""
-    if not on(lab) or settings(lab)[1]:
+    if not on(lab):
         return []
+    if settings(lab)[1]:
+        return ["", "Pages", f"- {settings(lab)[0]['where']} needs fixing before the pages can be checked: `lab pages check` says what"]
     late, waiting = due(lab), unreviewed(lab)
     if not late and not waiting:
         return []

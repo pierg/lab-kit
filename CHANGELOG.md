@@ -20,8 +20,10 @@
 - A new skill, `lab-pages`, and a new role, `page-reviewer`, with fix rounds that converge: the same reviewer reads
   only what changed, and passes from the third reading once nothing blocks. Method rule 8, lab-work and
   lab-mission say when they apply.
-- A lab without `pages.toml` is unchanged. Upgrading: run `lab init`, which installs the new skill and role. To opt
-  in, write `pages.toml` with `since` and a kind for every page, then have a page reviewer pass each storyline and
+- A lab without `pages.toml` is unchanged. Upgrading: run `lab init`, which installs the new skill and role. It
+  replaces any skill or role of the same name the lab wrote itself (`.agents/skills/lab-pages`,
+  `.agents/agents/page-reviewer.md`): move what is local in them to the lab's AGENTS.md first. A new lab's
+  `.gitattributes` unions the two page records, which sessions add rows to side by side. To opt in, write `pages.toml` with `since` and a kind for every page, then have a page reviewer pass each storyline and
   stable page.
 
 ## 1.15.0

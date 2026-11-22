@@ -80,7 +80,7 @@ def init(root):
         "lab.toml": f'name = "{name}"\ntitle = "{name}"\nlibrary = "docs"\nkit = "{__version__}"\n',
         "AGENTS.md": AGENTS.format(name=name), "GLOSSARY.md": "# Terms\n\n", "resources.toml": RESOURCES, "log.md": "",
         ".ignore": "plan/\nruns/\n", ".gitignore": "runs/\n.incoming/\n.lab/running/\n.lab/fetched/\n",
-        ".gitattributes": "log.md merge=union\nreviews.tsv merge=union\nruns.tsv merge=union\n",  # two sessions may add lines at once
+        ".gitattributes": "log.md merge=union\nreviews.tsv merge=union\nruns.tsv merge=union\npage-reviews.tsv merge=union\nanswers-in-pages.tsv merge=union\n",  # two sessions may add lines at once
     }
     new_lab = not os.path.exists(os.path.join(root, "lab.toml"))
     for rel, text in fresh.items():

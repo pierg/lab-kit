@@ -431,10 +431,11 @@ the words and objects every page leans on, and is changed only to correct it. A 
 trail, the appendices, the guide and the maps. A **retiring** page waits to be merged into another and retired.
 The session that answers a question revises, in the same sitting, the storyline pages that cite it, and a **page
 reviewer** who did not write them reads each against the cards and records a pass with a fingerprint of the page
-as it read it. A page is read again only when its text changes. Then `lab check` holds that every page of the
-library has a kind; a number a page quotes inside a `data-result` element is the value its card gives that result,
-and the experiment's results were reviewed; a storyline page that says its numbers are tagged shows no other; no
-page but a retiring one uses a phrase the lab has dropped, or claims to be first without "to our knowledge"; every
+as it read it. A page is read again only when its text changes. Then `lab check` holds that every page under the
+sections the lab lists has a kind; a number a page quotes inside a `data-result` element is the value its card gives
+that result, from results that were reviewed and not replaced or dropped; a storyline page says its numbers are
+tagged and shows no other; no page but a retiring one uses a phrase the lab has dropped, or claims to be first
+without "to our knowledge"; every
 storyline and stable page matches a recorded pass; every question answered since the day the lab names has a row
 saying its answer reached its pages; each active storyline page links every storyline page; and a link to a
 glossary term names a term the glossary has, with its definition, as it now stands, as hover text. `lab now` lists
@@ -1019,10 +1020,10 @@ page check reads its pages:
 
 ```
 since = "2026-11-21"                       # every question answered from this day on records that it reached its pages
-dropped = ["zero[- ]shot", "scaling law"]  # phrases no page but a retiring one uses, as case-blind regular expressions
-names = ["Opus", "Program"]                # words after which a number is a name, not a result ("Opus 5", "Program 2")
+dropped = ["law of everything", "breakthrough"]  # phrases no page but a retiring one uses, as case-blind regular expressions
+names = ["Model", "Trial"]                 # words after which a number is a name, not a result ("Model 4", "Trial 2")
 sections = ["entries", "concepts", "guides"]   # the folders under content/ whose pages each need a kind (these by default)
-first = true                               # a claim to be first says "to our knowledge" (true by default)
+first = ["for the first time", "first[- ]ever", "never before"]   # claims to be first, which say "to our knowledge"
 
 [pages]
 "index" = "reference"
@@ -1031,14 +1032,20 @@ first = true                               # a claim to be first says "to our kn
 ```
 
 A page is a path under `content/`: a folder, whose HTML files are all the page, or a file `<page>.html` (the home
-page, a map). `since` is required; the rest have the defaults shown. Every folder under a listed section has a kind,
-and every page `[pages]` lists is there. A number quotes a result in an element
-`data-result="<experiment>:<result>"`, whose first number is compared with the result's value, rounded half up to
-as many decimals as the page shows; names joined by `+` are summed and by `*` multiplied, and a single result that
-`reads` as a percent is compared as one. A storyline page that carries `<meta name="numbers" content="tagged">`
-shows a number only in such an element, in an element marked `data-plain`, in `<code>` or a figure, or as the
-total in "k of n", a year, or right after one of `names` or of Result, Step, Figure, Table, Section, Part and
-Version. A link to a glossary term is `<a class="term" href="/lab/glossary/#<anchor>" title="<definition>">`, the
+page, a map), never with `..`. `since` is required, a date; `dropped` is empty and `sections` is as shown unless set;
+`first` lists the claims to be first that a sentence makes only with "to our knowledge", and by default holds "for
+the first time", "first-ever", "never before", "had not been done" and "never been done", "shown", "proved" or
+"measured"; `[]` turns it off. Every folder under a listed section has a kind, and every page `[pages]` lists is
+there. A number quotes a result in an element `data-result="<experiment>:<result>"`, whose first number is compared
+with the result's value, rounded half up to as many decimals as the page shows, or with the number the card itself
+shows (`reads`: a share as a percentage, a difference in points); names joined by `+` are summed and by `*`
+multiplied, and a single result that reads as a percent or in points is compared as one, never added to others. The
+result is usable: its experiment's results were reviewed, and it was not replaced or dropped. An element whose end
+tag is left out ends where HTML ends it, with its parent; one still open where the page ends is refused. A storyline
+page carries `<meta name="numbers" content="tagged">` and shows a number only in such an element, in an element
+marked `data-plain`, in `<code>`, a `<figure>` or an `<svg>`, in a link to a card (`/lab/<id>/`), or as the total
+in "k of n", a year, or right after one of `names` or of Result, Step, Figure, Table, Section, Part and Version, in
+any case. A link to a glossary term is `<a class="term" href="/lab/glossary/#<anchor>" title="<definition>">`, the
 anchor being the entry's heading, or a name under its `- also:`, in lower case with spaces as hyphens.
 
 Two records sit beside `pages.toml`, each a TSV whose rows are only added, through the commands:

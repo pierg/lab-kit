@@ -60,5 +60,5 @@ judgement. The lab's own `AGENTS.md` adds only what is local.
    merging or retiring a storyline is direction. When the library keeps `pages.toml`, every page has a kind
    (storyline, stable, reference or retiring), quotes a number only beside the result it comes from, and lands
    only once a page reviewer who did not write it has passed it as it stands; the session that answers a question
-   revises the pages that cite it before the answer lands. *Held by `lab check` when `lab.toml` names the storylines
-   and the library keeps `pages.toml`; otherwise judged.*
+   revises the pages that cite it before the answer lands. *The storylines are held by `lab check` when `lab.toml`
+   names them, and the pages when the library keeps `pages.toml`; otherwise judged.*
