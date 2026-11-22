@@ -21,6 +21,7 @@ To write
   lab log <id> doing "<what you are starting on>" "<why now>"
   lab log <id> agent|result|stuck "<what happened>" ["<so what>"]
   lab answer <question> yes|no|mixed|found "<what the answer rests on>"   (found: for an estimate, the finding)
+  lab strike <decision> "<why: where what it settled now lives>"   a decision about how the lab works, out of the record
 To carry out a decision
   lab mission [<mission>] [--all]           the open missions (--all: the closed too), or one whole: its rules, its steps, its log
   lab mission new "<title>" --carries <decision>         save a mission; it is next until launched
@@ -73,7 +74,7 @@ def main(argv=None):
     bare = [r for r in rest if r != "--all"]
     looks = cmd == "mission" and len(bare) <= 1 and (not bare or re.fullmatch(r"M\d+", bare[0]) is not None)  # `lab mission [<id>]` only reads
     writes = cmd == "pages" and rest[:1] in (["passed"], ["answered"], ["terms"])
-    if cmd in ("new", "log", "decide", "answer", "lock", "review") or (cmd == "mission" and not looks) or writes:  # one writer at a time, on the lab as it then is
+    if cmd in ("new", "log", "decide", "answer", "strike", "lock", "review") or (cmd == "mission" and not looks) or writes:  # one writer at a time, on the lab as it then is
         held = runs.exclusive(find_root())
         held.__enter__()
     lab = Lab()
@@ -154,6 +155,11 @@ def main(argv=None):
         if pages.on(lab):
             print(f"now revise the pages it touches (`lab pages cites {rest[0]}`) with the lab-pages skill; once a page reviewer has passed them, "
                   f"`lab pages answered {rest[0]} \"<the pages revised>\"`. `lab check` reports it until then")
+    elif cmd == "strike":
+        if len(rest) != 2:
+            raise SystemExit(USAGE)
+        path, gone = write.strike(lab, rest[0], rest[1])
+        print(f"struck {rest[0]}: removed {path} and its {gone} line{'s' if gone != 1 else ''} in log.md; added it to struck.tsv")
     elif cmd == "pages":
         if not rest:
             print(pages.listing(lab))

@@ -43,6 +43,10 @@ from the record, shortest first. A decision is a discussion, not a request for a
 
 ## Bringing a decision to them
 
+A decision is about the research: its direction, its resources, its order. When the operator settles how the lab
+works (a rule, a page's shape, a skill), write it into the lab's AGENTS.md or propose it to the kit, by pull
+request; never as a decision.
+
 `lab now` prints every open decision in full. Take them one at a time, oldest first.
 
 1. Say what was seen and why it matters now, with the numbers, shown here in the conversation.

@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.17.0
+
+- **A decision and a mission are about the research only.** Direction, resources and the order of the work are
+  decided with the operator; how the lab works (its method, its pages and their kinds, its skills, its local rules,
+  its tools) is never a decision or a mission. It lives in the kit and the lab's AGENTS.md and changes by pull
+  request. Method rule 5, the model (section 4), lab-work, lab-talk and lab-mission say so.
+- **`lab strike <decision> "<why>"`** takes a decision about how the lab works out of the record: its file and its
+  lines in `log.md` go, and `struck.tsv` (which only grows) says which, when and why. It refuses a decision that
+  steered the research: one with anything under `holds:`, `parks:`, `unparks:`, `drops:`, `order:` or `folds:`, or
+  ever committed with an `order:`; one a goal or a question came out of; one a resource's amounts or a mission rest
+  on; a locked one. `lab check` holds the same against history, and a struck number is never used again.
+- Upgrading: run `lab init`. Write the rules of each decision about how the lab works into the lab's AGENTS.md, drop
+  the citations of it, and strike it, in one change.
+
 ## 1.16.0
 
 - **The library's pages are held to the record, when the library keeps `pages.toml`.** The question cards are the

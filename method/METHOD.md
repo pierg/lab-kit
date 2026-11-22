@@ -36,7 +36,10 @@ judgement. The lab's own `AGENTS.md` adds only what is local.
    open a decision that says what was seen, the options and what you recommend, and work on what it
    does not hold. What a decision settled needs no further yes. Everything else is yours: decide,
    record it, go on. A mission (`missions/`) carries out what a settled decision settled across sessions, and approves
-   nothing more; its log only grows. Never ask the operator to check your work or to run a command. *Held by
+   nothing more; its log only grows. A decision and a mission are about the research only: how the lab works (its
+   method, its pages and their kinds, its skills, its rules, its tools) is never a decision or a mission. It lives in
+   the kit and in the lab's AGENTS.md, and changes by pull request; one already in the record is struck from it
+   (`lab strike`). Never ask the operator to check your work or to run a command. *Held by
    `lab new`, `lab lock` and `lab run`; otherwise judged.*
 6. **Record what was decided and why, in the lab's words.** A decision is written out of a conversation
    with the operator, and you show them the text as recorded. Their messages are not copied into the

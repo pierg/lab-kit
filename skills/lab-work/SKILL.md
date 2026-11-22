@@ -145,7 +145,11 @@ library: move its row under another heading (`folio map move <id> --to <map>#<he
 
 Open one when a question is answered or an experiment refutes what was expected, when a result
 changes what the next question should be, when you want to add, reword, park or drop a goal or a question,
-or when the resources do not cover the settled work. Not for anything else.
+or when the resources do not cover the settled work. Not for anything else: in particular, never for how the lab
+works (its method, its pages, its skills, its local rules, its tools). Those change in the lab's AGENTS.md or the
+kit, by pull request, and no decision or mission records them. A decision of that kind already in the record is
+taken out with `lab strike <decision> "<where what it settled now lives>"`, in the same change that writes its rule
+into AGENTS.md; the command refuses one that steered the research.
 
 Park a question that may come back, drop one that will not. A decision parks a question by listing it
 under `parks:` and under `about:`; its Decided text says why, and what would bring it back. Nothing under

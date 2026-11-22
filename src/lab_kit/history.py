@@ -3,7 +3,7 @@
 What is held is held from the commit that first holds it: the record is tamper-evident through git, not tamper-proof.
 Before that commit nothing is held, and `lab check` says so.
 
-Only the lab's own record is read, at its places under the lab's root: `log.md`, `resources.toml`,
+Only the lab's own record is read, at its places under the lab's root: `log.md`, `struck.tsv`, `resources.toml`,
 `decisions/D<n>-<name>.md`, and each experiment's `lock.json`, `runs.tsv`, `results.tsv` and `reviews.tsv` under
 `goals/G<n>-<name>/Q<n>-<name>/<n>-<name>/`. What the repository holds or once held anywhere else is not the lab's.
 A file is known by the numbers in its path and not by the words, so a folder renamed after a reworded title is the
@@ -23,7 +23,11 @@ same place: what was committed under the old name is held under the new one.
   reopened, or folded into another decision with `folds:`; then its file goes, and its number is never used again.
 - A resource, once committed, is never removed. A metered resource's `granted`, `per_run` and `unit` change only together
   with `from`, which then names another settled decision that lists the resource. Its `other_use` rows only grow.
-- None of these files is deleted, save a draft decision folded into another, and none changes its number.
+- `struck.tsv` only grows. A decision it lists was about how the lab works: its file and its lines in `log.md` may
+  go, if its last committed version holds, parks, brings back, drops, orders and folds nothing, nothing came out of
+  it and nothing acted on it.
+- None of these files is deleted, save a draft decision folded into another and a struck one, and none changes its
+  number.
 """
 from __future__ import annotations
 
@@ -31,7 +35,7 @@ import glob, json, os, re, subprocess
 
 from . import record as R
 
-GROW = ("log.md", "reviews.tsv", "results.tsv", "runs.tsv")
+GROW = ("log.md", "reviews.tsv", "results.tsv", "runs.tsv", "struck.tsv")
 STEP = re.compile(r"goals/G(\d+)-[^/]+/Q(\d+)-[^/]+/(\d+)-[^/]+/(lock\.json|reviews\.tsv|results\.tsv|runs\.tsv)")
 DECISION = re.compile(r"decisions/D(\d+)-[^/]+\.md")
 
@@ -58,7 +62,7 @@ def subsequence(old, new, same=lambda a, b: a == b):
 def place(path):
     """Where a path, from the lab's root, sits in the lab's record: `log.md`, `D4`, `G1.Q2.3/lock.json`. None when it is
     not a file of the record. The numbers place a file and the words do not, so a renamed folder is the same place."""
-    if path == "log.md":
+    if path in ("log.md", "struck.tsv"):
         return path
     m = STEP.fullmatch(path)
     if m:
@@ -86,7 +90,7 @@ def held(root, *where):
 def present(root):
     """The files of the record that are in the lab now, by place: {place: [path]}."""
     found = {}
-    for pattern in ("log.md", "decisions/*", "goals/*/*/*/*"):
+    for pattern in ("log.md", "struck.tsv", "decisions/*", "goals/*/*/*/*"):
         for full in sorted(glob.glob(os.path.join(glob.escape(root), pattern))):
             path = os.path.relpath(full, root).replace(os.sep, "/")
             if place(path) and os.path.isfile(full):
@@ -195,6 +199,7 @@ def decisions(lab, versions=None, now=None):
     if not committed(root):
         return problems
     bad = lambda where, what: problems.append(f"history: {where}: {what}")
+    struck = {r["decision"] for r in lab.struck}
     versions = held(root, "decisions") if versions is None else versions
     now = present(root) if now is None else now
 
@@ -263,8 +268,16 @@ def decisions(lab, versions=None, now=None):
                 acts = [a for a in lab.acts(ident, orders | set(ids(fm.get("order"))), lab.settled_at(ident, fm.get("decided")))
                         if until is None or R.moment(a[0]) <= until]
                 acted = acts[0][0] if acts else launched(c, ident)
+            if ident in struck:  # about how the lab works, and taken out with `lab strike`: only one that never steered the research
+                steered = [key for key in ("holds", "parks", "unparks", "drops", "order", "folds") if fm and ids(fm.get(key))] + (["order"] if lab.held["orders"].get(ident) else [])
+                came = sorted(i for i, f in lab.held["from"].items() if f == ident)
+                if steered or came or acted:
+                    bad(commits[-1][1], f"is struck, and it steered the research ({', '.join(sorted(set(steered)) + came) or 'something acted on it at ' + str(acted)}): "
+                        "only a decision about how the lab works is struck; restore it")
+                continue
             if not into:
-                bad(commits[-1][1], "was committed and is gone; nothing recorded is removed. A draft decision is folded into another with `folds:`")
+                bad(commits[-1][1], "was committed and is gone; nothing recorded is removed. A draft decision is folded into another with `folds:`. "
+                    "One about how the lab works is struck with `lab strike`")
             elif acted:
                 bad(commits[-1][1], f"is folded into {into['id']}, and something acted on it at {acted}: a locked decision stays")
             continue
@@ -347,7 +360,9 @@ def check(lab):
     if (git(root, "rev-parse", "--is-shallow-repository") or "").strip() == "true":
         notes.append("this repository is a shallow clone: the history check needs every commit, and compared the record with the few that are here. "
                      "Fetch the full history (`git fetch --unshallow`; in CI, `fetch-depth: 0`)")
-    versions, now = held(root, "log.md", "decisions", "goals"), present(root)
+    versions, now = held(root, "log.md", "struck.tsv", "decisions", "goals"), present(root)
+    struck = {r["decision"] for r in lab.struck}
+    about = lambda line: (m.group(1).strip() if (m := re.match(r"^- (?:\d\d:\d\d \| )?([^|]*?) \|", line)) else None)
     reviewed = {os.path.join(x["dir"], "results.tsv") for x in lab.experiments if x["reviewed"]}
     for where, commits in sorted(versions.items()):
         name = os.path.basename(commits[-1][1])
@@ -367,7 +382,10 @@ def check(lab):
             commits = commits[-1:] if mine(commits[-1][1]) in reviewed else []
         same = (lambda a, b: a.rstrip(" ") == b.rstrip(" ")) if name == "log.md" else (lambda a, b: a == b)  # a log line's end spaces are not its
         for c, path in reversed(commits):
-            lost = subsequence((git(root, "show", f"{c}:./{path}") or "").splitlines(), R.read(os.path.join(root, mine(path))).splitlines(), same)
+            was = (git(root, "show", f"{c}:./{path}") or "").splitlines()
+            if name == "log.md":  # the lines of a struck decision went with it
+                was = [line for line in was if about(line) not in struck]
+            lost = subsequence(was, R.read(os.path.join(root, mine(path))).splitlines(), same)
             if lost is not None:
                 bad(mine(path), f"a line committed in {c[:8]}{named(path)} is gone or changed: {lost[:70]!r}")
                 break

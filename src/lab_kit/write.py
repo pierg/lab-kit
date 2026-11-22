@@ -123,7 +123,7 @@ def new(lab, kind, parent, title, replaces=None, origin=None, about=(), because=
         for a in about:
             if lab.nodes.get(a, {}).get("type") not in ("goal", "question") + R.STEPS and a not in lab.resources:
                 stop(f"--about {a}: no goal, question, experiment, build or reading has that id, and resources.toml lists no such resource")
-        used = [d["id"] for d in lab.decisions] + list(lab.folded) + [l["about"] for l in lab.lines]  # a folded decision's number is never used again
+        used = [d["id"] for d in lab.decisions] + list(lab.folded) + [l["about"] for l in lab.lines] + [r["decision"] for r in lab.struck]  # a folded or struck decision's number is never used again
         n = 1 + max([int(i[1:]) for i in used if re.fullmatch(r"D[1-9]\d*", str(i))] or [0])
         ident, path = f"D{n}", f"decisions/D{n}-{slug(title)}.md"
         text = CARDS["decision"].format(title=quoted, about=", ".join(about), today=today())
@@ -230,6 +230,62 @@ def decide(lab, ident, text, with_):
     open(path, "w").write(R.join(fm, body.rstrip("\n") + f"\n\n## Decided\n\n{R.flat(text)}\n"))
     log(lab, ident, "decision", *line, _by_command=True)
     return d["path"]
+
+
+LOG_ABOUT = re.compile(r"^- (?:\d\d:\d\d \| )?([^|]*?) \|")  # the `about` column of a log line, with or without its time
+
+
+def why_struck(lab, ident):
+    """Why a decision may not be struck, or None. A decision is struck only when it was about how the lab works and
+    never steered the research: nothing it holds, parks, brings back, drops, orders or folds, nothing came out of it,
+    no resource's amounts and no mission rest on it, and nothing acted on it."""
+    d = lab.nodes.get(ident)
+    if not d or d["type"] != "decision":
+        return f"no decision {ident}"
+    for key in ("holds", "parks", "unparks", "drops", "order", "folds"):
+        if d[key]:
+            return f"{ident} lists {', '.join(map(str, d[key]))} under `{key}:`: it steers the research, and stays"
+    if lab.held["orders"].get(ident):
+        return f"{ident} was committed with an `order:`: it steered the research, and stays"
+    came = sorted({n["id"] for n in lab.goals + lab.questions if str(n.get("from")) == ident} | {i for i, f in lab.held["from"].items() if f == ident})
+    if came:
+        return f"{', '.join(came)} came out of {ident}: it steers the research, and stays"
+    rests = sorted({name for name, r in lab.resources.items() if isinstance(r, dict) and str(r.get("from")) == ident}
+                   | {name for name, froms in lab.held["granted"].items() if ident in froms})
+    if rests:
+        return f"the amounts of {', '.join(rests)} rest on {ident}: it stays"
+    carried = [m["id"] for m in lab.missions if m["carries"] == ident]
+    if carried:
+        return f"{', '.join(carried)} carries {ident}: a decision a mission carried out stays"
+    if d.get("locked"):
+        return f"something acted on {ident} at {d['acted']}: a locked decision stays"
+    return None
+
+
+def strike(lab, ident, why):
+    """Take out of the record a decision about how the lab works: its file and its lines in log.md go, and struck.tsv
+    says which, when and why. What it settled lives in the lab's AGENTS.md or the kit, never in a decision."""
+    why = R.flat(why)
+    if not why or "\t" in why:
+        stop("say why it is struck, in a sentence: where what it settled now lives")
+    if ident in {r["decision"] for r in lab.struck}:
+        stop(f"{ident} is already struck")
+    no = why_struck(lab, ident)
+    if no:
+        stop(no)
+    d = lab.nodes[ident]
+    log_path, table = os.path.join(lab.root, "log.md"), os.path.join(lab.root, "struck.tsv")
+    text = R.read(log_path) if os.path.exists(log_path) else ""
+    kept = [line for line in text.split("\n") if not ((m := LOG_ABOUT.match(line)) and m.group(1).strip() == ident)]
+    gone = text.count("\n") + 1 - len(kept)
+    old = R.read(table) if os.path.exists(table) else ""
+    row = "\t".join((ident, d["title"].replace("\t", " "), today(), why)) + "\n"
+    with open(table, "a") as f:
+        f.write(("decision\ttitle\tdate\twhy\n" if not old else "" if old.endswith("\n") else "\n") + row)
+    if gone:
+        open(log_path, "w").write("\n".join(kept))
+    os.remove(os.path.join(lab.root, d["path"]))
+    return d["path"], gone
 
 
 def answer(lab, target, verdict, text):

@@ -51,7 +51,8 @@ RUN_ID = re.compile(r"^\d{8}-\d{4}_G\d+\.Q\d+\.\d+_[a-z0-9]{4}$")  # <date>-<tim
 # runs.tsv, beside the lock: one row when a run starts, one when it ends (its exit and its seal), or one that declares
 # it lost (what it used, and why). A file written before `used` and `note` existed has the first six columns.
 LEDGER = ("run", "kind", "what", "at", "exit", "seal", "used", "note")
-COLUMNS = {"results.tsv": ("name", "label", "value", "reads", "versus", "command"), "reviews.tsv": ("date", "stage", "verdict", "by", "of", "note")}
+COLUMNS = {"results.tsv": ("name", "label", "value", "reads", "versus", "command"), "reviews.tsv": ("date", "stage", "verdict", "by", "of", "note"),
+           "struck.tsv": ("decision", "title", "date", "why")}
 # A results review that passed rows changed after an earlier one passed them ends its note with this, naming the
 # earlier review by its `of` (`lab review ... --supersedes`): the rows the earlier one read are then held no more.
 SUPERSEDES = "Supersedes the results review of {}."
@@ -350,6 +351,7 @@ class Lab:
         self.builds = [x for x in self.items if x["type"] == "build"]
         self.readings = [x for x in self.items if x["type"] == "reading"]
         self.decisions = self._decisions()
+        self.struck = self._struck()
         self.missions = self._missions()
         for n in self.goals + self.questions + self.items + self.decisions:
             n["title"], n["description"] = flat(n.get("title") or n["id"]), flat(n.get("description") or "")
@@ -695,6 +697,23 @@ class Lab:
             d["state"] = "done" if d["decided"] else "open"
             out.append(d)
         return out
+
+    def _struck(self):
+        """The decisions struck from the record (`struck.tsv`): each was about how the lab works, never about the
+        research, and its file and its log lines went with `lab strike`. The list only grows; a number in it is never
+        used again."""
+        rows, seen = tsv(f"{self.root}/struck.tsv", self.problems, "struck.tsv"), set()
+        here = {d["id"] for d in self.decisions}
+        for n, r in enumerate(rows, 2):
+            ident = r["decision"]
+            if not re.fullmatch(r"D[1-9]\d*", ident):
+                self.problems.append(f"files: struck.tsv: row {n} names {ident!r}, which is not a decision's id")
+            elif ident in here:
+                self.problems.append(f"files: struck.tsv: {ident} is struck and its file is still in decisions/: `lab strike` removes both")
+            elif ident in seen:
+                self.problems.append(f"files: struck.tsv: {ident} is struck twice")
+            seen.add(ident)
+        return rows
 
     def _missions(self):
         """Every mission, by number: `missions/M<n>-<name>.md`, with its `status:` (next, current, done, stopped), which
