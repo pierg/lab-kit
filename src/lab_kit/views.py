@@ -191,6 +191,9 @@ def held(r):
 
 
 def _show(lab, ident):
+    gone = next((r for r in lab.struck if r["decision"] == ident), None)
+    if ident not in lab.nodes and gone:
+        return f"{ident} ({gone['title']}) was struck from the record on {gone['date']}: {gone['why']}"
     if ident not in lab.nodes:  # a path, as the site's pages give it, names the node it belongs to
         found = lab.at(ident) if ("/" in ident or "." in os.path.basename(ident)) else None
         if not found:

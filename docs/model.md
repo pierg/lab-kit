@@ -220,7 +220,7 @@ Each arrow is a command that refuses when the step before it is missing. You see
   nothing is held: `lab check` says so in a note, and fails with `--strict`. CI fetches all of the
   history before it checks (`fetch-depth: 0` in `actions/checkout`).
   **Where the record is.** The check reads the history of the lab's own record and of nothing else:
-  `log.md` and `resources.toml` at the lab's root, `decisions/D<n>-<name>.md`, and each experiment's
+  `log.md`, `struck.tsv` and `resources.toml` at the lab's root, `decisions/D<n>-<name>.md`, and each experiment's
   `lock.json`, `runs.tsv`, `results.tsv` and `reviews.tsv` in its folder,
   `goals/G<n>-<name>/Q<n>-<name>/<n>-<name>/`. The lab's root may be a folder inside a larger
   repository. What that repository holds or once held anywhere else, such as the folders of a lab
@@ -272,6 +272,23 @@ not by approving requests.
 - **Direction.** The goals, the questions, and the storylines they serve.
 - **Resources.** Everything outside the lab that it may touch: what it may use, how much, and what it
   may do there.
+
+Both are about the research. How the lab works is neither: its method, its pages and their kinds, its skills, its
+local rules and its tools live in the kit and in the lab's `AGENTS.md`, and change by pull request, with no
+decision and no mission. The record holds what the lab studies and what it found, never how it keeps itself. Which
+storylines the lab builds, and for whom, is direction; how their pages are shaped and kept is how the lab works.
+
+A decision about how the lab works that is already in the record is **struck**: `lab strike <decision> "<why>"`
+removes its file and its lines in `log.md`, and adds a row to `struck.tsv` (`decision`, `title`, `date`, `why`), which
+only grows. The why says where what it settled now lives. Only a decision that never steered the research is
+struck, now or in any commit: the command refuses one whose card lists, or was ever committed listing, anything
+under `holds:`, `parks:`, `unparks:`, `drops:`, `order:` or `folds:`; one that a goal or a question came out of, now
+or as first committed; one whose resource amounts rest on it, now or once; one a mission carries, or that any
+committed `log.md` has a line about other than its `decision` line; and a locked one. `about:` alone does not keep
+it. A struck number is never used again, and `lab show` on it says when and why it was struck. `lab check` holds the
+same against history: a decision gone from `decisions/` and listed in `struck.tsv` passes only if none of this was
+ever so, nothing acted on it and no decision folded it, and its committed lines in `log.md` are the only lines that
+may leave the log.
 
 **A decision** is how either is settled. The agent opens one when:
 
@@ -450,7 +467,7 @@ none of this.
   there, `work/` included. It lists none of them, so a run whose output is all in `work/` does not
   look empty.
 - **To write:** `lab new` (a goal, a question, an experiment, a build, a reading, a decision),
-  `lab log`, `lab decide`, `lab answer`.
+  `lab log`, `lab decide`, `lab answer`, and `lab strike` for a decision about how the lab works (section 4).
 - **To be seen:** `lab log <id> doing "<what>" "<why now>"` whenever it starts on a card. It is the
   one line the operator reads to know what the agent is on.
 - **For evidence:** `lab lock`, `lab run`, `lab runs`, `lab review`, `lab check`. `lab runs` lists
@@ -561,6 +578,7 @@ written, and only one of them writes at a time.
 
 ```
 lab.toml  AGENTS.md  GLOSSARY.md  resources.toml  log.md
+struck.tsv                the decisions about how the lab works taken out of the record, once there are any
 decisions/D1-<slug>.md    what was discussed and decided
 missions/M1-<slug>.md     a mission: how a settled decision is carried out, and once closed, how it was
 goals/G1-<slug>/
@@ -946,7 +964,8 @@ starting on and why now. A line written before the kit kept the time has none.
 A line is about a goal, a question or a step, and a `decision` line about its decision. The one other line
 about a decision is an `agent` line about a mission that carried it: `lab mission launch` writes `Mission launched:`
 when it starts, and `lab mission close` writes `Mission done:` or `Mission stopped:` when it ends (`Mission closed:`
-as 1.4.0 wrote it). A line about a decision folded into another is read as about that one.
+as 1.4.0 wrote it). A line about a decision folded into another is read as about that one. The lines about a struck
+decision leave with it (section 4).
 `lab log` ends a line with no space, even when the so what is empty. Spaces at the end of a log line
 are not part of it: `lab check` compares the committed lines of `log.md` with those spaces left out,
 so removing or adding them changes no committed line.

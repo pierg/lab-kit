@@ -100,6 +100,8 @@ When asked how it is going, answer from `lab mission <id>` and `lab now`, as lab
 
 - A mission approves nothing. It carries out what a settled decision already settled. Direction
   and resources still come out of a decision with the operator.
+- A mission carries research: running steps, answering questions. Never one for how the lab works, such as
+  rewriting the library or changing a skill: that is ordinary work, by pull request or as content.
 - Never edit or remove a line of a mission's log; add a new one.
 - Keep it thin. If you are about to write a list of steps, an amount or a result into a mission,
   it belongs on a card or in the decision instead.
