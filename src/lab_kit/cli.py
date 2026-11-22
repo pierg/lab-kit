@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os, re, sys
 
-from . import __version__, checks, runs, views, write
+from . import __version__, checks, pages, runs, views, write
 from .record import Lab, amount, find_root
 
 USAGE = """To look
@@ -27,6 +27,13 @@ To carry out a decision
   lab mission launch [<mission>]            make it current; with no id, the one saved last. Several may be current
   lab mission log [<mission>] "<what happened>"          a line in a current mission's log
   lab mission close [<mission>] [--stopped] "<what it did, or why it stopped>"   done (or stopped), one line in log.md; the file is kept
+For the library's pages (when it keeps pages.toml)
+  lab pages                                 every page with its kind and whether a page reviewer passed it as it stands
+  lab pages check                           only what `lab check` holds about the pages, quickly
+  lab pages cites <question or step>        the storyline pages that cite it: those to revise when it is answered
+  lab pages passed <page> "<what was checked>"           the page reviewer's pass of a page as it now stands
+  lab pages answered <question> "<the pages revised>"    the answer has reached its pages, each passed
+  lab pages terms                           write each glossary link's hover text from GLOSSARY.md
 For evidence
   lab lock <experiment>
   lab run <experiment> [--trial] [--wait] [--changed "<what changed since the last run, and why>"] -- <command>
@@ -65,7 +72,8 @@ def main(argv=None):
     held = None
     bare = [r for r in rest if r != "--all"]
     looks = cmd == "mission" and len(bare) <= 1 and (not bare or re.fullmatch(r"M\d+", bare[0]) is not None)  # `lab mission [<id>]` only reads
-    if cmd in ("new", "log", "decide", "answer", "lock", "review") or (cmd == "mission" and not looks):  # one writer at a time, on the lab as it then is
+    writes = cmd == "pages" and rest[:1] in (["passed"], ["answered"], ["terms"])
+    if cmd in ("new", "log", "decide", "answer", "lock", "review") or (cmd == "mission" and not looks) or writes:  # one writer at a time, on the lab as it then is
         held = runs.exclusive(find_root())
         held.__enter__()
     lab = Lab()
@@ -143,6 +151,31 @@ def main(argv=None):
         if len(rest) != 3:
             raise SystemExit(USAGE)
         print(f"answered: {write.answer(lab, rest[0], rest[1], rest[2])}")
+        if pages.on(lab):
+            print(f"now revise the pages it touches (`lab pages cites {rest[0]}`) with the lab-pages skill; once a page reviewer has passed them, "
+                  f"`lab pages answered {rest[0]} \"<the pages revised>\"`. `lab check` reports it until then")
+    elif cmd == "pages":
+        if not rest:
+            print(pages.listing(lab))
+        elif rest[0] == "check" and len(rest) == 1:
+            pages._require(lab)
+            found = []
+            pages.check(lab, lambda check, where, what: found.append(f"{check}: {where}: {what}"), [])
+            print("\n".join(sorted(set(found))) or "the pages are in step with the record")
+            if found:
+                return 1
+        elif rest[0] == "cites" and len(rest) == 2:
+            pages._require(lab)
+            print("\n".join(pages.cites(lab, rest[1])) or f"no storyline page cites {rest[1]}")
+        elif rest[0] == "passed" and len(rest) == 3:
+            print(f"recorded in {pages.record_pass(lab, rest[1], rest[2])}; commit it with the page")
+        elif rest[0] == "answered" and len(rest) == 3:
+            print(f"recorded in {pages.record_answer(lab, rest[1], rest[2])}; commit it with the answer and the pages")
+        elif rest[0] == "terms" and len(rest) == 1:
+            changed = pages.sync_terms(lab)
+            print("hover text written in " + ", ".join(changed) if changed else "every glossary link's hover text is its definition")
+        else:
+            raise SystemExit(USAGE)
     elif cmd == "lock" and len(rest) == 1:
         print(f"locked: {write.lock(lab, rest[0])}")
     elif cmd == "run":

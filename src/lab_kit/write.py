@@ -62,8 +62,9 @@ AGENTS = """# {name}
 
 Run `lab now` first, then `lab show <id>` for what you work on. The method is `.lab/METHOD.md`. The skills are in
 `.agents/skills/`: lab-work to move the work, lab-review to check someone else's, lab-talk whenever the operator
-asks where things stand or what something is, and whenever there is a decision to bring to them, and lab-mission
-to save, launch, resume or close a mission (`missions/`), which carries out a settled decision.
+asks where things stand or what something is, and whenever there is a decision to bring to them, lab-mission
+to save, launch, resume or close a mission (`missions/`), which carries out a settled decision, and lab-pages to revise
+and review the library's pages when it keeps `pages.toml`.
 
 ## Local rules
 
@@ -71,7 +72,7 @@ to save, launch, resume or close a mission (`missions/`), which carries out a se
 
 
 def init(root):
-    """Install the method, the skills and the reviewer role; in an empty folder, also the files of a new lab."""
+    """Install the method, the skills and the reviewer roles; in an empty folder, also the files of a new lab."""
     wrote = []
     os.makedirs(root, exist_ok=True)
     name = os.path.basename(os.path.abspath(root))

@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.16.0
+
+- **The library's pages are held to the record, when the library keeps `pages.toml`.** The question cards are the
+  facts, and no page repeats one. `pages.toml` gives every page a kind: storyline (the argument, revised when a
+  question it cites is answered), stable (how the method works, only corrected), reference (the trail, the
+  appendices, the maps) or retiring. `lab check` then holds that every page has a kind; a number quoted in a
+  `data-result="<experiment>:<result>"` element is the card's, from reviewed results; a storyline page tagged
+  `<meta name="numbers" content="tagged">` shows no other number; no page but a retiring one uses a phrase
+  `pages.toml` drops or claims to be first without "to our knowledge"; every storyline and stable page matches a
+  page reviewer's recorded pass (`page-reviews.tsv`, by a fingerprint of the page, so a page is read again only
+  when its text changes); every question answered since `since` records that its answer reached its pages
+  (`answers-in-pages.tsv`); each active storyline page links every storyline page; and a link to a glossary term
+  names a term the glossary has and carries its definition as hover text.
+- `lab pages` lists the pages and whether each was passed as it stands; `lab pages check` runs only the page check;
+  `lab pages cites <id>` lists the storyline pages to revise when a question is answered; `lab pages passed` and
+  `lab pages answered` write the two records; `lab pages terms` writes the hover text from the glossary. `lab now`
+  lists the answers whose pages lag and the pages waiting for a reviewer, and `lab answer` says what comes next.
+- A new skill, `lab-pages`, and a new role, `page-reviewer`, with fix rounds that converge: the same reviewer reads
+  only what changed, and passes from the third reading once nothing blocks. Method rule 8, lab-work and
+  lab-mission say when they apply.
+- A lab without `pages.toml` is unchanged. Upgrading: run `lab init`, which installs the new skill and role. To opt
+  in, write `pages.toml` with `since` and a kind for every page, then have a page reviewer pass each storyline and
+  stable page.
+
 ## 1.15.0
 
 - **A later results review can supersede an earlier one, by name.** A reviewed row that had to be read another

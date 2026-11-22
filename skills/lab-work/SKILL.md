@@ -127,6 +127,11 @@ row, move it to included, or to excluded if it is void or no longer serves the a
 that fails makes the experiment void: take it off every included row. `lab check` refuses what a row may
 not list, and notes a storyline committed before a result about something it lists.
 
+When the library keeps `pages.toml`, every page has a kind, and the lab-pages skill says how a page is revised and
+reviewed: the session that answers a question revises the storyline pages that cite it (`lab pages cites
+<question>`) in the same sitting, a page reviewer who did not write them passes each, and `lab pages answered`
+records it before the answer lands. `lab check` holds it, and `lab now` lists what waits.
+
 A home map has the section Current storylines (`<h2 id="current-storylines">`): one row per active storyline
 page, and nothing else. `lab check` holds that its rows and `active` name the same pages.
 
@@ -287,7 +292,8 @@ repository, tests first. When it works, put `commits:` and `tests:` on the card 
 `lab now` lists such a question under **Yours next**, and a goal whose questions are all settled. Decide whether they answer it. For a test, `lab answer <question> yes|no|mixed "<what the answer rests
 on>"`: yes and no say whether what the question expected held; mixed says part held and part did not,
 and the sentence says which. For an estimate, `lab answer <question> found "<the finding, with its range
-or its shape, and what it rests on>"`. Then bring **So far** up to date. An answer rests on a done experiment that is not
+or its shape, and what it rests on>"`. Then bring **So far** up to date. When the library keeps `pages.toml`,
+revise the pages the answer touches in the same sitting, with the lab-pages skill, before you push the answer. An answer rests on a done experiment that is not
 void. If they do not answer it, add the next experiment. An answer usually changes
 what should come next: open a decision.
 

@@ -70,7 +70,9 @@ operator wants its parts run separately, such as one wave each.
 4. Log each start: `lab mission log <id> "started G1.Q2.3 in its own session"`. Commit the
    mission file each time you add lines.
 5. Watch the sessions. When one ends a step, or is stuck, log it in the mission, and start the
-   next step the rules leave room for.
+   next step the rules leave room for. When the library keeps `pages.toml`, the session whose result
+   passes review, or that answers a question, revises the pages that cite it with the lab-pages skill
+   before it pushes: give each session that rule with its step.
 
 ## Resume: "resume the mission", "resume M3", "how is the mission going"
 

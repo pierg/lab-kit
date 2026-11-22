@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import glob, os, re
 
-from . import history, storylines, record as R, runs as runs_, write
+from . import history, pages, storylines, record as R, runs as runs_, write
 
 KEYS = {  # what a card's front matter may hold; a state is never among them
     "goal": {"title", "from", "reached", "dropped", "see"},
@@ -433,6 +433,9 @@ def run(lab, rederive=True):
 
     # storylines: each active storyline's scope lists only what it may
     storylines.check(lab, bad, notes)
+
+    # pages: when the library keeps pages.toml, every page has a kind, quotes its numbers as the cards give them and was passed as it stands
+    pages.check(lab, bad, notes)
 
     # clean: the plans and the store stay out of default searches
     ignore = R.read(f"{root}/.ignore") if os.path.exists(f"{root}/.ignore") else ""
