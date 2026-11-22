@@ -192,6 +192,33 @@ def held_scope(lab):
     return out
 
 
+STEERS = ("holds", "parks", "unparks", "drops", "order", "folds")
+
+
+def steered(lab, ident, versions=None):
+    """How a decision ever steered the research, as git holds it: a key of `STEERS` that any committed version of its
+    card filled, a goal or a question that came out of it, a resource whose amounts it set, a line about it in any
+    committed `log.md` that is not its `decision` line (a mission that carried it). Empty when it never did, or when
+    the lab is not in git."""
+    root, found = lab.root, []
+    if not committed(root):
+        return found
+    versions = held(root, "decisions") if versions is None else versions
+    keys = set()
+    for c, path in versions.get(ident, []):
+        fm, _ = card(git(root, "show", f"{c}:./{path}") or "")
+        keys |= {key for key in STEERS if fm and ids(fm.get(key))}
+    if lab.held["orders"].get(ident):
+        keys.add("order")
+    found += [f"its `{key}:`" for key in STEERS if key in keys]
+    found += [f"{i} came out of it" for i in sorted(i for i, f in lab.held["from"].items() if f == ident)]
+    found += [f"the amounts of {name}" for name in sorted(n for n, froms in lab.held["granted"].items() if ident in froms)]
+    other = "|".join(k for k in R.KINDS if k != "decision")
+    if (git(root, "log", "-1", "--format=%H", "-G", rf"^- ([0-9]{{2}}:[0-9]{{2}} \| )?{ident} \| ({other}) \|", "--", "log.md") or "").strip():
+        found.append("a line about it in log.md other than its decision (a mission that carried it)")
+    return found
+
+
 def decisions(lab, versions=None, now=None):
     """The locked decisions that are no longer as they were when something first acted on them, and the decisions that
     are gone without another decision folding them in while they were still drafts."""
@@ -269,11 +296,9 @@ def decisions(lab, versions=None, now=None):
                         if until is None or R.moment(a[0]) <= until]
                 acted = acts[0][0] if acts else launched(c, ident)
             if ident in struck:  # about how the lab works, and taken out with `lab strike`: only one that never steered the research
-                steered = [key for key in ("holds", "parks", "unparks", "drops", "order", "folds") if fm and ids(fm.get(key))] + (["order"] if lab.held["orders"].get(ident) else [])
-                came = sorted(i for i, f in lab.held["from"].items() if f == ident)
-                if steered or came or acted:
-                    bad(commits[-1][1], f"is struck, and it steered the research ({', '.join(sorted(set(steered)) + came) or 'something acted on it at ' + str(acted)}): "
-                        "only a decision about how the lab works is struck; restore it")
+                why = steered(lab, ident, versions) + ([f"something acted on it at {acted}"] if acted else []) + ([f"it is folded into {into['id']}"] if into else [])
+                if why:
+                    bad(commits[-1][1], f"is struck, and it steered the research ({'; '.join(why)}): only a decision about how the lab works is struck; restore it")
                 continue
             if not into:
                 bad(commits[-1][1], "was committed and is gone; nothing recorded is removed. A draft decision is folded into another with `folds:`. "

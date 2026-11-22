@@ -8,9 +8,9 @@
   request. Method rule 5, the model (section 4), lab-work, lab-talk and lab-mission say so.
 - **`lab strike <decision> "<why>"`** takes a decision about how the lab works out of the record: its file and its
   lines in `log.md` go, and `struck.tsv` (which only grows) says which, when and why. It refuses a decision that
-  steered the research: one with anything under `holds:`, `parks:`, `unparks:`, `drops:`, `order:` or `folds:`, or
-  ever committed with an `order:`; one a goal or a question came out of; one a resource's amounts or a mission rest
-  on; a locked one. `lab check` holds the same against history, and a struck number is never used again.
+  ever steered the research, as git holds it: one whose card lists, or was ever committed listing, anything under
+  `holds:`, `parks:`, `unparks:`, `drops:`, `order:` or `folds:`; one a goal or a question came out of; one a
+  resource's amounts or a mission rest on; a locked one. `lab check` holds the same against history, and a struck number is never used again.
 - Upgrading: run `lab init`. Write the rules of each decision about how the lab works into the lab's AGENTS.md, drop
   the citations of it, and strike it, in one change.
 

@@ -259,6 +259,10 @@ def why_struck(lab, ident):
         return f"{', '.join(carried)} carries {ident}: a decision a mission carried out stays"
     if d.get("locked"):
         return f"something acted on {ident} at {d['acted']}: a locked decision stays"
+    from . import history
+    ever = history.steered(lab, ident)
+    if ever:
+        return f"{ident} steered the research, as the lab's history holds it ({'; '.join(ever)}): it stays"
     return None
 
 

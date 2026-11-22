@@ -275,18 +275,20 @@ not by approving requests.
 
 Both are about the research. How the lab works is neither: its method, its pages and their kinds, its skills, its
 local rules and its tools live in the kit and in the lab's `AGENTS.md`, and change by pull request, with no
-decision and no mission. The record holds what the lab studies and what it found, never how it keeps itself.
+decision and no mission. The record holds what the lab studies and what it found, never how it keeps itself. Which
+storylines the lab builds, and for whom, is direction; how their pages are shaped and kept is how the lab works.
 
 A decision about how the lab works that is already in the record is **struck**: `lab strike <decision> "<why>"`
 removes its file and its lines in `log.md`, and adds a row to `struck.tsv` (`decision`, `title`, `date`, `why`), which
 only grows. The why says where what it settled now lives. Only a decision that never steered the research is
-struck: the command refuses one that lists anything under `holds:`, `parks:`, `unparks:`, `drops:`, `order:` or
-`folds:`, or was ever committed with an `order:`; one that a goal or a question came out of, now or as first
-committed; one whose resource amounts rest on it; one a mission carries; and a locked one. `about:` alone does not
-keep it. A struck number is never used again, and `lab show` on it says when and why it was struck. `lab check`
-holds the same against history: a decision gone from `decisions/` and listed in `struck.tsv` passes only if its
-last committed version steered nothing and nothing acted on it, and its committed lines in `log.md` are the only
-lines that may leave the log.
+struck, now or in any commit: the command refuses one whose card lists, or was ever committed listing, anything
+under `holds:`, `parks:`, `unparks:`, `drops:`, `order:` or `folds:`; one that a goal or a question came out of, now
+or as first committed; one whose resource amounts rest on it, now or once; one a mission carries, or that any
+committed `log.md` has a line about other than its `decision` line; and a locked one. `about:` alone does not keep
+it. A struck number is never used again, and `lab show` on it says when and why it was struck. `lab check` holds the
+same against history: a decision gone from `decisions/` and listed in `struck.tsv` passes only if none of this was
+ever so, nothing acted on it and no decision folded it, and its committed lines in `log.md` are the only lines that
+may leave the log.
 
 **A decision** is how either is settled. The agent opens one when:
 
