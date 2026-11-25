@@ -572,7 +572,9 @@ its command, its value and the seal of the run it reads are kept by their hash, 
 lab (`~/.cache/lab-kit/rederived/`), and the row runs again only when one of them changes. A sealed run
 does not change, so a row that re-derived once re-derives for good. The same holds for what the history
 check searches for: the first commit that records what acted on a decision is kept once found
-(`~/.cache/lab-kit/acted/`), since no later commit can come before it. A fresh machine checks each once. Where the lab has no commit or its repository is a shallow clone, the store
+(`~/.cache/lab-kit/acted/`), since no later commit can come before it. A run's seal is verified once on a
+machine and trusted while every file in it has the size and the time of last change it had then
+(`~/.cache/lab-kit/verified/`): an edit changes both. A fresh machine checks each once, and `lab check --again` checks everything again. Where the lab has no commit or its repository is a shallow clone, the store
 is not mounted, or another library that a card's `see:` points into is not on the machine, the check
 says in a note what it could not check and still passes; with `--strict` that is a failure, which is
 what CI wants.

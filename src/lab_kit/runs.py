@@ -227,6 +227,22 @@ def seal(rdir, record):
     write(rdir, record)
 
 
+def verified_key(folder):
+    """What a sealed run's folder is as this machine last verified it: its seal, and each file's size and time of last
+    change. Reading every file again costs minutes on a networked store; reading when each changed costs seconds, and
+    an edit changes it. None when its record cannot be read."""
+    try:
+        seal = read(folder).get("seal")
+        stats = []
+        for top, _, fs in os.walk(folder):
+            for f in fs:
+                st = os.stat(os.path.join(top, f))
+                stats.append(f"{os.path.relpath(os.path.join(top, f), folder)}:{st.st_size}:{st.st_mtime_ns}")
+    except (OSError, ValueError, AttributeError):
+        return None
+    return R.text_hash(f"{os.path.realpath(folder)}\0{seal}\0" + "\0".join(sorted(stats)))
+
+
 def verify(folder):
     """Why a run's folder does not match its own seal, or None."""
     try:

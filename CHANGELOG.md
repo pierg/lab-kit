@@ -4,8 +4,9 @@
 
 - **What passed is checked once.** A result row that re-derived is kept by a hash of its command, its value and
   the seal of the run it reads, and `lab check` runs it again only when one of them changes. The first commit
-  that records what acted on a decision is kept once found. Both are kept per machine in `~/.cache/lab-kit/`.
-  On proofs-lab this takes `lab check` from about 8 minutes to well under a minute after its first run.
+  that records what acted on a decision is kept once found, and a run's seal is verified once while its files keep the
+  size and time of last change they had. All three are kept per machine in `~/.cache/lab-kit/`; `lab check --again` checks everything
+  again.
 - **An amendment's evidence is kept in the store.** `lab runs close --evidence` copies the evidence beside the run
   as `<run>.evidence/` and records that copy. Where an older amendment's folder is gone, `lab check` reads
   `<run>.evidence/` and checks it against the recorded hashes.

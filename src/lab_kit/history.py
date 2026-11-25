@@ -360,7 +360,7 @@ def _firsts_file(root):
 def _firsts(root):
     """The first commit found to record each act, by a hash of where and what: kept per machine, outside the lab."""
     try:
-        kept = {k: tuple(v) for k, v in json.load(open(_firsts_file(root))).items()}
+        kept = {} if os.environ.get("LAB_CHECK_AGAIN") else {k: tuple(v) for k, v in json.load(open(_firsts_file(root))).items()}
     except (OSError, ValueError, TypeError, AttributeError):
         kept = {}
     return dict(kept), kept

@@ -425,7 +425,7 @@ def rederive(lab, only=None):
     problems, n = [], 0
     limit = lab.cfg.get("rederive_timeout")
     limit = limit if R.amount(limit) and limit > 0 else 120
-    passed, cache = _rederived(lab)
+    passed, was = R.kept("rederived", lab.root)  # rows that printed their value before, by a hash of the command, the value and the run's seal
     for x in lab.experiments:
         if only and x["id"] != only:
             continue
@@ -450,30 +450,8 @@ def rederive(lab, only=None):
                 problems.append(f"results: {row['ref']}: its command prints {got[:40]!r}, the row says {row['value']!r}")
             elif run.get("seal"):
                 passed.add(key)
-    _keep(cache, passed)
+    R.keep("rederived", lab.root, passed, was)
     return problems, n
-
-
-def _rederived(lab):
-    """The result rows that re-derived before, each by a hash of its command, its value and the seal of the run it reads.
-    A sealed run never changes, so a row re-derives again only when one of them does. Kept per machine, outside the lab,
-    like what git holds about decisions: a fresh machine re-derives every row once."""
-    cache = os.path.join(os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache"), "lab-kit", "rederived",
-                         R.text_hash(os.path.realpath(lab.root))[:32] + ".json")
-    try:
-        return set(json.load(open(cache))), cache
-    except (OSError, ValueError, TypeError):
-        return set(), cache
-
-
-def _keep(cache, keys):
-    try:
-        os.makedirs(os.path.dirname(cache), exist_ok=True)
-        with open(cache + ".tmp", "w") as f:
-            json.dump(sorted(keys), f)
-        os.replace(cache + ".tmp", cache)
-    except OSError:
-        pass  # no place to keep it: every row re-derives next time
 
 
 # ---------------------------------------------------------------- missions: carrying out a settled decision
