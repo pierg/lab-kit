@@ -45,7 +45,9 @@ For evidence
   lab review <experiment> plan|results pass|fail "<note>" [--by <who>] [--supersedes <of>]
                                             --supersedes: a results review that passes rows changed after the review
                                             whose `of` it names had passed them; the note says why they changed
-  lab check [--no-rederive] [--strict]      runs every command in results.tsv: only on a lab you trust. --strict fails when
+  lab check [--no-rederive] [--strict] [--again]   runs every command in results.tsv: only on a lab you trust. What
+                                            passed once (a result, a run's seal, a decision's history) is trusted on this
+                                            machine until it changes; --again checks everything again. --strict fails when
                                             history or the store could not be checked, as in CI
 Once
   lab init [<folder>]"""
@@ -238,8 +240,10 @@ def main(argv=None):
             raise SystemExit(USAGE)
         print(f"recorded in {write.review(lab, rest[0], rest[1], rest[2], rest[3], by or None, supersedes if named else None)}")
     elif cmd == "check":
-        if set(rest) - {"--no-rederive", "--strict"}:
+        if set(rest) - {"--no-rederive", "--strict", "--again"}:
             raise SystemExit(USAGE)
+        if "--again" in rest:
+            os.environ["LAB_CHECK_AGAIN"] = "1"  # what this machine checked before counts for nothing: everything is checked again
         problems, notes, unchecked = checks.run(lab, rederive="--no-rederive" not in rest)
         for n in notes:
             print(f"note: {n}")

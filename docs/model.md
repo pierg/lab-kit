@@ -567,7 +567,14 @@ file that is not text) is a problem it reports; no command stops on it.
 
 `lab check` runs the command of every row in every `results.tsv`, as a shell command, each for at
 most `rederive_timeout` seconds (`lab.toml`, 120 unless set). Run it only on a lab you trust, as
-you would its code; `--no-rederive` runs none of them. Where the lab has no commit or its repository is a shallow clone, the store
+you would its code; `--no-rederive` runs none of them. A row that printed its value is checked once:
+its command, its value and the seal of the run it reads are kept by their hash, per machine and outside the
+lab (`~/.cache/lab-kit/rederived/`), and the row runs again only when one of them changes. A sealed run
+does not change, so a row that re-derived once re-derives for good. The same holds for what the history
+check searches for: the first commit that records what acted on a decision is kept once found
+(`~/.cache/lab-kit/acted/`), since no later commit can come before it. A run's seal is verified once on a
+machine and trusted while every file in it has the size and the time of last change it had then
+(`~/.cache/lab-kit/verified/`): an edit changes both. A fresh machine checks each once, and `lab check --again` checks everything again. Where the lab has no commit or its repository is a shallow clone, the store
 is not mounted, or another library that a card's `see:` points into is not on the machine, the check
 says in a note what it could not check and still passes; with `--strict` that is a failure, which is
 what CI wants.
@@ -946,8 +953,11 @@ record itself, for example because it was stopped before its machines' files cam
 `lab runs close <run> "<why>" --used <resource>=<amount>... --evidence <folder>`. The run's folder is
 sealed, every file in it hashed, so nothing is added to it: the amendment is `<run>.amended.json`
 beside the folder in the store, read-only, holding the run's seal, the amounts, why, and the
-evidence the amounts were read from, a folder outside the run's (its path, relative to the store
-when it is in it, and every file in it with its hash), with one seal over it all. Its seal goes into
+evidence the amounts were read from, a folder outside the run's, which the command copies into the store
+beside the run as `<run>.evidence/` (its path, relative to the store, and every file in it with its hash),
+with one seal over it all. An amendment written before 1.19.0 names the folder it was read from; where that
+folder is gone, `lab check` reads `<run>.evidence/` beside the run instead, and its hashes say whether it is
+the same evidence. Its seal goes into
 `runs.tsv` on an amended row. A run is amended at most once, and what it recorded itself stands.
 `lab check` counts the amended amounts as what the run used, and asks that the amendment matches
 its seal, names this run with its seal, is the one `runs.tsv` lists, and that every file of its

@@ -188,6 +188,37 @@ def text_hash(text):
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+def _kept_file(kind, root):
+    return os.path.join(os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache"), "lab-kit", kind,
+                        text_hash(os.path.realpath(root))[:32] + ".json")
+
+
+def kept(kind, root):
+    """What this machine checked before and found sound, of one kind, for one lab: a set of keys, each a hash of what
+    was checked as it was. `lab check --again` (LAB_CHECK_AGAIN) starts from nothing. Returns the set to add to, and
+    the set as read, so it is written back only when it grew."""
+    if os.environ.get("LAB_CHECK_AGAIN"):
+        return set(), None
+    try:
+        found = set(json.load(open(_kept_file(kind, root))))
+    except (OSError, ValueError, TypeError):
+        found = set()
+    return set(found), found
+
+
+def keep(kind, root, keys, was):
+    if keys == was:
+        return
+    path = _kept_file(kind, root)
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path + ".tmp", "w") as f:
+            json.dump(sorted(keys), f)
+        os.replace(path + ".tmp", path)
+    except OSError:
+        pass  # no place to keep it: it is checked again next time
+
+
 def tree_hash(folder, how=HASH, cache=False):
     """One hash over a folder: every file's path and bytes, each preceded by its length, so that no two folders give
     the same hash. The first way (`how` 1: the path, a newline, the bytes) is kept to verify what was made with it.

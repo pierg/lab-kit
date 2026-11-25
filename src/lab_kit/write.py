@@ -425,6 +425,7 @@ def rederive(lab, only=None):
     problems, n = [], 0
     limit = lab.cfg.get("rederive_timeout")
     limit = limit if R.amount(limit) and limit > 0 else 120
+    passed, was = R.kept("rederived", lab.root)  # rows that printed their value before, by a hash of the command, the value and the run's seal
     for x in lab.experiments:
         if only and x["id"] != only:
             continue
@@ -433,6 +434,9 @@ def rederive(lab, only=None):
             if not run or run["missing"] or not row.get("command"):
                 continue
             n += 1
+            key = R.text_hash("\0".join([row["ref"], row["command"], str(row["value"]).strip(), str(run.get("seal") or ""), run["dir"]]))
+            if key in passed:  # it printed its value from this sealed run before, and none of the three has changed since
+                continue
             env = {**os.environ, "RUN": os.path.join(lab.root, run["dir"]), "PYTHONDONTWRITEBYTECODE": "1"}
             try:
                 p = subprocess.run(row["command"], shell=True, cwd=lab.root, capture_output=True, text=True, errors="replace", env=env, timeout=limit)
@@ -444,6 +448,9 @@ def rederive(lab, only=None):
                 problems.append(f"results: {row['ref']}: its command failed: {(p.stderr.strip().splitlines() or ['no output'])[-1][:120]}")
             elif got != str(row["value"]).strip():
                 problems.append(f"results: {row['ref']}: its command prints {got[:40]!r}, the row says {row['value']!r}")
+            elif run.get("seal"):
+                passed.add(key)
+    R.keep("rederived", lab.root, passed, was)
     return problems, n
 
 

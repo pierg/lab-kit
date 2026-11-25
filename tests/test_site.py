@@ -486,3 +486,10 @@ def test_missions_have_a_compact_page_like_decisions_and_a_line_in_the_rail(tmp_
     lab(root, "mission", "close", "M1", "Done for now.")
     page = Provider(root).get("missions").main
     assert "Closed" in page and "Current" not in page and "1 current" not in str(Provider(root).rail())
+
+
+def test_a_paper_cites_a_card_by_its_id(tmp_path):
+    root, ident, d, command = locked(tmp_path)
+    site = Provider(root)
+    assert site.cite(ident) == {"title": site.lab().nodes[ident]["title"], "url": f"/lab/{ident}/"}
+    assert site.cite("G1.Q1")["url"] == "/lab/G1.Q1/" and site.cite("G9.Q9") is None

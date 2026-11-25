@@ -32,6 +32,7 @@ def run(lab, rederive=True):
     if lab.held.get("error"):  # what locks a decision is read from git; without it a lock could be edited away unseen
         bad("history", "git", f"what locks a decision could not be read from the lab's history: {lab.held['error']}")
 
+    verified, kept = R.kept("verified", root)  # the runs whose seal was verified on this machine, as they were then
     elsewhere, others = [], []  # runs runs.tsv lists as started and not ended whose folder is in another checkout's .lab/running
 
     def running_elsewhere():
@@ -286,9 +287,13 @@ def run(lab, rederive=True):
                 bad("runs", where, "did not run under this experiment's lock")
             if r["state"] != "running":
                 if not r["local"] or os.path.isdir(os.path.join(root, r["dir"])):
-                    why = runs_.verify(os.path.join(root, r["dir"]))
-                    if why:
-                        bad("runs", where, why)
+                    key = runs_.verified_key(os.path.join(root, r["dir"]))
+                    if key is None or key not in verified:
+                        why = runs_.verify(os.path.join(root, r["dir"]))
+                        if why:
+                            bad("runs", where, why)
+                        elif key is not None:
+                            verified.add(key)
                 if r.get("amendment") is not None:
                     why = runs_.check_amendment(lab, r, listed)
                     if why:
@@ -456,6 +461,7 @@ def run(lab, rederive=True):
         notes.append(f"{len(waiting)} ended run(s) are still on this machine, not in the store: `lab runs publish`")
     if elsewhere:  # its own checkout checks it; it is held here once runs.tsv says it ended
         notes.append(f"{len(elsewhere)} run(s) still running in another checkout on this machine, checked once they end: {', '.join(elsewhere)}")
+    R.keep("verified", root, verified, kept)
     found, said = history.check(lab)
     said += history.uncommitted(lab)  # not held by git yet: a note, and a failure when the check is strict
     problems += found
