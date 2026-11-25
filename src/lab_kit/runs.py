@@ -424,6 +424,11 @@ def evidence_at(lab, where):
     return where if os.path.isabs(where) else os.path.join(lab.store_root, where)
 
 
+def kept_evidence(lab, run_id):
+    """Where the store keeps a copy of an amendment's evidence: beside the run's folder, never inside it."""
+    return os.path.join(lab.store, run_id + ".evidence")
+
+
 def check_amendment(lab, r, listed):
     """Why the amendment beside an ended run does not stand, or None."""
     a = r.get("amendment")
@@ -450,6 +455,8 @@ def check_amendment(lab, r, listed):
         elif k in corrected:
             return f"its amendment corrects what the run recorded of {k}, and the run recorded none"
     where = evidence_at(lab, str(a["evidence"].get("path") or ""))
+    if not os.path.exists(where) and os.path.isdir(kept_evidence(lab, r["id"])):
+        where = kept_evidence(lab, r["id"])  # the folder it was read from is gone, and the store kept a copy: its hashes say whether it is the same
     if not a["evidence"]["files"] or not os.path.exists(where):
         return f"the evidence of its amendment, {a['evidence'].get('path')}, is not there"
     for p, h in a["evidence"]["files"].items():
@@ -524,8 +531,18 @@ def amend(lab, run_id, why, used, evidence):
         shown = evidence_sum(ev, k)
         if shown is None or abs(shown - used[k]) > 1e-9:
             stop(f"{run_id} recorded {own[k]:g} of {k}: a correction to {used[k]:g} needs evidence whose JSON files (the members' used.json) add up to it" + ("" if shown is None else f"; they add up to {shown:g}"))
+    kept = kept_evidence(lab, run_id)  # a copy beside the run in the store, so the evidence outlives the folder it came from
+    if os.path.lexists(kept):
+        stop(f"{lab.rel(kept)} is already there: an amendment's evidence is never rewritten")
+    if os.path.isfile(ev):
+        os.makedirs(kept)
+        shutil.copy2(ev, os.path.join(kept, os.path.basename(ev)))
+    else:
+        shutil.copytree(ev, kept)
+    if evidence_files(kept) != files:
+        stop(f"the copy of the evidence in {lab.rel(kept)} does not match what was read: nothing was amended")
     store = os.path.realpath(lab.store_root)
-    real = os.path.realpath(ev)
+    real = os.path.realpath(kept)
     where = os.path.relpath(real, store) if real.startswith(store + os.sep) else real
     a = {"run": run_id, "run_seal": r["seal"], "at": now(), "why": " ".join(why.split()), "used": used,
          "evidence": {"path": where, "files": dict(sorted(files.items()))}}

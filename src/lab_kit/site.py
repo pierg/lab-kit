@@ -1574,6 +1574,13 @@ class Provider:
                         "description": g["definition"], "tags": [], "status": "", "text": g["definition"]})
         return out
 
+    def cite(self, ident):
+        """What a paper's `\\fcite{<id>}` of a card names: a goal, a question, a step or a decision, by its id."""
+        lab = self.lab()
+        ident = lab.folded.get(ident, ident)
+        n = lab.nodes.get(ident)
+        return {"title": n["title"], "url": f"/lab/{ident}/"} if n else None
+
     def paths(self):
         lab = self.lab()
         return ["", "decisions", "log", "resources", "glossary"] + [f"log/{k}" for k in L.KINDS] + list(lab.nodes)

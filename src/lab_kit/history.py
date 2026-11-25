@@ -227,6 +227,7 @@ def decisions(lab, versions=None, now=None):
         return problems
     bad = lambda where, what: problems.append(f"history: {where}: {what}")
     struck = {r["decision"] for r in lab.struck}
+    firsts, kept = _firsts(root)
     versions = held(root, "decisions") if versions is None else versions
     now = present(root) if now is None else now
 
@@ -266,13 +267,20 @@ def decisions(lab, versions=None, now=None):
         return None
 
     def first(acts):
-        """The earliest commit, in history's order, that records any of what acted, or None while none does yet."""
+        """The earliest commit, in history's order, that records any of what acted, or None while none does yet.
+        Once found it is kept: no later commit comes before it, so the search through all of history runs once."""
         found = []
         for _, path, text in acts:
             where_ = path if path.startswith("missions/") else path.split("/")[0]  # `log.md`, a mission, or `goals` as a whole: a renamed folder is the same place
+            key = R.text_hash(where_ + "\0" + text)
+            hit = firsts.get(key)
+            if hit and git(root, "merge-base", "--is-ancestor", hit[1], "HEAD") is not None:
+                found.append(tuple(hit))
+                continue
             c = (git(root, "log", "--reverse", "--find-renames", "--format=%H", "-S", text, "--", where_) or "").split()
             if c:
-                found.append((int((git(root, "rev-list", "--count", c[0]) or "0").strip() or 0), c[0]))
+                firsts[key] = (int((git(root, "rev-list", "--count", c[0]) or "0").strip() or 0), c[0])
+                found.append(firsts[key])
         return min(found)[1] if found else None
 
     for where, commits in sorted(versions.items()):
@@ -333,7 +341,29 @@ def decisions(lab, versions=None, now=None):
         was_, is_ = lab.held["from"].get(n["id"]), str(n.get("from"))
         if was_ is not None and was_ != is_ and lab.folded.get(was_) != is_:
             bad(n["path"], f"`from:` was {was_} when first committed and is {is_} now: where a {n['type']} came from does not change, save to the decision that folded the one it named")
+    if firsts != kept:
+        try:
+            os.makedirs(os.path.dirname(_firsts_file(root)), exist_ok=True)
+            with open(_firsts_file(root) + ".tmp", "w") as f:
+                json.dump(firsts, f)
+            os.replace(_firsts_file(root) + ".tmp", _firsts_file(root))
+        except OSError:
+            pass  # no place to keep them: they are searched for again next time
     return problems
+
+
+def _firsts_file(root):
+    return os.path.join(os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache"), "lab-kit", "acted",
+                        R.text_hash(os.path.realpath(root))[:32] + ".json")
+
+
+def _firsts(root):
+    """The first commit found to record each act, by a hash of where and what: kept per machine, outside the lab."""
+    try:
+        kept = {k: tuple(v) for k, v in json.load(open(_firsts_file(root))).items()}
+    except (OSError, ValueError, TypeError, AttributeError):
+        kept = {}
+    return dict(kept), kept
 
 
 def uncommitted(lab):

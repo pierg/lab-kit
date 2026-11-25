@@ -334,16 +334,20 @@ def test_an_ended_run_that_did_not_record_what_it_used_is_amended_beside_its_fol
     assert f"amended: runs/{run_id}.amended.json" in out
     seal = json.load(open(f"{root}/runs/{run_id}/run.json"))["seal"]
     a = json.load(open(f"{root}/runs/{run_id}.amended.json"))
-    assert a["run_seal"] == seal and a["used"] == {"gpu": 0.75} and a["evidence"] == {"path": "recovered", "files": {"helper-1/used.json": a["evidence"]["files"]["helper-1/used.json"]}}
+    assert a["run_seal"] == seal and a["used"] == {"gpu": 0.75} and a["evidence"] == {"path": f"runs/{run_id}.evidence", "files": {"helper-1/used.json": a["evidence"]["files"]["helper-1/used.json"]}}
     assert [r.split("\t")[2] for r in open(f"{d}/runs.tsv").read().splitlines()[1:]] == ["started", "ended", "amended"]
     assert "the record is sound" in lab(root, "check", "--no-rederive")
     assert "used 0.75 hours (stated after it ended" in lab(root, "show", ident) and "gpu: 0.75 of 10 hours used" in lab(root, "now")
     assert "never rewritten" in lab(root, "runs", "close", run_id, "again", "--used", "gpu=1", "--evidence", "recovered", ok=False)
 
     # the evidence, the amendment and its row in runs.tsv hold one another
-    open(f"{root}/recovered/helper-1/used.json", "w").write('{"gpu": 0.5}\n')
+    # the store keeps a copy of the evidence beside the run, so the folder it was read from may go
+    shutil.rmtree(f"{root}/recovered")
+    assert "the evidence of its amendment" not in lab(root, "check", "--no-rederive")
+    kept = f"{root}/runs/{run_id}.evidence/helper-1/used.json"
+    open(kept, "w").write('{"gpu": 0.5}\n')
     assert "the evidence of its amendment changed" in lab(root, "check", "--no-rederive", ok=False)
-    open(f"{root}/recovered/helper-1/used.json", "w").write('{"gpu": 0.75}\n')
+    open(kept, "w").write('{"gpu": 0.75}\n')
     ledger = open(f"{d}/runs.tsv").read()
     open(f"{d}/runs.tsv", "w").write("\n".join(ledger.splitlines()[:-1]) + "\n")
     assert "is not the one runs.tsv lists" in lab(root, "check", "--no-rederive", ok=False)
@@ -389,11 +393,11 @@ def test_an_ended_run_that_over_recorded_what_it_used_is_corrected_downward_from
     assert "used 1.5 hours (corrected from 3)" in lab(root, "runs")
     assert "never rewritten" in lab(root, "runs", "close", run_id, "again", "--used", "gpu=1", "--evidence", "recovered", ok=False)
 
-    # the evidence must stay as it was
-    open(f"{root}/recovered/helper-2/used.json", "w").write('{"gpu": 2}\n')
+    # the evidence the store kept must stay as it was
+    open(f"{root}/runs/{run_id}.evidence/helper-2/used.json", "w").write('{"gpu": 2}\n')
     out = lab(root, "check", "--no-rederive", ok=False)
     assert "the evidence of its amendment changed" in out
-    open(f"{root}/recovered/helper-2/used.json", "w").write('{"gpu": 1}\n')
+    open(f"{root}/runs/{run_id}.evidence/helper-2/used.json", "w").write('{"gpu": 1}\n')
     assert "the record is sound" in lab(root, "check", "--no-rederive")
 
 
@@ -997,3 +1001,40 @@ def test_no_command_stops_on_a_lab_that_is_not_written_as_the_model_says(tmp_pat
             if args == ["check", "--no-rederive"]:
                 assert reported is None or (code != 0) == reported, f"{name}: lab check {'passes' if code == 0 else 'fails'}\n{out[-1500:]}"
                 assert code == 0 or "problem(s)" in out, f"{name}\n{out[-800:]}"
+
+
+def test_a_result_that_re_derived_is_checked_again_only_when_it_changes(tmp_path):
+    root = under(tmp_path, "once")
+    open_question(root)
+    ident, d, command = experiment(root, command=WRITES % "0.5")
+    lab(root, "lock", ident)
+    lab(root, "run", ident, "--wait", "--", *command)
+    done(root, ident, d, "0.5")
+    outside = str(tmp_path / "outside.txt")  # what the command prints, kept outside the sealed run so the test can change it
+    open(outside, "w").write("0.5\n")
+    rows = open(f"{d}/results.tsv").read()
+    open(f"{d}/results.tsv", "w").write(rows.replace("cat $RUN/ratio.txt", f"cat $RUN/ratio.txt >/dev/null && cat {outside}"))
+    lab(root, "review", ident, "results", "pass", "Re-ran the command; it prints the row's value.")
+    assert "the record is sound" in lab(root, "check")
+    # it passed once against this sealed run: the next check trusts it and does not run it again
+    open(outside, "w").write("0.7\n")
+    assert "the record is sound" in lab(root, "check")
+    # a changed value, command or run is run again
+    rows = open(f"{d}/results.tsv").read()
+    open(f"{d}/results.tsv", "w").write(rows.replace("\t0.5\t", "\t0.7\t"))
+    lab(root, "review", ident, "results", "pass", "Re-ran the command; it prints the row's value.")
+    assert "the record is sound" in lab(root, "check")
+    open(outside, "w").write("0.9\n")
+    open(f"{d}/results.tsv", "w").write(rows.replace("\t0.5\t", "\t0.8\t"))
+    assert "its command prints '0.9', the row says '0.8'" in lab(root, "check", ok=False)
+
+
+def test_lab_now_warns_when_the_store_is_not_here(tmp_path):
+    root = under(tmp_path, "nostore")
+    open_question(root)
+    ident, d, command = experiment(root, command=WRITES % "0.5")
+    lab(root, "lock", ident)
+    lab(root, "run", ident, "--wait", "--", *command)
+    assert "the store is not here" not in lab(root, "now")
+    shutil.move(f"{root}/runs", str(tmp_path / "away"))
+    assert "Warning: the store is not here" in lab(root, "now")

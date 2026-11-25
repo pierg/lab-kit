@@ -68,6 +68,8 @@ def resource_line(lab, name):
 
 def _now(lab):
     out = [f"{lab.cfg.get('title', lab.cfg['name'])}"] + [f"Goal {g['id']} ({g['state']}): {g['title']}. {g['description']}" for g in lab.live(lab.goals)]
+    if not os.path.isdir(lab.store) and any(x["runs"] or x["trials"] for x in lab.experiments):
+        out += ["", f"Warning: the store is not here ({lab.store_root}): what the runs used is not read, so every amount used of a resource below is too low"]
     d, last = lab.doing(), lab.last_record()
     out += ["", "Right now, as the operator sees it"]
     out += [f"- on {d['about']} {lab.nodes[d['about']]['title']} since {d['day']} {d['time']}: {d['what']} Why now: {d['so']}"] if d else ["- no `doing` line is open: the site says nobody is on anything. When you start: lab log <id> doing \"<what>\" \"<why now>\""]

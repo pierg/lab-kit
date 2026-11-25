@@ -425,6 +425,7 @@ def rederive(lab, only=None):
     problems, n = [], 0
     limit = lab.cfg.get("rederive_timeout")
     limit = limit if R.amount(limit) and limit > 0 else 120
+    passed, cache = _rederived(lab)
     for x in lab.experiments:
         if only and x["id"] != only:
             continue
@@ -433,6 +434,9 @@ def rederive(lab, only=None):
             if not run or run["missing"] or not row.get("command"):
                 continue
             n += 1
+            key = R.text_hash("\0".join([row["ref"], row["command"], str(row["value"]).strip(), str(run.get("seal") or ""), run["dir"]]))
+            if key in passed:  # it printed its value from this sealed run before, and none of the three has changed since
+                continue
             env = {**os.environ, "RUN": os.path.join(lab.root, run["dir"]), "PYTHONDONTWRITEBYTECODE": "1"}
             try:
                 p = subprocess.run(row["command"], shell=True, cwd=lab.root, capture_output=True, text=True, errors="replace", env=env, timeout=limit)
@@ -444,7 +448,32 @@ def rederive(lab, only=None):
                 problems.append(f"results: {row['ref']}: its command failed: {(p.stderr.strip().splitlines() or ['no output'])[-1][:120]}")
             elif got != str(row["value"]).strip():
                 problems.append(f"results: {row['ref']}: its command prints {got[:40]!r}, the row says {row['value']!r}")
+            elif run.get("seal"):
+                passed.add(key)
+    _keep(cache, passed)
     return problems, n
+
+
+def _rederived(lab):
+    """The result rows that re-derived before, each by a hash of its command, its value and the seal of the run it reads.
+    A sealed run never changes, so a row re-derives again only when one of them does. Kept per machine, outside the lab,
+    like what git holds about decisions: a fresh machine re-derives every row once."""
+    cache = os.path.join(os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache"), "lab-kit", "rederived",
+                         R.text_hash(os.path.realpath(lab.root))[:32] + ".json")
+    try:
+        return set(json.load(open(cache))), cache
+    except (OSError, ValueError, TypeError):
+        return set(), cache
+
+
+def _keep(cache, keys):
+    try:
+        os.makedirs(os.path.dirname(cache), exist_ok=True)
+        with open(cache + ".tmp", "w") as f:
+            json.dump(sorted(keys), f)
+        os.replace(cache + ".tmp", cache)
+    except OSError:
+        pass  # no place to keep it: every row re-derives next time
 
 
 # ---------------------------------------------------------------- missions: carrying out a settled decision

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.19.0
+
+- **What passed is checked once.** A result row that re-derived is kept by a hash of its command, its value and
+  the seal of the run it reads, and `lab check` runs it again only when one of them changes. The first commit
+  that records what acted on a decision is kept once found. Both are kept per machine in `~/.cache/lab-kit/`.
+  On proofs-lab this takes `lab check` from about 8 minutes to well under a minute after its first run.
+- **An amendment's evidence is kept in the store.** `lab runs close --evidence` copies the evidence beside the run
+  as `<run>.evidence/` and records that copy. Where an older amendment's folder is gone, `lab check` reads
+  `<run>.evidence/` and checks it against the recorded hashes.
+- **`lab now` warns when the store is not here.** Without it, what the runs used is not read, so every amount used
+  of a resource is too low; `lab now` now says so at the top.
+
 ## 1.18.0
 
 - **An ended run that over-recorded what it used is corrected downward.** `lab runs close <run> "<why>" --used
